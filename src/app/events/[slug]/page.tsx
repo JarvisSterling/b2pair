@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
@@ -13,9 +14,11 @@ interface PageProps {
 
 export default async function PublicEventPage({ params }: PageProps) {
   const { slug } = await params;
+  const admin = createAdminClient();
   const supabase = await createClient();
 
-  const { data: event } = await supabase
+  // Use admin client for public data (bypasses RLS for unlisted events)
+  const { data: event } = await admin
     .from("events")
     .select("*")
     .eq("slug", slug)
@@ -27,24 +30,24 @@ export default async function PublicEventPage({ params }: PageProps) {
   }
 
   // Get participant types
-  const { data: participantTypes } = await supabase
+  const { data: participantTypes } = await admin
     .from("event_participant_types")
     .select("*")
     .eq("event_id", event.id)
     .order("sort_order");
 
   // Get participant count
-  const { count } = await supabase
+  const { count } = await admin
     .from("participants")
     .select("*", { count: "exact", head: true })
     .eq("event_id", event.id)
     .eq("status", "approved");
 
-  // Get current user's registration status
+  // Get current user's registration status (uses session client)
   const { data: { user } } = await supabase.auth.getUser();
   let isRegistered = false;
   if (user) {
-    const { data: existing } = await supabase
+    const { data: existing } = await admin
       .from("participants")
       .select("id")
       .eq("event_id", event.id)

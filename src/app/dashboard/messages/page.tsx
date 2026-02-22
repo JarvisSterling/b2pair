@@ -1,29 +1,359 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  MessageSquare,
+  Loader2,
+  Send,
+  ArrowLeft,
+} from "lucide-react";
+
+interface Conversation {
+  id: string;
+  event_id: string;
+  last_message_at: string | null;
+  other_person: {
+    participant_id: string;
+    full_name: string;
+    avatar_url: string | null;
+    title: string | null;
+    company_name: string | null;
+  };
+  last_message?: string;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  content_type: string;
+  sender_id: string;
+  created_at: string;
+  is_mine: boolean;
+}
 
 export default function MessagesPage() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConvo, setSelectedConvo] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [myParticipantIds, setMyParticipantIds] = useState<string[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function loadConversations() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: myParticipants } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("user_id", user.id);
+
+    if (!myParticipants) { setLoading(false); return; }
+
+    const ids = myParticipants.map((p) => p.id);
+    setMyParticipantIds(ids);
+
+    const { data: convosA } = await supabase
+      .from("conversations")
+      .select(`
+        id, event_id, last_message_at,
+        participant_b:participants!conversations_participant_b_id_fkey(
+          id, profiles!inner(full_name, avatar_url, title, company_name)
+        )
+      `)
+      .in("participant_a_id", ids)
+      .order("last_message_at", { ascending: false, nullsFirst: false });
+
+    const { data: convosB } = await supabase
+      .from("conversations")
+      .select(`
+        id, event_id, last_message_at,
+        participant_a:participants!conversations_participant_a_id_fkey(
+          id, profiles!inner(full_name, avatar_url, title, company_name)
+        )
+      `)
+      .in("participant_b_id", ids)
+      .order("last_message_at", { ascending: false, nullsFirst: false });
+
+    const combined: Conversation[] = [
+      ...(convosA || []).map((c: any) => ({
+        id: c.id,
+        event_id: c.event_id,
+        last_message_at: c.last_message_at,
+        other_person: {
+          participant_id: c.participant_b?.id,
+          ...c.participant_b?.profiles,
+        },
+      })),
+      ...(convosB || []).map((c: any) => ({
+        id: c.id,
+        event_id: c.event_id,
+        last_message_at: c.last_message_at,
+        other_person: {
+          participant_id: c.participant_a?.id,
+          ...c.participant_a?.profiles,
+        },
+      })),
+    ].sort((a, b) => {
+      if (!a.last_message_at) return 1;
+      if (!b.last_message_at) return -1;
+      return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+    });
+
+    setConversations(combined);
+    setLoading(false);
+  }
+
+  const loadMessages = useCallback(async (convoId: string) => {
+    setLoadingMessages(true);
+    const supabase = createClient();
+
+    const { data } = await supabase
+      .from("messages")
+      .select("id, content, content_type, sender_id, created_at")
+      .eq("conversation_id", convoId)
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      setMessages(
+        data.map((m) => ({
+          ...m,
+          is_mine: myParticipantIds.includes(m.sender_id),
+        }))
+      );
+    }
+    setLoadingMessages(false);
+  }, [myParticipantIds]);
+
+  useEffect(() => {
+    if (!selectedConvo) return;
+    loadMessages(selectedConvo);
+
+    // Subscribe to new messages
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`messages:${selectedConvo}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${selectedConvo}`,
+        },
+        (payload) => {
+          const msg = payload.new as any;
+          setMessages((prev) => [
+            ...prev,
+            {
+              ...msg,
+              is_mine: myParticipantIds.includes(msg.sender_id),
+            },
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedConvo, loadMessages, myParticipantIds]);
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedConvo || myParticipantIds.length === 0) return;
+
+    setSending(true);
+    const supabase = createClient();
+
+    // Find which participant ID to use for this conversation
+    const convo = conversations.find((c) => c.id === selectedConvo);
+    const senderId = myParticipantIds[0]; // Use first available
+
+    await supabase.from("messages").insert({
+      conversation_id: selectedConvo,
+      sender_id: senderId,
+      content: newMessage.trim(),
+      content_type: "text",
+    });
+
+    // Update last_message_at
+    await supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", selectedConvo);
+
+    setNewMessage("");
+    setSending(false);
+  }
+
+  const selectedConversation = conversations.find((c) => c.id === selectedConvo);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-5xl animate-fade-in">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-h1 font-semibold tracking-tight">Messages</h1>
-        <p className="mt-1 text-body text-muted-foreground">
-          Direct conversations with your connections.
-        </p>
       </div>
 
-      <Card>
-        <CardContent className="py-16">
-          <div className="flex flex-col items-center text-center">
-            <MessageSquare className="mb-4 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-body text-muted-foreground">
-              No messages yet.
-            </p>
-            <p className="mt-1 text-caption text-muted-foreground">
-              Start a conversation with one of your matches.
+      <div className="flex gap-4 h-[calc(100vh-220px)] min-h-[400px]">
+        {/* Conversation List */}
+        <div className={`w-80 shrink-0 border border-border rounded-lg overflow-hidden flex flex-col ${selectedConvo ? "hidden lg:flex" : "flex"}`}>
+          <div className="p-3 border-b border-border">
+            <p className="text-caption font-medium text-muted-foreground">
+              {conversations.length} conversations
             </p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex-1 overflow-y-auto">
+            {conversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                <MessageSquare className="mb-3 h-8 w-8 text-muted-foreground/40" />
+                <p className="text-caption text-muted-foreground">No conversations yet</p>
+              </div>
+            ) : (
+              conversations.map((convo) => {
+                const other = convo.other_person;
+                const initials = (other.full_name || "?")
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+
+                return (
+                  <button
+                    key={convo.id}
+                    onClick={() => setSelectedConvo(convo.id)}
+                    className={`w-full flex items-center gap-3 p-3 text-left transition-colors duration-150 ${
+                      selectedConvo === convo.id
+                        ? "bg-primary/5"
+                        : "hover:bg-secondary"
+                    }`}
+                  >
+                    {other.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={other.avatar_url} alt={other.full_name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium shrink-0">
+                        {initials}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body font-medium truncate">{other.full_name}</p>
+                      <p className="text-caption text-muted-foreground truncate">
+                        {other.title || other.company_name || "Participant"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Chat Area */}
+        <div className={`flex-1 border border-border rounded-lg overflow-hidden flex flex-col ${!selectedConvo ? "hidden lg:flex" : "flex"}`}>
+          {selectedConversation ? (
+            <>
+              {/* Chat Header */}
+              <div className="flex items-center gap-3 p-4 border-b border-border">
+                <button
+                  onClick={() => setSelectedConvo(null)}
+                  className="lg:hidden flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:bg-secondary"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <div>
+                  <p className="text-body font-medium">{selectedConversation.other_person.full_name}</p>
+                  <p className="text-caption text-muted-foreground">
+                    {[selectedConversation.other_person.title, selectedConversation.other_person.company_name]
+                      .filter(Boolean)
+                      .join(" at ")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {loadingMessages ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <p className="text-caption text-muted-foreground">No messages yet. Say hello!</p>
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.is_mine ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[70%] rounded-lg px-4 py-2.5 ${
+                          msg.is_mine
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-surface border border-border text-foreground"
+                        }`}
+                      >
+                        <p className="text-body">{msg.content}</p>
+                        <p className={`text-small mt-1 ${msg.is_mine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                          {new Date(msg.created_at).toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <form onSubmit={handleSend} className="p-4 border-t border-border">
+                <div className="flex gap-2">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    disabled={sending}
+                    className="flex-1"
+                  />
+                  <Button type="submit" disabled={!newMessage.trim() || sending} size="icon">
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-6">
+              <MessageSquare className="mb-4 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-body text-muted-foreground">Select a conversation</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

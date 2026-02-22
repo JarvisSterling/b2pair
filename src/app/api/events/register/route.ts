@@ -87,11 +87,7 @@ export async function POST(req: NextRequest) {
     }).eq("id", userId);
 
   } else {
-    // Sign in mode: verify credentials via admin
-    const { data: signInData, error: signInError } =
-      await admin.auth.admin.listUsers();
-
-    // Use the server supabase to sign in (sets session cookie)
+    // Sign in mode
     const supabase = await createClient();
     const { data: session, error: sessionError } =
       await supabase.auth.signInWithPassword({ email, password });
@@ -143,9 +139,20 @@ export async function POST(req: NextRequest) {
     await supabase.auth.signInWithPassword({ email, password });
   }
 
+  // Check if profile needs completion (signin users may have sparse profiles)
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("full_name, title, company_name, industry")
+    .eq("id", userId)
+    .single();
+
+  const needsProfile =
+    !profile?.full_name || !profile?.title || !profile?.company_name;
+
   return NextResponse.json({
     success: true,
     requiresApproval: event.requires_approval,
+    needsProfile,
     userId,
   });
 }

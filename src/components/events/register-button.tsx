@@ -40,6 +40,7 @@ export function RegisterButton({
   const [isLogin, setIsLogin] = useState(false);
   const [registered, setRegistered] = useState(initiallyRegistered);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const [registeredEventId, setRegisteredEventId] = useState(eventId);
   const router = useRouter();
 
   if (registered && step !== "done") {
@@ -118,6 +119,15 @@ export function RegisterButton({
       }
 
       setPendingApproval(data.requiresApproval);
+
+      // If profile is incomplete, redirect to complete-profile with event redirect
+      if (data.needsProfile) {
+        router.push(
+          `/dashboard/complete-profile?redirect=/dashboard/events/${eventId}`
+        );
+        return;
+      }
+
       setStep("done");
     } catch {
       setError("Something went wrong. Please try again.");

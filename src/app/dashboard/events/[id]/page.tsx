@@ -46,15 +46,21 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
 
   if (!myParticipant) notFound();
 
-  // Get my participant type name
+  // Get my participant type name and permissions
   let typeName: string | null = null;
+  let perms = { can_book_meetings: true, can_message: true, can_view_directory: true };
   if (myParticipant.participant_type_id) {
     const { data: pType } = await supabase
       .from("event_participant_types")
-      .select("name, color")
+      .select("name, color, permissions")
       .eq("id", myParticipant.participant_type_id)
       .single();
-    if (pType) typeName = pType.name;
+    if (pType) {
+      typeName = pType.name;
+      if (pType.permissions) {
+        perms = { ...perms, ...pType.permissions };
+      }
+    }
   }
 
   // Fetch stats
@@ -233,35 +239,39 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
           </Card>
         </Link>
 
-        <Link href={`${basePath}/meetings`}>
-          <Card className="group h-full cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150">
-            <CardContent className="pt-6 pb-5">
-              <div className="flex items-center justify-between mb-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-              <h3 className="text-body font-semibold">Schedule meetings</h3>
-              <p className="mt-1 text-caption text-muted-foreground">
-                Book time with your matches and manage your calendar.
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        {perms.can_book_meetings && (
+          <Link href={`${basePath}/meetings`}>
+            <Card className="group h-full cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150">
+              <CardContent className="pt-6 pb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <h3 className="text-body font-semibold">Schedule meetings</h3>
+                <p className="mt-1 text-caption text-muted-foreground">
+                  Book time with your matches and manage your calendar.
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
 
-        <Link href={`${basePath}/directory`}>
-          <Card className="group h-full cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150">
-            <CardContent className="pt-6 pb-5">
-              <div className="flex items-center justify-between mb-2">
-                <Users className="h-5 w-5 text-primary" />
-                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-              <h3 className="text-body font-semibold">Browse directory</h3>
-              <p className="mt-1 text-caption text-muted-foreground">
-                Explore all participants and find people to connect with.
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        {perms.can_view_directory && (
+          <Link href={`${basePath}/directory`}>
+            <Card className="group h-full cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150">
+              <CardContent className="pt-6 pb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <h3 className="text-body font-semibold">Browse directory</h3>
+                <p className="mt-1 text-caption text-muted-foreground">
+                  Explore all participants and find people to connect with.
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
 
       {/* Upcoming meetings */}

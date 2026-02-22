@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
+import { useParticipantPerms } from "@/hooks/use-participant-perms";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ export default function DirectoryPage() {
   const params = useParams();
   const eventId = useEventId();
   const router = useRouter();
+  const perms = useParticipantPerms(eventId);
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -211,23 +213,27 @@ export default function DirectoryPage() {
                   )}
 
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => router.push(`/dashboard/events/${eventId}/messages?to=${entry.id}`)}
-                    >
-                      <MessageSquare className="mr-1 h-3 w-3" />
-                      Message
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => router.push(`/dashboard/events/${eventId}/meetings?request=${entry.id}`)}
-                    >
-                      <Calendar className="mr-1 h-3 w-3" />
-                      Meet
-                    </Button>
+                    {perms.can_message && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => router.push(`/dashboard/events/${eventId}/messages?to=${entry.id}`)}
+                      >
+                        <MessageSquare className="mr-1 h-3 w-3" />
+                        Message
+                      </Button>
+                    )}
+                    {perms.can_book_meetings && (
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => router.push(`/dashboard/events/${eventId}/meetings?request=${entry.id}`)}
+                      >
+                        <Calendar className="mr-1 h-3 w-3" />
+                        Meet
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

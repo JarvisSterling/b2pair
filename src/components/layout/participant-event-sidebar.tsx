@@ -17,12 +17,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-
-interface Permissions {
-  can_book_meetings: boolean;
-  can_message: boolean;
-  can_view_directory: boolean;
-}
+import { useParticipantPerms } from "@/hooks/use-participant-perms";
 
 interface Props {
   eventId: string;
@@ -34,18 +29,12 @@ interface Props {
   };
 }
 
-const DEFAULT_PERMS: Permissions = {
-  can_book_meetings: true,
-  can_message: true,
-  can_view_directory: true,
-};
-
 export function ParticipantEventSidebar({ eventId, profile }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [eventName, setEventName] = useState("Event");
   const [unreadCount, setUnreadCount] = useState(0);
-  const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS);
+  const perms = useParticipantPerms(eventId);
 
   const basePath = `/dashboard/events/${eventId}`;
 
@@ -61,11 +50,8 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         if (data) setEventName(data.name);
       });
 
-    // Load permissions from participant type
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-
-      // Unread message count
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
@@ -73,28 +59,6 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         .eq("read", false)
         .eq("type", "new_message")
         .then(({ count }) => setUnreadCount(count || 0));
-
-      // Get participant type permissions
-      supabase
-        .from("participants")
-        .select("participant_type_id")
-        .eq("event_id", eventId)
-        .eq("user_id", user.id)
-        .single()
-        .then(({ data: participant }) => {
-          if (participant?.participant_type_id) {
-            supabase
-              .from("event_participant_types")
-              .select("permissions")
-              .eq("id", participant.participant_type_id)
-              .single()
-              .then(({ data: pType }) => {
-                if (pType?.permissions) {
-                  setPerms({ ...DEFAULT_PERMS, ...pType.permissions });
-                }
-              });
-          }
-        });
     });
   }, [eventId]);
 

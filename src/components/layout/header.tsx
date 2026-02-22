@@ -26,23 +26,26 @@ interface Profile {
   email: string;
   avatar_url: string | null;
   title: string | null;
+  platform_role: string | null;
 }
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/events", label: "Events", icon: CalendarDays },
-  { href: "/dashboard/matches", label: "Matches", icon: Zap },
-  { href: "/dashboard/meetings", label: "Meetings", icon: Users },
-  { href: "/dashboard/availability", label: "Availability", icon: Clock },
-  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["organizer", "participant"] },
+  { href: "/dashboard/events", label: "Events", icon: CalendarDays, roles: ["organizer", "participant"] },
+  { href: "/dashboard/matches", label: "Matches", icon: Zap, roles: ["participant"] },
+  { href: "/dashboard/meetings", label: "Meetings", icon: Users, roles: ["participant"] },
+  { href: "/dashboard/availability", label: "Availability", icon: Clock, roles: ["participant"] },
+  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare, roles: ["participant"] },
+  { href: "/dashboard/notifications", label: "Notifications", icon: Bell, roles: ["organizer", "participant"] },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings, roles: ["organizer", "participant"] },
 ];
 
 export function Header({ profile }: { profile: Profile }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const role = profile.platform_role || "participant";
+  const filteredNav = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -130,7 +133,7 @@ export function Header({ profile }: { profile: Profile }) {
             </div>
 
             <nav className="px-3 py-4 space-y-1">
-              {NAV_ITEMS.map((item) => {
+              {filteredNav.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 return (

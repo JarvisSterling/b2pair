@@ -28,7 +28,8 @@ Competitors (b2match, Brella, Converve, Grip, Eventdex) charge â‚¬3,000-15,0
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 15, React 19, TypeScript |
-| Styling | TBD (shadcn/ui + Tailwind CSS under consideration) |
+| Styling | shadcn/ui + Tailwind CSS (Apple-inspired neutral design system) |
+| Icons | Lucide React (SF Symbols-like aesthetic) |
 | State | Zustand |
 | Data Fetching | React Query (TanStack Query) |
 | Backend | Next.js API Routes + Supabase Edge Functions |
@@ -431,14 +432,138 @@ Competitors (b2match, Brella, Converve, Grip, Eventdex) charge â‚¬3,000-15,0
 
 ---
 
-## 7. Design Principles
+## 7. Design System
 
-- **Dark glassmorphic UI** with clean, modern aesthetic (specific palette TBD)
-- **Mobile-first responsive** design
+### Philosophy
+Clean, premium, Apple-inspired. Minimal, elegant, and calm. The UI should feel modern, quiet, and intentional, prioritizing clarity and refinement over decoration. Premium feel comes through spacing, typography, and restraint, not through loud colors, heavy shadows, busy layouts, or overdesigned components.
+
+### Color Palette
+Neutral palette built on white, near-white, grays, and near-black.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--background` | `#FFFFFF` | Page background |
+| `--surface` | `#F5F5F7` | Cards, panels, secondary surfaces |
+| `--surface-elevated` | `#FFFFFF` | Modals, popovers, floating elements |
+| `--border` | `rgba(0, 0, 0, 0.06)` | Thin, low-opacity borders |
+| `--border-strong` | `rgba(0, 0, 0, 0.12)` | Active/focus borders |
+| `--text-primary` | `#1D1D1F` | Headings, primary text |
+| `--text-secondary` | `#6E6E73` | Descriptions, secondary labels |
+| `--text-tertiary` | `#86868B` | Placeholders, disabled text |
+| `--accent` | `#0071E3` | Primary actions, links (Apple blue) |
+| `--accent-hover` | `#0077ED` | Hover state for accent |
+| `--success` | `#34C759` | Success states, confirmations |
+| `--warning` | `#FF9F0A` | Warnings, caution states |
+| `--destructive` | `#FF3B30` | Errors, destructive actions |
+
+### Typography
+SF Pro as primary with system font stack fallback.
+
+```css
+font-family: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+```
+
+| Level | Size | Weight | Line Height | Tracking |
+|-------|------|--------|-------------|----------|
+| Display | 34px | 700 | 1.1 | -0.02em |
+| H1 | 28px | 600 | 1.2 | -0.015em |
+| H2 | 22px | 600 | 1.25 | -0.01em |
+| H3 | 17px | 600 | 1.3 | -0.005em |
+| Body | 15px | 400 | 1.5 | 0 |
+| Caption | 13px | 400 | 1.4 | 0.01em |
+| Small | 11px | 500 | 1.3 | 0.02em |
+
+### Border Radius
+Soft rounded corners applied consistently across all elements.
+
+| Element | Radius |
+|---------|--------|
+| Small controls (buttons, inputs, badges) | 10-12px |
+| Cards, panels, containers | 14-18px |
+| Modals, sheets, drawers | 20-24px |
+
+### Shadows & Depth
+Very subtle shadows to create layered depth without heaviness.
+
+```css
+--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+--shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
+--shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.10);
+```
+
+### Glassmorphic Elements
+Used sparingly on headers, sidebars, and floating panels only.
+
+```css
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+```
+
+Readability must always remain high. Never sacrifice legibility for visual effect.
+
+### Motion & Transitions
+Subtle and polished. Quick fades and slight scale/slide transitions. No bouncy or playful effects.
+
+| Transition | Duration | Easing |
+|-----------|----------|--------|
+| Hover states | 150ms | ease-out |
+| Modals / sheets | 200ms | ease-in-out |
+| Page transitions | 250ms | ease-in-out |
+| Micro-interactions | 150ms | ease-out |
+
+Scale transitions should be minimal (0.98 to 1.0 range). Slide transitions should be short (8-12px travel). Opacity transitions from 0 to 1.
+
+### Buttons & Inputs
+Simple, rounded, and refined.
+
+**Buttons:**
+- Soft fill backgrounds (no harsh solid colors)
+- Light borders where appropriate
+- Clear, concise labels
+- Elegant focus states (soft ring, not browser default)
+- Primary: accent fill with white text
+- Secondary: transparent with border
+- Ghost: no background, text only
+
+**Inputs:**
+- Light gray background (#F5F5F7) or white with thin border
+- Generous padding (12-16px)
+- Subtle focus ring (accent color at low opacity)
+- Floating or inset labels
+
+### Icons
+Simple and consistent, SF Symbols-like style. Match the stroke weight and visual weight of the typography. Use a consistent icon set (Lucide recommended for React, closest to SF Symbols aesthetic).
+
+### Layout Principles
+- Spacious with strict alignment
+- Generous padding (24-32px on containers, 16-20px on cards)
+- Plenty of whitespace between sections
+- Content width max 1200px, centered
+- Grid-based alignment (8px grid system)
+- Mobile-first responsive breakpoints
+
+### Component Styling (shadcn/ui Overrides)
+All shadcn components will be restyled to match this design system. Key overrides:
+- Increase border-radius to match our scale
+- Swap color tokens to our neutral palette
+- Adjust padding and spacing for more generous feel
+- Replace default shadows with our subtle variants
+- Update font stack and sizes
+- Soften focus/active states
+
+### Design Principles
+- **Clarity over decoration** (every element earns its place)
 - **Progressive disclosure** (don't overwhelm new users)
 - **Speed as a feature** (every interaction feels instant)
 - **Data-driven decisions** (surface analytics everywhere)
 - **Zero-config smart defaults** (works great out of the box, customizable for power users)
+- **Mobile-first responsive** design
 
 ---
 

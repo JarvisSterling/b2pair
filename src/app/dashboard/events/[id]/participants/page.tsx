@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,6 @@ import {
   Search,
   Check,
   X,
-  Mail,
   Loader2,
   UserPlus,
 } from "lucide-react";
@@ -57,11 +56,7 @@ export default function ParticipantsPage() {
   const [filter, setFilter] = useState<string>("all");
   const [updating, setUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadParticipants();
-  }, [eventId]);
-
-  async function loadParticipants() {
+  const loadParticipants = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase
       .from("participants")
@@ -76,7 +71,11 @@ export default function ParticipantsPage() {
       setParticipants(data as unknown as Participant[]);
     }
     setLoading(false);
-  }
+  }, [eventId]);
+
+  useEffect(() => {
+    loadParticipants();
+  }, [loadParticipants]);
 
   async function updateStatus(participantId: string, status: "approved" | "rejected") {
     setUpdating(participantId);
@@ -198,8 +197,8 @@ export default function ParticipantsPage() {
                 key={participant.id}
                 className="flex items-center gap-4 rounded-md border border-border bg-card p-4 transition-colors duration-150 hover:bg-secondary/30"
               >
-                {/* Avatar */}
                 {profile.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={profile.avatar_url}
                     alt={profile.full_name}
@@ -211,7 +210,6 @@ export default function ParticipantsPage() {
                   </div>
                 )}
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-body font-medium truncate">{profile.full_name}</p>
@@ -224,7 +222,6 @@ export default function ParticipantsPage() {
                   </p>
                 </div>
 
-                {/* Status / Actions */}
                 <div className="flex items-center gap-2 shrink-0">
                   {participant.status === "pending" ? (
                     <>

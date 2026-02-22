@@ -150,12 +150,9 @@ export default async function EventControlPanel({ params }: PageProps) {
               <div className="flex-1 min-w-0">
                 <p className="text-caption font-medium">Registration link</p>
                 <p className="text-sm text-primary truncate">
-                  {typeof window !== "undefined" ? window.location.origin : ""}{eventUrl}
+                  {eventUrl}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => {}}>
-                Copy
-              </Button>
             </div>
           </CardContent>
         </Card>

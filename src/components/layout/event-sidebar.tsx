@@ -38,7 +38,6 @@ const EVENT_NAV = [
   { id: "participants", label: "Participants", icon: Users, path: "/participants" },
   { id: "participant-types", label: "Participant Types", icon: UserCog, path: "/participant-types" },
   { id: "matching", label: "Matching Rules", icon: Zap, path: "/matching" },
-  { id: "matches", label: "Matches", icon: BarChart3, path: "/matches" },
 ];
 
 export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Props) {

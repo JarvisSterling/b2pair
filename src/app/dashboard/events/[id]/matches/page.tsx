@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,6 +44,7 @@ interface MatchEntry {
 
 export default function EventMatchesPage() {
   const eventId = useEventId();
+  const router = useRouter();
   const [matches, setMatches] = useState<MatchEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -249,11 +251,18 @@ export default function EventMatchesPage() {
 
                       {/* Actions */}
                       <div className="flex gap-2 mt-4">
-                        <Button size="sm">
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/events/${eventId}/meetings?request=${match.other_participant?.id}`)}
+                        >
                           <Calendar className="mr-1 h-3 w-3" />
                           Request meeting
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => router.push(`/dashboard/events/${eventId}/messages?to=${match.other_participant?.id}`)}
+                        >
                           <MessageSquare className="mr-1 h-3 w-3" />
                           Message
                         </Button>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,8 @@ const INTENT_LABELS: Record<string, string> = {
 
 export default function DirectoryPage() {
   const params = useParams();
-  const eventId = params.id as string;
+  const eventId = useEventId();
+  const router = useRouter();
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -209,11 +211,20 @@ export default function DirectoryPage() {
                   )}
 
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => router.push(`/dashboard/events/${eventId}/messages?to=${entry.id}`)}
+                    >
                       <MessageSquare className="mr-1 h-3 w-3" />
                       Message
                     </Button>
-                    <Button size="sm" className="flex-1">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => router.push(`/dashboard/events/${eventId}/meetings?request=${entry.id}`)}
+                    >
                       <Calendar className="mr-1 h-3 w-3" />
                       Meet
                     </Button>

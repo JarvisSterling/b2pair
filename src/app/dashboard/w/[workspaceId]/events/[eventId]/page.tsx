@@ -186,15 +186,6 @@ export default async function EventControlPanel({ params }: PageProps) {
           />
         </Link>
 
-        <Link href={`${basePath}/matches`}>
-          <ManageCard
-            icon={<BarChart3 className="h-5 w-5 text-primary" />}
-            title="Matches"
-            description="View generated matches and run the matching engine."
-            badge={matchCount ? `${matchCount} matches` : undefined}
-          />
-        </Link>
-
         <Link href={`${basePath}/configure`}>
           <ManageCard
             icon={<Settings2 className="h-5 w-5 text-primary" />}

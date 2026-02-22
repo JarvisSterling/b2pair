@@ -14,6 +14,11 @@ import {
   X,
   Loader2,
   UserPlus,
+  ExternalLink,
+  Building2,
+  Briefcase,
+  Mail,
+  Globe,
 } from "lucide-react";
 
 interface Participant {
@@ -29,6 +34,10 @@ interface Participant {
     title: string | null;
     company_name: string | null;
     industry: string | null;
+    bio: string | null;
+    linkedin_url: string | null;
+    company_website: string | null;
+    expertise_areas: string[];
   };
 }
 
@@ -54,6 +63,7 @@ export default function ParticipantsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Participant | null>(null);
 
   const loadParticipants = useCallback(async () => {
     const supabase = createClient();
@@ -61,7 +71,7 @@ export default function ParticipantsPage() {
       .from("participants")
       .select(`
         id, role, status, intent, created_at,
-        profiles!inner(full_name, email, avatar_url, title, company_name, industry)
+        profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, linkedin_url, company_website, expertise_areas)
       `)
       .eq("event_id", eventId)
       .order("created_at", { ascending: false });
@@ -194,7 +204,8 @@ export default function ParticipantsPage() {
             return (
               <div
                 key={participant.id}
-                className="flex items-center gap-4 rounded-md border border-border bg-card p-4 transition-colors duration-150 hover:bg-secondary/30"
+                onClick={() => setSelected(participant)}
+                className="flex items-center gap-4 rounded-md border border-border bg-card p-4 transition-colors duration-150 hover:bg-secondary/30 cursor-pointer"
               >
                 {profile.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -256,6 +267,175 @@ export default function ParticipantsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Detail panel */}
+      {selected && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => setSelected(null)}
+          />
+          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l border-border shadow-xl overflow-y-auto animate-fade-in">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-h2 font-semibold">Participant Details</h2>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Profile header */}
+              <div className="flex items-start gap-4 mb-6">
+                {selected.profiles.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selected.profiles.avatar_url}
+                    alt={selected.profiles.full_name}
+                    className="h-16 w-16 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary text-h3 font-medium shrink-0">
+                    {selected.profiles.full_name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-h3 font-semibold">{selected.profiles.full_name}</h3>
+                  {selected.profiles.title && (
+                    <p className="text-body text-muted-foreground">{selected.profiles.title}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant={STATUS_VARIANTS[selected.status] || "secondary"}>
+                      {selected.status}
+                    </Badge>
+                    <Badge variant={ROLE_VARIANTS[selected.role] || "secondary"}>
+                      {selected.role}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              {selected.status === "pending" && (
+                <div className="flex gap-2 mb-6">
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      updateStatus(selected.id, "approved");
+                      setSelected({ ...selected, status: "approved" });
+                    }}
+                    disabled={updating === selected.id}
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      updateStatus(selected.id, "rejected");
+                      setSelected({ ...selected, status: "rejected" });
+                    }}
+                    disabled={updating === selected.id}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Reject
+                  </Button>
+                </div>
+              )}
+
+              {/* Details */}
+              <div className="space-y-4">
+                {selected.profiles.email && (
+                  <div className="flex items-center gap-3 text-body">
+                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <a href={`mailto:${selected.profiles.email}`} className="text-primary hover:underline truncate">
+                      {selected.profiles.email}
+                    </a>
+                  </div>
+                )}
+
+                {selected.profiles.company_name && (
+                  <div className="flex items-center gap-3 text-body">
+                    <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{selected.profiles.company_name}</span>
+                  </div>
+                )}
+
+                {selected.profiles.industry && (
+                  <div className="flex items-center gap-3 text-body">
+                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{selected.profiles.industry}</span>
+                  </div>
+                )}
+
+                {selected.profiles.company_website && (
+                  <div className="flex items-center gap-3 text-body">
+                    <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <a href={selected.profiles.company_website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                      {selected.profiles.company_website}
+                    </a>
+                  </div>
+                )}
+
+                {selected.profiles.linkedin_url && (
+                  <div className="flex items-center gap-3 text-body">
+                    <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <a href={selected.profiles.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                      LinkedIn
+                    </a>
+                  </div>
+                )}
+
+                {selected.profiles.bio && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-caption font-medium mb-1">Bio</p>
+                    <p className="text-body text-muted-foreground">{selected.profiles.bio}</p>
+                  </div>
+                )}
+
+                {selected.profiles.expertise_areas?.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-caption font-medium mb-2">Expertise</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selected.profiles.expertise_areas.map((area) => (
+                        <Badge key={area} variant="outline">{area}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selected.intent && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-caption font-medium mb-1">Intent</p>
+                    <Badge variant="secondary">{selected.intent}</Badge>
+                  </div>
+                )}
+
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-caption font-medium mb-1">Registered</p>
+                  <p className="text-body text-muted-foreground">
+                    {new Date(selected.created_at).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

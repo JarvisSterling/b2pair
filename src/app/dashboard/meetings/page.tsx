@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,8 @@ const STATUS_CONFIG: Record<string, { variant: "default" | "secondary" | "succes
 };
 
 export default function MeetingsPage() {
+  const params = useParams();
+  const eventId = (params.id || params.eventId) as string | undefined;
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -179,7 +182,7 @@ export default function MeetingsPage() {
             {meetings.length} total meetings across all events
           </p>
         </div>
-        <Link href="/dashboard/meetings/calendar">
+        <Link href={eventId ? `/dashboard/events/${eventId}/meetings/calendar` : "/dashboard/meetings/calendar"}>
           <Button variant="outline" className="gap-2">
             <Calendar className="h-4 w-4" />
             Calendar

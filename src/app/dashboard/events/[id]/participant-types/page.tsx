@@ -28,6 +28,7 @@ interface ParticipantType {
     can_book_meetings: boolean;
     can_message: boolean;
     can_view_directory: boolean;
+    requires_approval: boolean;
   };
   max_participants: number | null;
   sort_order: number;
@@ -213,6 +214,7 @@ export default function ParticipantTypesPage() {
                       { key: "can_book_meetings" as const, label: "Meetings" },
                       { key: "can_message" as const, label: "Messages" },
                       { key: "can_view_directory" as const, label: "Directory" },
+                      { key: "requires_approval" as const, label: "Needs Approval" },
                     ].map((perm) => (
                       <button
                         key={perm.key}

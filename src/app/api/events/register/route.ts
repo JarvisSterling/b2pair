@@ -117,11 +117,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Check if per-type approval is required
+  let needsApproval = event.requires_approval;
+  if (participantTypeId) {
+    const { data: pType } = await admin
+      .from("event_participant_types")
+      .select("permissions")
+      .eq("id", participantTypeId)
+      .single();
+    if (pType?.permissions?.requires_approval) {
+      needsApproval = true;
+    }
+  }
+
   // Register as participant
   const { error: insertError } = await admin.from("participants").insert({
     event_id: eventId,
     user_id: userId,
-    status: event.requires_approval ? "pending" : "approved",
+    status: needsApproval ? "pending" : "approved",
     role: "attendee",
     participant_type_id: participantTypeId || null,
   });
@@ -151,7 +164,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    requiresApproval: event.requires_approval,
+    requiresApproval: needsApproval,
     needsProfile,
     userId,
   });

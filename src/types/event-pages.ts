@@ -6,10 +6,12 @@ export type PageType = "home" | "info" | "network_guide" | "faq" | "custom";
 export type ThemeKey = "light-classic" | "dark-modern" | "warm-elegant";
 
 export type BlockType =
+  | "hero"
   | "rich-text"
   | "image"
   | "gallery"
   | "video"
+  | "stats"
   | "faq"
   | "cta"
   | "divider"
@@ -19,6 +21,26 @@ export type BlockType =
 export interface BaseBlock {
   id: string;
   type: BlockType;
+}
+
+export interface HeroBlock extends BaseBlock {
+  type: "hero";
+  title: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  backgroundUrl?: string;
+  overlay?: "none" | "light" | "dark" | "gradient";
+  alignment?: "left" | "center";
+}
+
+export interface StatsBlock extends BaseBlock {
+  type: "stats";
+  title?: string;
+  showParticipants?: boolean;
+  showMeetings?: boolean;
+  showCountries?: boolean;
+  showMessages?: boolean;
 }
 
 export interface RichTextBlock extends BaseBlock {
@@ -68,10 +90,12 @@ export interface SponsorBlock extends BaseBlock {
 }
 
 export type ContentBlock =
+  | HeroBlock
   | RichTextBlock
   | ImageBlock
   | GalleryBlock
   | VideoBlock
+  | StatsBlock
   | FaqBlock
   | CtaBlock
   | DividerBlock

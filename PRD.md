@@ -207,18 +207,58 @@ Competitors (b2match, Brella, Converve, Grip, Eventdex) charge â‚¬3,000-15,0
   - Live polls
   - Session rating
 
-#### 4.8 Event Website Builder
-- Template-based website generator:
-  - Event landing page
-  - Speaker showcase
-  - Agenda page
-  - Registration page
-  - Sponsor logos
-- Custom branding (colors, fonts, logo, favicon)
-- Custom domain support
-- Multi-language support (i18n)
-- SEO optimization
-- Embeddable registration widget
+#### 4.8 Event Page Editor (Drag & Drop)
+Full-screen, visual drag-and-drop page builder for event public pages. Opens as a dedicated experience outside the dashboard shell (no sidebar).
+
+**Editor Layout:**
+- **Left panel:** Block palette (draggable block types) + page/subpage tree
+- **Center canvas:** Live WYSIWYG preview showing exactly what the public page looks like
+- **Right panel:** Properties panel for selected block (content, styling, settings)
+- **Top bar:** Back to dashboard, page selector tabs, preview toggle (desktop/mobile), save/publish
+
+**Block Types:**
+- **Hero:** Full-width banner with title overlay, CTA button, gradient options
+- **Rich Text:** WYSIWYG text editor (headings, lists, bold, italic, links)
+- **Image:** Single image with caption, alt text, click-to-upload
+- **Gallery:** Multi-image grid (2/3/4 columns), lightbox on click
+- **Video:** YouTube/Vimeo embed with title
+- **Stats:** Event statistics (participant count, meetings, countries)
+- **Speakers:** Auto-populated speaker cards from agenda
+- **Sponsors:** Logo grid by tier (auto-populated from sponsor data)
+- **FAQ:** Accordion Q&A pairs
+- **CTA Button:** Configurable button (primary/secondary/outline) with link
+- **Divider:** Visual separator
+- **Agenda Preview:** Condensed agenda pulled from session data
+
+**Drag & Drop:**
+- Drag blocks from palette into canvas to add
+- Drag blocks within canvas to reorder
+- Visual drop indicator showing where block will land
+- Smooth animations on reorder
+
+**Subpages:**
+- Multiple pages per event (Home, Info, Network Guide, FAQ, custom)
+- Add/rename/reorder/delete subpages
+- Per-subpage visibility (public vs registered-only)
+- Hidden pages accessible via direct link only
+
+**Theming:**
+- 3 built-in themes: Light Classic, Dark Modern, Warm Elegant
+- Custom accent color override
+- Hero banner + event logo upload
+- Theme preview updates live in canvas
+
+**SEO:**
+- Per-page meta title and description
+- OG image support
+
+**Technical:**
+- Route: `/dashboard/w/[workspaceId]/events/[eventId]/page-editor`
+- Uses its own layout (opts out of dashboard shell)
+- Content stored as JSONB blocks in `event_pages` table
+- Theme stored in `event_themes` table
+- Images uploaded to Supabase Storage via `/api/events/upload-image`
+- `@dnd-kit/core` + `@dnd-kit/sortable` for drag-and-drop
 
 #### 4.9 Analytics Dashboard (Organizer)
 - Real-time event metrics:

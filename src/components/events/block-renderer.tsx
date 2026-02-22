@@ -23,6 +23,106 @@ export function BlockRenderer({ blocks, className }: BlockRendererProps) {
 
 function RenderBlock({ block }: { block: ContentBlock }) {
   switch (block.type) {
+    case "hero": {
+      const overlayClass =
+        block.overlay === "dark"
+          ? "bg-black/50"
+          : block.overlay === "light"
+          ? "bg-white/40"
+          : block.overlay === "gradient"
+          ? "bg-gradient-to-t from-black/70 to-transparent"
+          : "";
+      return (
+        <div
+          className="relative rounded-2xl overflow-hidden min-h-[280px] flex items-center"
+          style={
+            block.backgroundUrl
+              ? { backgroundImage: `url(${block.backgroundUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : { background: "linear-gradient(135deg, var(--page-accent), var(--page-surface))" }
+          }
+        >
+          {block.overlay !== "none" && (
+            <div className={`absolute inset-0 ${overlayClass}`} />
+          )}
+          <div
+            className={cn(
+              "relative z-10 px-8 py-12 w-full",
+              block.alignment === "center" ? "text-center" : "text-left"
+            )}
+          >
+            <h1
+              className="text-3xl sm:text-4xl font-bold mb-3"
+              style={{ color: block.overlay === "light" ? "var(--page-text)" : "#fff" }}
+            >
+              {block.title}
+            </h1>
+            {block.subtitle && (
+              <p
+                className="text-lg opacity-90 mb-6 max-w-2xl"
+                style={{
+                  color: block.overlay === "light" ? "var(--page-text-secondary)" : "rgba(255,255,255,0.85)",
+                  ...(block.alignment === "center" ? { marginInline: "auto" } : {}),
+                }}
+              >
+                {block.subtitle}
+              </p>
+            )}
+            {block.ctaLabel && (
+              <a href={block.ctaHref || "#"}>
+                <Button
+                  size="lg"
+                  className="px-8"
+                  style={{ backgroundColor: "var(--page-accent)", color: "#fff" }}
+                >
+                  {block.ctaLabel}
+                </Button>
+              </a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    case "stats":
+      return (
+        <div className="py-6">
+          {block.title && (
+            <h3
+              className="text-lg font-semibold text-center mb-6"
+              style={{ color: "var(--page-text)" }}
+            >
+              {block.title}
+            </h3>
+          )}
+          <div className="flex justify-center gap-12 flex-wrap">
+            {block.showParticipants && (
+              <div className="text-center">
+                <p className="text-3xl font-bold" style={{ color: "var(--page-accent)" }}>--</p>
+                <p className="text-sm mt-1" style={{ color: "var(--page-text-secondary)" }}>Participants</p>
+              </div>
+            )}
+            {block.showMeetings && (
+              <div className="text-center">
+                <p className="text-3xl font-bold" style={{ color: "var(--page-accent)" }}>--</p>
+                <p className="text-sm mt-1" style={{ color: "var(--page-text-secondary)" }}>Meetings</p>
+              </div>
+            )}
+            {block.showCountries && (
+              <div className="text-center">
+                <p className="text-3xl font-bold" style={{ color: "var(--page-accent)" }}>--</p>
+                <p className="text-sm mt-1" style={{ color: "var(--page-text-secondary)" }}>Countries</p>
+              </div>
+            )}
+            {block.showMessages && (
+              <div className="text-center">
+                <p className="text-3xl font-bold" style={{ color: "var(--page-accent)" }}>--</p>
+                <p className="text-sm mt-1" style={{ color: "var(--page-text-secondary)" }}>Messages</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
     case "rich-text":
       return (
         <div

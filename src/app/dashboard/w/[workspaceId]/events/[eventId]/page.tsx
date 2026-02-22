@@ -249,7 +249,7 @@ export default async function EventControlPanel({ params }: PageProps) {
           />
         </Link>
 
-        <Link href={`${basePath}/page-editor`}>
+        <Link href={`/editor/${eventId}`}>
           <ManageCard
             icon={<MessageSquare className="h-5 w-5 text-primary" />}
             title="Page Editor"

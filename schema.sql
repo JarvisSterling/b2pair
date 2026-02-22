@@ -625,6 +625,73 @@ create policy "Org admins can manage matching rules"
   );
 
 -- ============================================================
+-- EVENT PAGES & THEMES (Phase 2B)
+-- ============================================================
+
+create table public.event_pages (
+  id uuid primary key default uuid_generate_v4(),
+  event_id uuid references public.events(id) on delete cascade not null,
+  slug text not null,
+  title text not null,
+  page_type text not null check (page_type in ('home', 'info', 'network_guide', 'faq', 'custom')) default 'custom',
+  is_default boolean default false,
+  is_visible boolean default true,
+  sort_order integer default 0,
+  content jsonb default '[]'::jsonb,
+  seo_title text,
+  seo_description text,
+  og_image_url text,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  unique(event_id, slug)
+);
+
+create table public.event_themes (
+  id uuid primary key default uuid_generate_v4(),
+  event_id uuid references public.events(id) on delete cascade not null unique,
+  theme_key text not null default 'light-classic' check (theme_key in ('light-classic', 'dark-modern', 'warm-elegant')),
+  accent_color text,
+  custom_settings jsonb default '{}'::jsonb,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+
+create index idx_event_pages_event on public.event_pages(event_id, sort_order);
+create index idx_event_themes_event on public.event_themes(event_id);
+
+create trigger set_updated_at before update on public.event_pages
+  for each row execute function public.update_updated_at();
+create trigger set_updated_at before update on public.event_themes
+  for each row execute function public.update_updated_at();
+
+alter table public.event_pages enable row level security;
+alter table public.event_themes enable row level security;
+
+create policy "Public can view event pages"
+  on public.event_pages for select
+  using (event_id in (select id from public.events where status in ('published', 'active')));
+
+create policy "Org members can manage event pages"
+  on public.event_pages for all to authenticated
+  using (event_id in (
+    select e.id from public.events e
+    join public.organization_members om on om.organization_id = e.organization_id
+    where om.user_id = auth.uid() and om.role in ('owner', 'admin', 'manager')
+  ));
+
+create policy "Public can view event themes"
+  on public.event_themes for select
+  using (event_id in (select id from public.events where status in ('published', 'active')));
+
+create policy "Org members can manage event themes"
+  on public.event_themes for all to authenticated
+  using (event_id in (
+    select e.id from public.events e
+    join public.organization_members om on om.organization_id = e.organization_id
+    where om.user_id = auth.uid() and om.role in ('owner', 'admin', 'manager')
+  ));
+
+-- ============================================================
 -- REALTIME
 -- ============================================================
 

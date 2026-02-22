@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 
 export default async function DashboardLayout({
   children,
@@ -9,13 +8,9 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/auth/sign-in");
-  }
+  if (!user) redirect("/auth/sign-in");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -23,22 +18,25 @@ export default async function DashboardLayout({
     .eq("id", user.id)
     .single();
 
-  if (!profile?.onboarding_completed) {
-    redirect("/onboarding");
+  if (!profile?.onboarding_completed) redirect("/onboarding");
+
+  // Get workspaces for organizers
+  let workspaces: { id: string; name: string }[] = [];
+  if (profile.platform_role === "organizer") {
+    const { data: memberships } = await supabase
+      .from("organization_members")
+      .select("organization_id, organizations!inner(id, name)")
+      .eq("user_id", user.id);
+
+    workspaces = (memberships || []).map((m: any) => ({
+      id: m.organizations.id,
+      name: m.organizations.name,
+    }));
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
-        Skip to content
-      </a>
-      <Sidebar profile={profile} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header profile={profile} />
-        <main id="main-content" role="main" className="flex-1 overflow-y-auto p-6 lg:p-8">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardShell profile={profile} workspaces={workspaces}>
+      {children}
+    </DashboardShell>
   );
 }

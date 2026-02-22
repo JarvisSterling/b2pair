@@ -12,6 +12,7 @@ import {
   Bell,
   Settings,
   LogOut,
+  User,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
 ];
 
 const BOTTOM_ITEMS = [
+  { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -133,10 +135,11 @@ export function Sidebar({ profile }: { profile: Profile }) {
       {/* Profile */}
       <div className="border-t border-border p-4">
         <Link
-          href="/dashboard/settings"
+          href="/dashboard/profile"
           className="flex items-center gap-3 rounded-sm p-2 hover:bg-secondary transition-colors duration-150"
         >
           {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.avatar_url}
               alt={profile.full_name}

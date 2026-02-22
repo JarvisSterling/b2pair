@@ -65,6 +65,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("read", false)
+        .eq("type", "new_message")
         .then(({ count }) => setUnreadCount(count || 0));
     });
   }, [eventId]);

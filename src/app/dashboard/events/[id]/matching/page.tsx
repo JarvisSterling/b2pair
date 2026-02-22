@@ -6,7 +6,7 @@ import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Save, Loader2, Zap, Check } from "lucide-react";
+import { Save, Loader2, Zap, Check, Sparkles, Brain } from "lucide-react";
 
 interface MatchingRules {
   id: string;
@@ -15,6 +15,7 @@ interface MatchingRules {
   industry_weight: number;
   interest_weight: number;
   complementarity_weight: number;
+  embedding_weight: number;
   minimum_score: number;
   max_recommendations: number;
   exclude_same_company: boolean;
@@ -29,6 +30,9 @@ export default function MatchingRulesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
+  const [embeddingCount, setEmbeddingCount] = useState<number | null>(null);
+  const [embeddingResult, setEmbeddingResult] = useState<string | null>(null);
 
   const loadRules = useCallback(async () => {
     const supabase = createClient();
@@ -37,6 +41,16 @@ export default function MatchingRulesPage() {
       .select("*")
       .eq("event_id", eventId)
       .single();
+
+    // Check existing embedding count
+    const { count: embCount } = await supabase
+      .from("profile_embeddings")
+      .select("id", { count: "exact", head: true })
+      .in(
+        "participant_id",
+        (await supabase.from("participants").select("id").eq("event_id", eventId).eq("status", "approved")).data?.map((p: any) => p.id) || []
+      );
+    setEmbeddingCount(embCount || 0);
 
     if (data) {
       setRules(data as MatchingRules);
@@ -81,6 +95,7 @@ export default function MatchingRulesPage() {
         industry_weight: rules.industry_weight,
         interest_weight: rules.interest_weight,
         complementarity_weight: rules.complementarity_weight,
+        embedding_weight: rules.embedding_weight,
         minimum_score: rules.minimum_score,
         max_recommendations: rules.max_recommendations,
         exclude_same_company: rules.exclude_same_company,
@@ -103,7 +118,7 @@ export default function MatchingRulesPage() {
     );
   }
 
-  const totalWeight = rules.intent_weight + rules.industry_weight + rules.interest_weight + rules.complementarity_weight;
+  const totalWeight = rules.intent_weight + rules.industry_weight + rules.interest_weight + rules.complementarity_weight + rules.embedding_weight;
 
   return (
     <div className="mx-auto max-w-3xl animate-fade-in">
@@ -161,6 +176,13 @@ export default function MatchingRulesPage() {
             value={rules.complementarity_weight}
             onChange={(v) => setRules({ ...rules, complementarity_weight: v })}
           />
+          <WeightSlider
+            label="AI Profile Similarity"
+            description="Deep semantic matching using AI embeddings"
+            value={rules.embedding_weight}
+            onChange={(v) => setRules({ ...rules, embedding_weight: v })}
+            icon={<Brain className="h-4 w-4 text-primary" />}
+          />
 
           <div className="flex items-center justify-between rounded-sm border border-border p-3">
             <p className="text-caption font-medium">Total weight</p>
@@ -207,6 +229,86 @@ export default function MatchingRulesPage() {
         </CardContent>
       </Card>
 
+      {/* AI Embeddings */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            AI Profile Embeddings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-caption text-muted-foreground">
+            Generate AI embeddings from participant profiles to enable deep semantic matching.
+            This analyzes bios, expertise, interests, and intent to find non-obvious connections
+            that rule-based matching might miss.
+          </p>
+
+          <div className="flex items-center justify-between rounded-sm border border-border p-4">
+            <div>
+              <p className="text-body font-medium">Embeddings status</p>
+              <p className="text-caption text-muted-foreground">
+                {embeddingCount === null
+                  ? "Loading..."
+                  : embeddingCount > 0
+                  ? `${embeddingCount} participant embeddings generated`
+                  : "No embeddings generated yet"}
+              </p>
+            </div>
+            {embeddingCount !== null && embeddingCount > 0 && (
+              <span className="flex items-center gap-1.5 text-caption text-success">
+                <Check className="h-4 w-4" /> Active
+              </span>
+            )}
+          </div>
+
+          <Button
+            onClick={async () => {
+              setGeneratingEmbeddings(true);
+              setEmbeddingResult(null);
+              try {
+                const res = await fetch("/api/embeddings/generate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ eventId }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setEmbeddingCount(data.generated);
+                  setEmbeddingResult(`Generated ${data.generated} embeddings (${data.dimensions}D)`);
+                } else {
+                  setEmbeddingResult(`Error: ${data.error}`);
+                }
+              } catch (err) {
+                setEmbeddingResult("Failed to generate embeddings");
+              } finally {
+                setGeneratingEmbeddings(false);
+              }
+            }}
+            disabled={generatingEmbeddings}
+            variant="outline"
+            className="w-full"
+          >
+            {generatingEmbeddings ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            {generatingEmbeddings
+              ? "Generating embeddings..."
+              : embeddingCount && embeddingCount > 0
+              ? "Regenerate embeddings"
+              : "Generate AI embeddings"}
+          </Button>
+
+          {embeddingResult && (
+            <p className={`text-caption ${embeddingResult.startsWith("Error") ? "text-destructive" : "text-success"}`}>
+              {embeddingResult}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Exclusions & Priority */}
       <Card>
         <CardHeader>
@@ -248,17 +350,19 @@ function WeightSlider({
   description,
   value,
   onChange,
+  icon,
 }: {
   label: string;
   description: string;
   value: number;
   onChange: (v: number) => void;
+  icon?: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-body font-medium">{label}</p>
+          <p className="text-body font-medium flex items-center gap-1.5">{icon}{label}</p>
           <p className="text-caption text-muted-foreground">{description}</p>
         </div>
         <span className="text-body font-semibold tabular-nums w-12 text-right">

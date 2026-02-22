@@ -48,19 +48,46 @@ export async function POST(request: Request) {
     .eq("event_id", eventId)
     .single();
 
+  // Fetch embedding similarities (if embeddings exist)
+  const { data: embeddingSims } = await getAdmin()
+    .rpc("get_embedding_similarities", { p_event_id: eventId });
+
+  // Build a lookup map for embedding similarity: "idA|idB" -> similarity
+  const embeddingMap = new Map<string, number>();
+  let hasEmbeddings = false;
+  if (embeddingSims && embeddingSims.length > 0) {
+    hasEmbeddings = true;
+    for (const sim of embeddingSims) {
+      const key = sim.participant_a < sim.participant_b
+        ? `${sim.participant_a}|${sim.participant_b}`
+        : `${sim.participant_b}|${sim.participant_a}`;
+      embeddingMap.set(key, sim.similarity);
+    }
+  }
+
   const weights = {
-    intent: rules?.intent_weight ?? 0.35,
-    industry: rules?.industry_weight ?? 0.25,
-    interest: rules?.interest_weight ?? 0.25,
-    complementarity: rules?.complementarity_weight ?? 0.15,
+    intent: rules?.intent_weight ?? 0.30,
+    industry: rules?.industry_weight ?? 0.20,
+    interest: rules?.interest_weight ?? 0.20,
+    complementarity: rules?.complementarity_weight ?? 0.10,
+    embedding: hasEmbeddings ? (rules?.embedding_weight ?? 0.20) : 0,
   };
 
-  const totalWeight = weights.intent + weights.industry + weights.interest + weights.complementarity;
+  // If no embeddings, redistribute that weight proportionally
+  if (!hasEmbeddings) {
+    weights.intent = rules?.intent_weight ?? 0.35;
+    weights.industry = rules?.industry_weight ?? 0.25;
+    weights.interest = rules?.interest_weight ?? 0.25;
+    weights.complementarity = rules?.complementarity_weight ?? 0.15;
+  }
+
+  const totalWeight = weights.intent + weights.industry + weights.interest + weights.complementarity + weights.embedding;
   const normalized = {
     intent: weights.intent / totalWeight,
     industry: weights.industry / totalWeight,
     interest: weights.interest / totalWeight,
     complementarity: weights.complementarity / totalWeight,
+    embedding: weights.embedding / totalWeight,
   };
 
   const minScore = rules?.minimum_score ?? 40;
@@ -77,6 +104,7 @@ export async function POST(request: Request) {
     industry_score: number;
     interest_score: number;
     complementarity_score: number;
+    embedding_score: number;
     match_reasons: string[];
   }[] = [];
 
@@ -97,16 +125,25 @@ export async function POST(request: Request) {
       const interestScore = computeInterestScore(pA.profiles, pB.profiles);
       const complementarityScore = computeComplementarityScore(pA, pB);
 
+      // Embedding similarity (0-100 scale)
+      let embeddingScore = 50; // neutral default when no embeddings
+      if (hasEmbeddings) {
+        const key = pA.id < pB.id ? `${pA.id}|${pB.id}` : `${pB.id}|${pA.id}`;
+        const sim = embeddingMap.get(key);
+        embeddingScore = sim !== undefined ? Math.round(sim * 100) : 50;
+      }
+
       const totalScore = Math.round(
         (intentScore * normalized.intent +
           industryScore * normalized.industry +
           interestScore * normalized.interest +
-          complementarityScore * normalized.complementarity) * 100
+          complementarityScore * normalized.complementarity +
+          embeddingScore * normalized.embedding) * 100
       ) / 100;
 
       if (totalScore < minScore) continue;
 
-      const reasons = generateReasons(pA, pB, intentScore, industryScore, interestScore);
+      const reasons = generateReasons(pA, pB, intentScore, industryScore, interestScore, embeddingScore, hasEmbeddings);
 
       matches.push({
         event_id: eventId,
@@ -117,6 +154,7 @@ export async function POST(request: Request) {
         industry_score: Math.round(industryScore * 100) / 100,
         interest_score: Math.round(interestScore * 100) / 100,
         complementarity_score: Math.round(complementarityScore * 100) / 100,
+        embedding_score: Math.round(embeddingScore * 100) / 100,
         match_reasons: reasons,
       });
     }
@@ -228,7 +266,7 @@ function computeComplementarityScore(a: any, b: any): number {
   return Math.min(score, 100);
 }
 
-function generateReasons(a: any, b: any, intentScore: number, industryScore: number, interestScore: number): string[] {
+function generateReasons(a: any, b: any, intentScore: number, industryScore: number, interestScore: number, embeddingScore: number = 50, hasEmbeddings: boolean = false): string[] {
   const reasons: string[] = [];
 
   if (intentScore >= 90) {
@@ -251,6 +289,10 @@ function generateReasons(a: any, b: any, intentScore: number, industryScore: num
   );
   if (aExpertiseMatchesBInterests.length > 0) {
     reasons.push(`${a.profiles.full_name} has expertise ${b.profiles.full_name} is interested in`);
+  }
+
+  if (hasEmbeddings && embeddingScore >= 75) {
+    reasons.push("High AI profile similarity");
   }
 
   if (reasons.length === 0) {

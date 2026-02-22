@@ -73,6 +73,7 @@ const COMPANY_SIZES = [
 type StepId = (typeof STEPS)[number]["id"];
 
 interface OnboardingData {
+  platformRole: "organizer" | "participant" | "";
   title: string;
   bio: string;
   companyName: string;
@@ -89,6 +90,7 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<OnboardingData>({
+    platformRole: "",
     title: "",
     bio: "",
     companyName: "",
@@ -117,7 +119,7 @@ export default function OnboardingPage() {
   function canProceed(): boolean {
     switch (STEPS[currentStep].id) {
       case "role":
-        return data.title.length > 0;
+        return data.platformRole.length > 0 && data.title.length > 0;
       case "company":
         return data.companyName.length > 0 && data.industry.length > 0;
       case "interests":
@@ -145,6 +147,7 @@ export default function OnboardingPage() {
     const { error } = await supabase
       .from("profiles")
       .update({
+        platform_role: data.platformRole || "participant",
         title: data.title,
         bio: data.bio,
         company_name: data.companyName,
@@ -298,6 +301,32 @@ function RoleStep({
       </div>
 
       <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-caption font-medium">
+            How will you use B2Pair? <span className="text-destructive">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { value: "organizer" as const, label: "Organizer", desc: "I create and manage events" },
+              { value: "participant" as const, label: "Participant", desc: "I attend events and network" },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => updateData({ platformRole: opt.value })}
+                className={`rounded-lg border p-4 text-left transition-all duration-150 ${
+                  data.platformRole === opt.value
+                    ? "border-primary bg-primary/5 ring-2 ring-ring/20"
+                    : "border-border hover:border-border-strong"
+                }`}
+              >
+                <p className="text-body font-medium">{opt.label}</p>
+                <p className="text-caption text-muted-foreground mt-0.5">{opt.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <label htmlFor="title" className="text-caption font-medium">
             Job title <span className="text-destructive">*</span>

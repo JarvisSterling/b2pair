@@ -17,6 +17,14 @@ export default async function EventsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("platform_role")
+    .eq("id", user!.id)
+    .single();
+
+  const isOrganizer = profile?.platform_role === "organizer";
+
   let events: any[] = [];
 
   if (user) {
@@ -57,12 +65,14 @@ export default async function EventsPage() {
             Manage your events or browse upcoming ones.
           </p>
         </div>
-        <Link href="/dashboard/events/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New event
-          </Button>
-        </Link>
+        {isOrganizer && (
+          <Link href="/dashboard/events/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New event
+            </Button>
+          </Link>
+        )}
       </div>
 
       {events.length === 0 ? (

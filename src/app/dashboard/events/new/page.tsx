@@ -55,6 +55,7 @@ interface EventData {
   primaryColor: string;
   maxParticipants: string;
   requiresApproval: boolean;
+  visibility: "public" | "unlisted";
   meetingDuration: string;
   maxMeetingsPerParticipant: string;
   breakBetweenMeetings: string;
@@ -81,6 +82,7 @@ export default function NewEventPage() {
     primaryColor: "#0071E3",
     maxParticipants: "",
     requiresApproval: false,
+    visibility: "public",
     meetingDuration: "30",
     maxMeetingsPerParticipant: "20",
     breakBetweenMeetings: "5",
@@ -123,6 +125,19 @@ export default function NewEventPage() {
 
     if (!user) {
       router.push("/auth/sign-in");
+      return;
+    }
+
+    // Check if user is organizer
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("platform_role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.platform_role !== "organizer") {
+      setError("Only organizers can create events.");
+      setSaving(false);
       return;
     }
 
@@ -198,6 +213,7 @@ export default function NewEventPage() {
         primary_color: data.primaryColor,
         max_participants: data.maxParticipants ? parseInt(data.maxParticipants) : null,
         requires_approval: data.requiresApproval,
+        visibility: data.visibility,
         meeting_duration_minutes: parseInt(data.meetingDuration),
         max_meetings_per_participant: parseInt(data.maxMeetingsPerParticipant),
         break_between_meetings: parseInt(data.breakBetweenMeetings),
@@ -648,6 +664,31 @@ function SettingsStep({
           value={data.maxParticipants}
           onChange={(e) => updateData({ maxParticipants: e.target.value })}
         />
+      </div>
+
+      {/* Visibility */}
+      <div className="space-y-2">
+        <label className="text-caption font-medium">Event visibility</label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: "public" as const, label: "Public", desc: "Visible in event directory" },
+            { value: "unlisted" as const, label: "Unlisted", desc: "Only accessible via direct link" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => updateData({ visibility: opt.value })}
+              className={`rounded-lg border p-3 text-left transition-all duration-150 ${
+                data.visibility === opt.value
+                  ? "border-primary bg-primary/5 ring-2 ring-ring/20"
+                  : "border-border hover:border-border-strong"
+              }`}
+            >
+              <p className="text-caption font-medium">{opt.label}</p>
+              <p className="text-small text-muted-foreground">{opt.desc}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex items-center justify-between rounded-sm border border-border p-4">

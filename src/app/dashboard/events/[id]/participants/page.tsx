@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,8 +48,7 @@ const ROLE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export default function ParticipantsPage() {
-  const params = useParams();
-  const eventId = params.id as string;
+  const eventId = useEventId();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

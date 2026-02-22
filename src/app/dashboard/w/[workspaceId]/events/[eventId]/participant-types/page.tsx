@@ -1,9 +1,1 @@
-"use client";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
-export default function Page() {
-  const params = useParams();
-  const router = useRouter();
-  useEffect(() => { router.replace("/dashboard/events/" + params.eventId + "/participant-types"); }, [params.eventId, router]);
-  return null;
-}
+export { default } from "@/app/dashboard/events/[id]/participant-types/page";

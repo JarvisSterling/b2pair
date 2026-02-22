@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,8 +47,8 @@ const COLORS = [
 ];
 
 export default function ParticipantTypesPage() {
-  const params = useParams();
-  const eventId = params.id as string;
+  const eventId = useEventId();
+  const router = useRouter();
   const [types, setTypes] = useState<ParticipantType[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -152,12 +153,12 @@ export default function ParticipantTypesPage() {
   return (
     <div className="mx-auto max-w-3xl animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
-        <Link
-          href={`/dashboard/events/${eventId}`}
+        <button
+          onClick={() => router.back()}
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
-        </Link>
+        </button>
         <div className="flex-1">
           <h1 className="text-h2 font-semibold tracking-tight">Participant Types</h1>
           <p className="text-caption text-muted-foreground">

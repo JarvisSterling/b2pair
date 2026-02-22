@@ -27,10 +27,10 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
 
   // Determine context from URL
   const workspaceMatch = pathname.match(/\/dashboard\/w\/([^/]+)/);
-  const eventMatch = pathname.match(/\/dashboard\/w\/([^/]+)\/events\/([^/]+)$/);
+  const eventMatch = pathname.match(/\/dashboard\/w\/([^/]+)\/events\/([^/]+)/);
   const isNewWorkspace = pathname === "/dashboard/w/new";
-  const isWorkspaceRoot = workspaceMatch && !eventMatch && !pathname.endsWith("/events/new");
   const isEventView = eventMatch && eventMatch[2] !== "new";
+  const isWorkspaceRoot = workspaceMatch && !isEventView && !pathname.endsWith("/events/new");
   const isNewEvent = pathname.endsWith("/events/new") && workspaceMatch;
 
   const currentWorkspaceId = workspaceMatch?.[1];

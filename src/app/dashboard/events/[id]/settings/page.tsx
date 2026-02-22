@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +25,8 @@ interface EventSettings {
 }
 
 export default function EventSettingsPage() {
-  const params = useParams();
   const router = useRouter();
-  const eventId = params.id as string;
+  const eventId = useEventId();
   const [event, setEvent] = useState<EventSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,7 +89,7 @@ export default function EventSettingsPage() {
 
     const supabase = createClient();
     await supabase.from("events").delete().eq("id", eventId);
-    router.push("/dashboard/events");
+    router.push("/dashboard");
     router.refresh();
   }
 

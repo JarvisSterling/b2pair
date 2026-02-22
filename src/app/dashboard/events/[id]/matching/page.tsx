@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,7 @@ interface MatchingRules {
 }
 
 export default function MatchingRulesPage() {
-  const params = useParams();
-  const eventId = params.id as string;
+  const eventId = useEventId();
   const [rules, setRules] = useState<MatchingRules | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

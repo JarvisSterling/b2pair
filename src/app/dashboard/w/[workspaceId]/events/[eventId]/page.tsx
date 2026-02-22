@@ -160,7 +160,7 @@ export default async function EventControlPanel({ params }: PageProps) {
 
       {/* Management cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Link href={`/dashboard/events/${eventId}/participants`}>
+        <Link href={`${basePath}/participants`}>
           <ManageCard
             icon={<Users className="h-5 w-5 text-primary" />}
             title="Participants"
@@ -169,7 +169,7 @@ export default async function EventControlPanel({ params }: PageProps) {
           />
         </Link>
 
-        <Link href={`/dashboard/events/${eventId}/participant-types`}>
+        <Link href={`${basePath}/participant-types`}>
           <ManageCard
             icon={<Users className="h-5 w-5 text-primary" />}
             title="Participant Types"
@@ -178,7 +178,7 @@ export default async function EventControlPanel({ params }: PageProps) {
           />
         </Link>
 
-        <Link href={`/dashboard/events/${eventId}/matching`}>
+        <Link href={`${basePath}/matching`}>
           <ManageCard
             icon={<Zap className="h-5 w-5 text-primary" />}
             title="Matching Rules"
@@ -186,7 +186,7 @@ export default async function EventControlPanel({ params }: PageProps) {
           />
         </Link>
 
-        <Link href={`/dashboard/events/${eventId}/matches`}>
+        <Link href={`${basePath}/matches`}>
           <ManageCard
             icon={<BarChart3 className="h-5 w-5 text-primary" />}
             title="Matches"
@@ -195,7 +195,7 @@ export default async function EventControlPanel({ params }: PageProps) {
           />
         </Link>
 
-        <Link href={`/dashboard/events/${eventId}/settings`}>
+        <Link href={`${basePath}/configure`}>
           <ManageCard
             icon={<Settings2 className="h-5 w-5 text-primary" />}
             title="Configuration"
@@ -203,11 +203,11 @@ export default async function EventControlPanel({ params }: PageProps) {
           />
         </Link>
 
-        <Link href={`/dashboard/events/${eventId}/directory`}>
+        <Link href={`${basePath}/page-editor`}>
           <ManageCard
             icon={<MessageSquare className="h-5 w-5 text-primary" />}
-            title="Directory"
-            description="Browse all participant profiles in this event."
+            title="Page Editor"
+            description="Customize your event's public registration page."
           />
         </Link>
       </div>

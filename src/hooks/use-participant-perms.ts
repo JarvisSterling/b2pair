@@ -3,20 +3,29 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-interface Permissions {
+export interface ParticipantPerms {
   can_book_meetings: boolean;
   can_message: boolean;
   can_view_directory: boolean;
+  loaded: boolean;
 }
 
-const DEFAULT_PERMS: Permissions = {
+const INITIAL: ParticipantPerms = {
+  can_book_meetings: false,
+  can_message: false,
+  can_view_directory: false,
+  loaded: false,
+};
+
+const ALL_TRUE: ParticipantPerms = {
   can_book_meetings: true,
   can_message: true,
   can_view_directory: true,
+  loaded: true,
 };
 
-export function useParticipantPerms(eventId: string): Permissions {
-  const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS);
+export function useParticipantPerms(eventId: string): ParticipantPerms {
+  const [perms, setPerms] = useState<ParticipantPerms>(INITIAL);
 
   useEffect(() => {
     if (!eventId) return;
@@ -40,9 +49,14 @@ export function useParticipantPerms(eventId: string): Permissions {
               .single()
               .then(({ data: pType }) => {
                 if (pType?.permissions) {
-                  setPerms({ ...DEFAULT_PERMS, ...pType.permissions });
+                  setPerms({ ...ALL_TRUE, ...pType.permissions, loaded: true });
+                } else {
+                  setPerms(ALL_TRUE);
                 }
               });
+          } else {
+            // No type assigned, all permissions granted
+            setPerms(ALL_TRUE);
           }
         });
     });

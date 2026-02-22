@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { DuplicateEventButton } from "@/components/events/duplicate-button";
+import { PublishEventButton } from "@/components/events/publish-button";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -99,12 +100,7 @@ export default async function EventDetailPage({ params }: PageProps) {
               Settings
             </Button>
           </Link>
-          {event.status === "draft" && (
-            <Button size="sm">
-              <Globe className="mr-2 h-4 w-4" />
-              Publish
-            </Button>
-          )}
+          <PublishEventButton eventId={id} currentStatus={event.status} />
         </div>
       </div>
 

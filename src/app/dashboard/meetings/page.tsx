@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -171,11 +172,19 @@ export default function MeetingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-h1 font-semibold tracking-tight">Meetings</h1>
-        <p className="mt-1 text-body text-muted-foreground">
-          {meetings.length} total meetings across all events
-        </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-h1 font-semibold tracking-tight">Meetings</h1>
+          <p className="mt-1 text-body text-muted-foreground">
+            {meetings.length} total meetings across all events
+          </p>
+        </div>
+        <Link href="/dashboard/meetings/calendar">
+          <Button variant="outline" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Calendar
+          </Button>
+        </Link>
       </div>
 
       {/* Filters */}

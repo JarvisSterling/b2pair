@@ -188,16 +188,16 @@ export default function EventMeetingsPage() {
       ...(asRequester || []).map((m: any) => ({
         ...m,
         is_requester: true,
-        other_person: { id: m.recipient?.id, ...m.recipient?.profiles } || {
-          full_name: "Unknown",
-        },
+        other_person: m.recipient?.profiles
+          ? { id: m.recipient.id, ...m.recipient.profiles }
+          : { id: null, full_name: "Unknown", avatar_url: null, title: null, company_name: null },
       })),
       ...(asRecipient || []).map((m: any) => ({
         ...m,
         is_requester: false,
-        other_person: { id: m.requester?.id, ...m.requester?.profiles } || {
-          full_name: "Unknown",
-        },
+        other_person: m.requester?.profiles
+          ? { id: m.requester.id, ...m.requester.profiles }
+          : { id: null, full_name: "Unknown", avatar_url: null, title: null, company_name: null },
       })),
     ].sort(
       (a, b) =>

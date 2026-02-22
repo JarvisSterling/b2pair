@@ -7,9 +7,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "eemeremqmqsqsxioycka.supabase.co",
-        pathname: "/storage/v1/object/public/**",
+        pathname: "/storage/v1/object/**",
       },
     ],
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "@supabase/supabase-js"],
   },
 };
 

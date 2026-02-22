@@ -279,7 +279,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg animate-fade-in">
+    <div className="mx-auto max-w-lg px-4 sm:px-0 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -334,7 +334,8 @@ export default function DiscoverPage() {
         <button
           onClick={() => handleSwipe("left")}
           disabled={animating}
-          className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-muted-foreground/20 text-muted-foreground transition-all hover:border-red-300 hover:text-red-500 hover:scale-110 active:scale-95 disabled:opacity-50"
+          aria-label="Skip this match"
+          className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-muted-foreground/20 text-muted-foreground transition-all hover:border-red-300 hover:text-red-500 hover:scale-110 active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <X className="h-6 w-6" />
         </button>
@@ -342,7 +343,8 @@ export default function DiscoverPage() {
         <button
           onClick={() => handleSwipe("right")}
           disabled={animating}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-110 active:scale-95 disabled:opacity-50"
+          aria-label="Connect with this match"
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-110 active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Heart className="h-7 w-7" />
         </button>

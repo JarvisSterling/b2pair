@@ -159,7 +159,8 @@ export default function NewEventPage() {
         .single();
 
       if (orgError || !org) {
-        setError("Failed to create organization. Please try again.");
+        console.error("Org creation error:", orgError);
+        setError(`Failed to create organization: ${orgError?.message || "unknown error"}`);
         setSaving(false);
         return;
       }

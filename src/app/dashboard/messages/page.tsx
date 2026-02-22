@@ -68,11 +68,10 @@ export default function MessagesPage() {
 
   // Handle ?to= query param to start conversation
   useEffect(() => {
-    console.log('Messages page - toParticipantId:', toParticipantId, 'conversations:', conversations.length, 'myParticipantIds:', myParticipantIds.length);
+    if (!toParticipantId) return;
     
-    if (!toParticipantId || conversations.length === 0 || !myParticipantIds.length) return;
-    
-    console.log('Looking for existing conversation with participant:', toParticipantId);
+    // If we don't have conversations loaded yet, wait
+    if (!myParticipantIds.length) return;
     
     // Find existing conversation with this participant
     const existingConvo = conversations.find(c => 
@@ -80,43 +79,39 @@ export default function MessagesPage() {
     );
     
     if (existingConvo) {
-      console.log('Found existing conversation:', existingConvo.id);
       setSelectedConvo(existingConvo.id);
       loadMessages(existingConvo.id);
     } else {
-      console.log('Creating new conversation with:', toParticipantId);
-      // Create new conversation
+      // Create new conversation (even if conversations is empty)
       createConversationWith(toParticipantId);
     }
-  }, [conversations, toParticipantId, myParticipantIds]);
+  }, [toParticipantId, myParticipantIds.join(','), conversations.length]);
 
   async function createConversationWith(participantId: string) {
-    console.log('Creating conversation with participant ID:', participantId);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.log('No user found');
-      return;
-    }
+    if (!user) return;
 
-    // Get my participant record for the same event as the target participant
-    const { data: targetParticipant, error: targetError } = await supabase
+    // Get target participant with profile data  
+    const { data: targetParticipant } = await supabase
       .from("participants")
-      .select("event_id, profiles!inner(full_name, avatar_url, title, company_name)")
+      .select(`
+        event_id,
+        profiles!inner(full_name, avatar_url, title, company_name)
+      `)
       .eq("id", participantId)
       .single();
     
-    console.log('Target participant query:', { targetParticipant, targetError });
     if (!targetParticipant) return;
 
-    const { data: myParticipant, error: myError } = await supabase
+    // Get my participant record for the same event
+    const { data: myParticipant } = await supabase
       .from("participants")
       .select("id")
       .eq("event_id", targetParticipant.event_id)
       .eq("user_id", user.id)
       .single();
 
-    console.log('My participant query:', { myParticipant, myError });
     if (!myParticipant) return;
 
     // Create conversation
@@ -138,10 +133,10 @@ export default function MessagesPage() {
         last_message_at: null,
         other_person: {
           participant_id: participantId,
-          full_name: targetParticipant.profiles[0].full_name,
-          avatar_url: targetParticipant.profiles[0].avatar_url,
-          title: targetParticipant.profiles[0].title,
-          company_name: targetParticipant.profiles[0].company_name,
+          full_name: (targetParticipant.profiles as any).full_name,
+          avatar_url: (targetParticipant.profiles as any).avatar_url,
+          title: (targetParticipant.profiles as any).title,
+          company_name: (targetParticipant.profiles as any).company_name,
         }
       };
       

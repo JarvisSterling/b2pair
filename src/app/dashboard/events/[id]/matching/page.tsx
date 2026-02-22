@@ -38,7 +38,30 @@ export default function MatchingRulesPage() {
       .eq("event_id", eventId)
       .single();
 
-    if (data) setRules(data as MatchingRules);
+    if (data) {
+      setRules(data as MatchingRules);
+    } else {
+      // Create default rules
+      const { data: newRules } = await supabase
+        .from("matching_rules")
+        .insert({
+          event_id: eventId,
+          intent_weight: 0.35,
+          industry_weight: 0.25,
+          interest_weight: 0.25,
+          complementarity_weight: 0.15,
+          minimum_score: 0.3,
+          max_recommendations: 20,
+          exclude_same_company: true,
+          exclude_same_role: false,
+          prioritize_sponsors: false,
+          prioritize_vip: false,
+        })
+        .select()
+        .single();
+
+      if (newRules) setRules(newRules as MatchingRules);
+    }
     setLoading(false);
   }, [eventId]);
 

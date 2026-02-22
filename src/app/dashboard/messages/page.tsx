@@ -10,6 +10,9 @@ import {
   Loader2,
   Send,
   ArrowLeft,
+  Paperclip,
+  FileText,
+  Download,
 } from "lucide-react";
 
 interface Conversation {
@@ -33,6 +36,10 @@ interface Message {
   sender_id: string;
   created_at: string;
   is_mine: boolean;
+  file_url?: string;
+  file_name?: string;
+  file_size?: number;
+  file_type?: string;
 }
 
 export default function MessagesPage() {
@@ -43,7 +50,9 @@ export default function MessagesPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [myParticipantIds, setMyParticipantIds] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -126,7 +135,7 @@ export default function MessagesPage() {
 
     const { data } = await supabase
       .from("messages")
-      .select("id, content, content_type, sender_id, created_at")
+      .select("id, content, content_type, sender_id, created_at, file_url, file_name, file_size, file_type")
       .eq("conversation_id", convoId)
       .order("created_at", { ascending: true });
 
@@ -201,6 +210,29 @@ export default function MessagesPage() {
 
     setNewMessage("");
     setSending(false);
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !selectedConvo || myParticipantIds.length === 0) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("conversationId", selectedConvo);
+    formData.append("senderId", myParticipantIds[0]);
+
+    await fetch("/api/messages/upload", { method: "POST", body: formData });
+
+    // Update last_message_at
+    const supabase = createClient();
+    await supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", selectedConvo);
+
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   const selectedConversation = conversations.find((c) => c.id === selectedConvo);
@@ -316,7 +348,31 @@ export default function MessagesPage() {
                             : "bg-surface border border-border text-foreground"
                         }`}
                       >
-                        <p className="text-body">{msg.content}</p>
+                        {msg.file_url && msg.file_type?.startsWith("image/") ? (
+                          <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={msg.file_url} alt={msg.file_name || "Image"} className="max-w-full rounded-md max-h-64 object-cover mb-1" />
+                          </a>
+                        ) : msg.file_url ? (
+                          <a
+                            href={msg.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center gap-2 mb-1 ${msg.is_mine ? "text-primary-foreground" : "text-foreground"}`}
+                          >
+                            <FileText className="h-4 w-4 shrink-0" />
+                            <span className="text-sm underline truncate">{msg.file_name || "File"}</span>
+                            {msg.file_size && (
+                              <span className="text-xs opacity-60 shrink-0">
+                                {(msg.file_size / 1024).toFixed(0)}KB
+                              </span>
+                            )}
+                            <Download className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                          </a>
+                        ) : null}
+                        {(!msg.file_url || msg.content_type === "text") && (
+                          <p className="text-body">{msg.content}</p>
+                        )}
                         <p className={`text-small mt-1 ${msg.is_mine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                           {new Date(msg.created_at).toLocaleTimeString("en-US", {
                             hour: "numeric",
@@ -333,6 +389,23 @@ export default function MessagesPage() {
               {/* Message Input */}
               <form onSubmit={handleSend} className="p-4 border-t border-border">
                 <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="shrink-0"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                  </Button>
                   <Input
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}

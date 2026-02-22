@@ -18,7 +18,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
@@ -26,21 +26,20 @@ export async function updateSession(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
           );
         },
       },
     }
   );
 
-  // Refresh the session. Don't remove this.
+  // Refresh the session. Do not remove this.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   // Redirect unauthenticated users to sign in (except public routes)
-  const publicPaths = ["/", "/auth/sign-in", "/auth/sign-up", "/auth/callback", "/auth/forgot-password"];
-  const isPublicPath = publicPaths.some(
+  const isPublicPath = ["/", "/auth/"].some(
     (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith("/auth/")
   );
 

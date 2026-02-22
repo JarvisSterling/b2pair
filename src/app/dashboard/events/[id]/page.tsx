@@ -180,6 +180,18 @@ export default async function EventDetailPage({ params }: PageProps) {
           </Card>
         </Link>
 
+        <Link href={`/dashboard/events/${id}/participant-types`}>
+          <Card className="group cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150">
+            <CardContent className="pt-6">
+              <Users className="mb-3 h-5 w-5 text-primary" />
+              <h3 className="text-h3 font-semibold">Participant types</h3>
+              <p className="mt-1 text-caption text-muted-foreground">
+                Define roles like Buyer, Seller, Speaker for registration.
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link href={`/dashboard/events/${id}/analytics`}>
           <Card className="group cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150">
             <CardContent className="pt-6">

@@ -23,6 +23,7 @@ interface Props {
 
 export function RegisterButton({
   eventId,
+  eventSlug,
   isRegistered: initiallyRegistered,
   isLoggedIn,
   requiresApproval,
@@ -120,15 +121,16 @@ export function RegisterButton({
 
       setPendingApproval(data.requiresApproval);
 
-      // If profile is incomplete, redirect to complete-profile with event redirect
+      // If profile is incomplete, redirect to complete-profile then confirmation
       if (data.needsProfile) {
         router.push(
-          `/dashboard/complete-profile?redirect=/dashboard/events/${eventId}`
+          `/dashboard/complete-profile?redirect=/events/${eventSlug}/registered`
         );
         return;
       }
 
-      setStep("done");
+      // Redirect to confirmation page
+      router.push(`/events/${eventSlug}/registered`);
     } catch {
       setError("Something went wrong. Please try again.");
     }

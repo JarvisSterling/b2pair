@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { FullScreenEditor } from "@/components/page-editor/full-screen-editor";
 import type { EventPage, EventTheme } from "@/types/event-pages";
 
@@ -12,14 +13,15 @@ interface PageProps {
 export default async function EditorPage({ params }: PageProps) {
   const { eventId } = await params;
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/auth/sign-in");
 
-  // Verify organizer access
-  const { data: event } = await supabase
+  // Fetch event (admin bypasses RLS)
+  const { data: event } = await admin
     .from("events")
     .select("*, organizations!inner(id, name)")
     .eq("id", eventId)
@@ -27,7 +29,8 @@ export default async function EditorPage({ params }: PageProps) {
 
   if (!event) notFound();
 
-  const { data: membership } = await supabase
+  // Verify organizer access
+  const { data: membership } = await admin
     .from("organization_members")
     .select("role")
     .eq("organization_id", event.organization_id)
@@ -38,12 +41,12 @@ export default async function EditorPage({ params }: PageProps) {
 
   // Load pages and theme
   const [pagesRes, themeRes] = await Promise.all([
-    supabase
+    admin
       .from("event_pages")
       .select("*")
       .eq("event_id", eventId)
       .order("sort_order"),
-    supabase
+    admin
       .from("event_themes")
       .select("*")
       .eq("event_id", eventId)

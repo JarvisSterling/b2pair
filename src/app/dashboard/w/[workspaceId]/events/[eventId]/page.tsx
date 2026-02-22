@@ -71,6 +71,33 @@ export default async function EventControlPanel({ params }: PageProps) {
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId);
 
+  // Participant breakdown by type
+  const { data: typeBreakdown } = await supabase
+    .from("event_participant_types")
+    .select("id, name, color")
+    .eq("event_id", eventId)
+    .order("sort_order");
+
+  const breakdownWithCounts = await Promise.all(
+    (typeBreakdown || []).map(async (t: any) => {
+      const { count } = await supabase
+        .from("participants")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("participant_type_id", t.id)
+        .eq("status", "approved");
+      return { ...t, count: count || 0 };
+    })
+  );
+
+  // Count participants with no type assigned
+  const { count: noTypeCount } = await supabase
+    .from("participants")
+    .select("*", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .is("participant_type_id", null)
+    .eq("status", "approved");
+
   const startDate = new Date(event.start_date);
   const endDate = new Date(event.end_date);
   const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -133,13 +160,41 @@ export default async function EventControlPanel({ params }: PageProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-5 mb-8">
+      <div className="grid gap-3 sm:grid-cols-5 mb-6">
         <StatCard label="Participants" value={participantCount || 0} />
         <StatCard label="Pending" value={pendingCount || 0} highlight={(pendingCount || 0) > 0} />
         <StatCard label="Types" value={typeCount || 0} />
         <StatCard label="Matches" value={matchCount || 0} />
         <StatCard label="Meetings" value={meetingCount || 0} />
       </div>
+
+      {/* Participant breakdown by type */}
+      {breakdownWithCounts.length > 0 && (
+        <Card className="mb-8">
+          <CardContent className="pt-5 pb-5">
+            <p className="text-caption font-medium mb-3">Registration breakdown</p>
+            <div className="flex flex-wrap gap-4">
+              {breakdownWithCounts.map((t: any) => (
+                <div key={t.id} className="flex items-center gap-2">
+                  <div
+                    className="h-2.5 w-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: t.color }}
+                  />
+                  <span className="text-caption text-muted-foreground">{t.name}</span>
+                  <span className="text-caption font-semibold">{t.count}</span>
+                </div>
+              ))}
+              {(noTypeCount || 0) > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30 shrink-0" />
+                  <span className="text-caption text-muted-foreground">Unassigned</span>
+                  <span className="text-caption font-semibold">{noTypeCount}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Event link */}
       {event.status !== "draft" && (

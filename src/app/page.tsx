@@ -1,4 +1,4 @@
-import { ArrowRight, Zap, Calendar, Users, MessageSquare, BarChart3, Shield } from "lucide-react";
+import { ArrowRight, Zap, Calendar, Users, MessageSquare, BarChart3, Shield, Globe, UserCog, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -20,7 +20,7 @@ export default function Home() {
             </Link>
             <Link href="/auth/sign-up">
               <Button>
-                Get started
+                Create your event
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -40,25 +40,25 @@ export default function Home() {
           </div>
 
           <h1 className="text-display tracking-tight text-foreground sm:text-[48px] sm:leading-[1.08]">
-            Connect the right people
+            Turn your events into
             <br />
-            at your business events
+            high-value connections
           </h1>
 
           <p className="mt-6 text-body text-muted-foreground leading-relaxed max-w-xl mx-auto sm:text-[17px]">
-            AI-powered matchmaking that understands what your attendees need
-            and connects them with the people who matter most. More meetings,
-            better connections, measurable ROI.
+            The AI-powered matchmaking platform for event organizers.
+            Create your event, share the link, and let our algorithm
+            connect the right people automatically.
           </p>
 
           <div className="mt-10 flex items-center justify-center gap-4">
             <Link href="/auth/sign-up">
               <Button size="lg" className="text-[15px] h-12 px-8">
-                Start for free
+                Create your first event
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="#features">
+            <Link href="#how-it-works">
               <Button variant="secondary" size="lg" className="text-[15px] h-12 px-8">
                 See how it works
               </Button>
@@ -66,7 +66,7 @@ export default function Home() {
           </div>
 
           <p className="mt-4 text-caption text-muted-foreground">
-            Free for events up to 50 participants. No credit card required.
+            Free to start. No credit card required.
           </p>
         </div>
       </section>
@@ -86,85 +86,118 @@ export default function Home() {
           <div className="h-8 w-px bg-border" />
           <div>
             <p className="text-h1 font-semibold tracking-tight">2min</p>
-            <p className="text-caption text-muted-foreground">Average setup time</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="py-20 px-6">
-        <div className="mx-auto max-w-5xl">
-          <div className="text-center mb-16 animate-slide-up">
-            <h2 className="text-h1 font-semibold tracking-tight sm:text-display">
-              Everything you need for
-              <br />
-              meaningful connections
-            </h2>
-            <p className="mt-4 text-body text-muted-foreground max-w-lg mx-auto">
-              From AI matching to meeting scheduling, B2Pair handles the entire
-              networking experience so you can focus on what matters.
-            </p>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <FeatureCard
-              icon={<Zap className="h-5 w-5" />}
-              title="AI Matchmaking"
-              description="Multi-factor scoring algorithm that matches attendees based on intent, industry, expertise, and complementarity."
-            />
-            <FeatureCard
-              icon={<Calendar className="h-5 w-5" />}
-              title="Smart Scheduling"
-              description="One-click meeting requests with availability management, conflict detection, and automated reminders."
-            />
-            <FeatureCard
-              icon={<Users className="h-5 w-5" />}
-              title="Participant Directory"
-              description="Searchable directory with rich profiles, expertise tags, and quick actions to connect."
-            />
-            <FeatureCard
-              icon={<MessageSquare className="h-5 w-5" />}
-              title="Real-time Messaging"
-              description="In-app chat between matched participants with instant delivery and conversation history."
-            />
-            <FeatureCard
-              icon={<BarChart3 className="h-5 w-5" />}
-              title="Analytics Dashboard"
-              description="Track engagement, meeting completion rates, match effectiveness, and attendee satisfaction."
-            />
-            <FeatureCard
-              icon={<Shield className="h-5 w-5" />}
-              title="Organizer Control"
-              description="Full control over matching rules, registration approval, participant management, and event settings."
-            />
+            <p className="text-caption text-muted-foreground">Event setup time</p>
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section className="py-20 px-6 bg-surface">
+      <section id="how-it-works" className="py-20 px-6 bg-surface">
         <div className="mx-auto max-w-4xl">
           <div className="text-center mb-16">
             <h2 className="text-h1 font-semibold tracking-tight sm:text-display">
-              How it works
+              Three steps to better events
             </h2>
+            <p className="mt-4 text-body text-muted-foreground max-w-lg mx-auto">
+              Set up in minutes. Your participants do the rest.
+            </p>
           </div>
 
           <div className="grid gap-8 sm:grid-cols-3">
             <StepCard
               step="1"
               title="Create your event"
-              description="Set up your event in minutes. Configure matching rules, branding, and registration settings."
+              description="Set up your event page, define participant types (Buyer, Seller, Speaker), and configure matching rules."
             />
             <StepCard
               step="2"
-              title="Invite participants"
-              description="Share your event link. Attendees register and complete their profile with interests and goals."
+              title="Share the link"
+              description="Participants register through your event page. They pick their role, create a profile, and they're in."
             />
             <StepCard
               step="3"
-              title="Let AI connect them"
-              description="Our algorithm generates personalized match recommendations. Participants schedule meetings with one click."
+              title="AI does the matching"
+              description="Our algorithm scores every participant pair and recommends the most valuable connections. They schedule meetings with one click."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* For Organizers */}
+      <section className="py-20 px-6">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-16 animate-slide-up">
+            <h2 className="text-h1 font-semibold tracking-tight sm:text-display">
+              Built for event organizers
+            </h2>
+            <p className="mt-4 text-body text-muted-foreground max-w-lg mx-auto">
+              Everything you need to run B2B matchmaking events, from
+              registration to post-event analytics.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <FeatureCard
+              icon={<Globe className="h-5 w-5" />}
+              title="Custom Event Pages"
+              description="Beautiful registration pages with your event details, participant types, and custom sections. Share one link."
+            />
+            <FeatureCard
+              icon={<UserCog className="h-5 w-5" />}
+              title="Flexible Participant Types"
+              description="Define custom roles like Buyer, Seller, Speaker, Sponsor. Each with their own permissions and approval settings."
+            />
+            <FeatureCard
+              icon={<Zap className="h-5 w-5" />}
+              title="AI Matchmaking Engine"
+              description="Multi-factor scoring based on intent, industry, expertise, and complementarity. Configurable weights and filters."
+            />
+            <FeatureCard
+              icon={<Calendar className="h-5 w-5" />}
+              title="Meeting Scheduling"
+              description="Participants set availability and book meetings with one click. Auto-scheduling, reminders, and conflict detection."
+            />
+            <FeatureCard
+              icon={<Users className="h-5 w-5" />}
+              title="Participant Management"
+              description="Approve registrations, view profiles, track engagement. Full control over who attends and how they connect."
+            />
+            <FeatureCard
+              icon={<BarChart3 className="h-5 w-5" />}
+              title="Event Analytics"
+              description="Track registrations, match rates, meetings scheduled, and participant satisfaction. Prove event ROI."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* For Participants */}
+      <section className="py-20 px-6 bg-surface">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <h2 className="text-h1 font-semibold tracking-tight sm:text-display">
+              Your participants will love it
+            </h2>
+            <p className="mt-4 text-body text-muted-foreground max-w-lg mx-auto">
+              A smooth, modern experience that makes networking feel effortless.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <FeatureCard
+              icon={<Zap className="h-5 w-5" />}
+              title="Smart Recommendations"
+              description="AI-powered match suggestions with explanations. Swipe through recommendations or browse the full directory."
+            />
+            <FeatureCard
+              icon={<MessageSquare className="h-5 w-5" />}
+              title="In-app Messaging"
+              description="Chat with matches before the event. Share files, exchange contacts, and prepare for productive meetings."
+            />
+            <FeatureCard
+              icon={<Shield className="h-5 w-5" />}
+              title="Privacy Controls"
+              description="Participants control what's visible on their profile. Email, phone, company details, all configurable."
             />
           </div>
         </div>
@@ -174,15 +207,16 @@ export default function Home() {
       <section className="py-20 px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-h1 font-semibold tracking-tight sm:text-display">
-            Ready to transform your events?
+            Ready to run smarter events?
           </h2>
           <p className="mt-4 text-body text-muted-foreground">
-            Create your first event in under 2 minutes. Free for up to 50 participants.
+            Create your first event in under 2 minutes. Your participants register
+            through your custom event page. The AI handles the rest.
           </p>
           <div className="mt-8">
             <Link href="/auth/sign-up">
               <Button size="lg" className="text-[15px] h-12 px-8">
-                Get started for free
+                Create your first event
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

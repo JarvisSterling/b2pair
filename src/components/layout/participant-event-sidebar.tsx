@@ -18,6 +18,12 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
+interface Permissions {
+  can_book_meetings: boolean;
+  can_message: boolean;
+  can_view_directory: boolean;
+}
+
 interface Props {
   eventId: string;
   profile: {
@@ -28,20 +34,18 @@ interface Props {
   };
 }
 
-const EVENT_NAV = [
-  { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "" },
-  { id: "matches", label: "Matches", icon: Zap, path: "/matches" },
-  { id: "meetings", label: "Meetings", icon: Users, path: "/meetings" },
-  { id: "messages", label: "Messages", icon: MessageSquare, path: "/messages" },
-  { id: "directory", label: "Directory", icon: Search, path: "/directory" },
-  { id: "availability", label: "Availability", icon: Clock, path: "/availability" },
-];
+const DEFAULT_PERMS: Permissions = {
+  can_book_meetings: true,
+  can_message: true,
+  can_view_directory: true,
+};
 
 export function ParticipantEventSidebar({ eventId, profile }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [eventName, setEventName] = useState("Event");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS);
 
   const basePath = `/dashboard/events/${eventId}`;
 
@@ -57,9 +61,11 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         if (data) setEventName(data.name);
       });
 
-    // Unread message count
+    // Load permissions from participant type
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
+
+      // Unread message count
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
@@ -67,6 +73,28 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         .eq("read", false)
         .eq("type", "new_message")
         .then(({ count }) => setUnreadCount(count || 0));
+
+      // Get participant type permissions
+      supabase
+        .from("participants")
+        .select("participant_type_id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data: participant }) => {
+          if (participant?.participant_type_id) {
+            supabase
+              .from("event_participant_types")
+              .select("permissions")
+              .eq("id", participant.participant_type_id)
+              .single()
+              .then(({ data: pType }) => {
+                if (pType?.permissions) {
+                  setPerms({ ...DEFAULT_PERMS, ...pType.permissions });
+                }
+              });
+          }
+        });
     });
   }, [eventId]);
 
@@ -113,32 +141,41 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-0.5">
-        {EVENT_NAV.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path);
+        {[
+          { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "", show: true },
+          { id: "matches", label: "Matches", icon: Zap, path: "/matches", show: true },
+          { id: "meetings", label: "Meetings", icon: Users, path: "/meetings", show: perms.can_book_meetings },
+          { id: "messages", label: "Messages", icon: MessageSquare, path: "/messages", show: perms.can_message },
+          { id: "directory", label: "Directory", icon: Search, path: "/directory", show: perms.can_view_directory },
+          { id: "availability", label: "Availability", icon: Clock, path: "/availability", show: perms.can_book_meetings },
+        ]
+          .filter((item) => item.show)
+          .map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
 
-          return (
-            <Link
-              key={item.id}
-              href={basePath + item.path}
-              className={cn(
-                "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
-                "transition-all duration-150 ease-out",
-                active
-                  ? "bg-primary/5 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              )}
-            >
-              <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
-              {item.label}
-              {item.id === "messages" && unreadCount > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.id}
+                href={basePath + item.path}
+                className={cn(
+                  "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                  "transition-all duration-150 ease-out",
+                  active
+                    ? "bg-primary/5 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+                {item.label}
+                {item.id === "messages" && unreadCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
       </nav>
 
       {/* Profile / Sign out */}

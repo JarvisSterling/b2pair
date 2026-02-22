@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,18 +13,22 @@ interface Props {
   isRegistered: boolean;
   isLoggedIn: boolean;
   requiresApproval: boolean;
-  participantTypes: { id: string; name: string; color: string; description: string }[];
+  participantTypes: {
+    id: string;
+    name: string;
+    color: string;
+    description: string;
+  }[];
 }
 
 export function RegisterButton({
   eventId,
-  eventSlug,
-  isRegistered,
+  isRegistered: initiallyRegistered,
   isLoggedIn,
   requiresApproval,
   participantTypes,
 }: Props) {
-  const [step, setStep] = useState<"idle" | "type" | "auth" | "profile" | "done">("idle");
+  const [step, setStep] = useState<"idle" | "type" | "auth" | "done">("idle");
   const [selectedType, setSelectedType] = useState<string>("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,153 +38,135 @@ export function RegisterButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLogin, setIsLogin] = useState(false);
+  const [registered, setRegistered] = useState(initiallyRegistered);
+  const [pendingApproval, setPendingApproval] = useState(false);
   const router = useRouter();
 
-  if (isRegistered) {
+  if (registered && step !== "done") {
     return (
-      <Button size="lg" disabled className="gap-2 text-base px-8">
-        <Check className="h-5 w-5" />
-        Already Registered
-      </Button>
+      <div className="space-y-3">
+        <Button size="lg" disabled className="gap-2 text-base px-8">
+          <Check className="h-5 w-5" />
+          Already Registered
+        </Button>
+        <div>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard")}
+            className="text-white border-white/20 hover:bg-white/10"
+          >
+            Go to Dashboard
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     );
   }
 
-  async function handleRegister() {
-    if (step === "idle") {
-      if (participantTypes.length > 0) {
-        setStep("type");
-      } else if (!isLoggedIn) {
-        setStep("auth");
-      } else {
-        await completeRegistration();
-      }
-      return;
-    }
-
-    if (step === "type") {
-      if (!selectedType && participantTypes.length > 0) return;
-      if (!isLoggedIn) {
-        setStep("auth");
-      } else {
-        await completeRegistration();
-      }
-      return;
-    }
-
-    if (step === "auth") {
-      setLoading(true);
-      setError(null);
-      const supabase = createClient();
-
-      if (isLogin) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInError) {
-          setError(signInError.message);
-          setLoading(false);
-          return;
-        }
-        setStep("profile");
-        setLoading(false);
-        // Check if profile exists
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, onboarding_completed")
-            .eq("id", user.id)
-            .single();
-          if (profile?.onboarding_completed) {
-            await completeRegistration();
-            return;
-          }
-        }
-      } else {
-        if (!fullName.trim()) {
-          setError("Full name is required");
-          setLoading(false);
-          return;
-        }
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName },
-          },
-        });
-        if (signUpError) {
-          setError(signUpError.message);
-          setLoading(false);
-          return;
-        }
-        // Update profile
-        if (signUpData.user) {
-          await supabase.from("profiles").update({
-            full_name: fullName,
-            title: title || null,
-            company_name: companyName || null,
-            platform_role: "participant",
-            onboarding_completed: true,
-          }).eq("id", signUpData.user.id);
-        }
-        setLoading(false);
-        await completeRegistration();
-      }
-      return;
-    }
-
-    if (step === "profile") {
-      await completeRegistration();
+  function handleStart() {
+    if (participantTypes.length > 0) {
+      setStep("type");
+    } else if (isLoggedIn) {
+      submitRegistration("signin", "", "");
+    } else {
+      setStep("auth");
     }
   }
 
-  async function completeRegistration() {
+  function handleTypeSelected() {
+    if (!selectedType && participantTypes.length > 0) return;
+    if (isLoggedIn) {
+      submitRegistration("signin", "", "");
+    } else {
+      setStep("auth");
+    }
+  }
+
+  async function submitRegistration(
+    mode: "signup" | "signin",
+    emailOverride?: string,
+    passwordOverride?: string
+  ) {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      setError("Please sign in first");
-      setLoading(false);
-      return;
-    }
+    try {
+      const res = await fetch("/api/events/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          participantTypeId: selectedType || null,
+          mode,
+          email: emailOverride || email,
+          password: passwordOverride || password,
+          fullName: fullName.trim(),
+          title: title.trim(),
+          companyName: companyName.trim(),
+        }),
+      });
 
-    const { error: insertError } = await supabase.from("participants").insert({
-      event_id: eventId,
-      user_id: user.id,
-      status: requiresApproval ? "pending" : "approved",
-      role: "attendee",
-      participant_type_id: selectedType || null,
-    });
+      const data = await res.json();
 
-    if (insertError) {
-      if (insertError.code === "23505") {
-        setError("You are already registered for this event.");
-      } else {
-        setError(insertError.message);
+      if (!res.ok) {
+        if (data.alreadyRegistered) {
+          setRegistered(true);
+        }
+        setError(data.error);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
+
+      setPendingApproval(data.requiresApproval);
+      setStep("done");
+    } catch {
+      setError("Something went wrong. Please try again.");
     }
 
-    setStep("done");
     setLoading(false);
+  }
+
+  function handleAuthSubmit() {
+    if (isLogin) {
+      if (!email || !password) {
+        setError("Email and password are required");
+        return;
+      }
+      submitRegistration("signin");
+    } else {
+      if (!fullName.trim()) {
+        setError("Full name is required");
+        return;
+      }
+      if (!email || !password) {
+        setError("Email and password are required");
+        return;
+      }
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters");
+        return;
+      }
+      submitRegistration("signup");
+    }
   }
 
   if (step === "done") {
     return (
       <div className="space-y-3">
-        <Button size="lg" disabled className="gap-2 text-base px-8 bg-emerald-600">
+        <Button
+          size="lg"
+          disabled
+          className="gap-2 text-base px-8 bg-emerald-600"
+        >
           <Check className="h-5 w-5" />
-          {requiresApproval ? "Registration Pending Approval" : "Successfully Registered!"}
+          {pendingApproval
+            ? "Registration Pending Approval"
+            : "Successfully Registered!"}
         </Button>
         <p className="text-sm text-white/60">
-          {requiresApproval
-            ? "The organizer will review your registration."
-            : "You can now access the event dashboard."}
+          {pendingApproval
+            ? "The organizer will review your registration. You'll be notified once approved."
+            : "You can now access your event dashboard."}
         </p>
         <Button
           variant="outline"
@@ -200,7 +185,7 @@ export function RegisterButton({
       {step === "idle" && (
         <Button
           size="lg"
-          onClick={handleRegister}
+          onClick={handleStart}
           className="gap-2 text-base px-8 bg-white text-zinc-900 hover:bg-white/90"
         >
           <UserPlus className="h-5 w-5" />
@@ -212,7 +197,9 @@ export function RegisterButton({
         <Card className="max-w-md mx-auto text-left bg-white text-zinc-900">
           <CardContent className="pt-6">
             <h3 className="text-lg font-semibold mb-1">Select your role</h3>
-            <p className="text-sm text-zinc-500 mb-4">How will you participate?</p>
+            <p className="text-sm text-zinc-500 mb-4">
+              How will you participate?
+            </p>
 
             <div className="space-y-2 mb-4">
               {participantTypes.map((pt) => (
@@ -226,11 +213,16 @@ export function RegisterButton({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: pt.color }} />
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: pt.color }}
+                    />
                     <span className="font-medium text-sm">{pt.name}</span>
                   </div>
                   {pt.description && (
-                    <p className="text-xs text-zinc-500 mt-1 ml-5">{pt.description}</p>
+                    <p className="text-xs text-zinc-500 mt-1 ml-5">
+                      {pt.description}
+                    </p>
                   )}
                 </button>
               ))}
@@ -238,7 +230,11 @@ export function RegisterButton({
 
             {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
-            <Button onClick={handleRegister} disabled={!selectedType} className="w-full">
+            <Button
+              onClick={handleTypeSelected}
+              disabled={!selectedType}
+              className="w-full"
+            >
               Continue
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -253,7 +249,9 @@ export function RegisterButton({
               {isLogin ? "Sign in to register" : "Create your account"}
             </h3>
             <p className="text-sm text-zinc-500 mb-4">
-              {isLogin ? "Welcome back!" : "Quick registration to join this event."}
+              {isLogin
+                ? "Welcome back! Sign in to register for this event."
+                : "Quick registration to join this event."}
             </p>
 
             <div className="space-y-3">
@@ -293,17 +291,28 @@ export function RegisterButton({
 
               {error && <p className="text-sm text-red-600">{error}</p>}
 
-              <Button onClick={handleRegister} disabled={loading} className="w-full">
-                {loading ? (
+              <Button
+                onClick={handleAuthSubmit}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                {isLogin ? "Sign in & Register" : "Create Account & Register"}
+                )}
+                {isLogin
+                  ? "Sign in & Register"
+                  : "Create Account & Register"}
               </Button>
 
               <p className="text-center text-xs text-zinc-500">
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
+                {isLogin
+                  ? "Don't have an account? "
+                  : "Already have an account? "}
                 <button
-                  onClick={() => { setIsLogin(!isLogin); setError(null); }}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setError(null);
+                  }}
                   className="underline font-medium text-zinc-900"
                 >
                   {isLogin ? "Sign up" : "Sign in"}

@@ -14,6 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import Link from "next/link";
+import { DuplicateEventButton } from "@/components/events/duplicate-button";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -87,6 +88,7 @@ export default async function EventDetailPage({ params }: PageProps) {
           )}
         </div>
         <div className="flex gap-2 shrink-0">
+          <DuplicateEventButton eventId={id} />
           <Button variant="outline" size="sm">
             <Share2 className="mr-2 h-4 w-4" />
             Share

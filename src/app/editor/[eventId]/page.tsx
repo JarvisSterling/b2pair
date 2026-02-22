@@ -15,21 +15,22 @@ export default async function EditorPage({ params }: PageProps) {
   const supabase = await createClient();
   const admin = createAdminClient();
 
+  // Auth check
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/auth/sign-in");
 
-  // Fetch event (admin bypasses RLS)
+  // Fetch event
   const { data: event } = await admin
     .from("events")
-    .select("*, organizations!inner(id, name)")
+    .select("*")
     .eq("id", eventId)
     .single();
 
   if (!event) notFound();
 
-  // Verify organizer access
+  // Verify organizer membership
   const { data: membership } = await admin
     .from("organization_members")
     .select("role")
@@ -38,6 +39,15 @@ export default async function EditorPage({ params }: PageProps) {
     .single();
 
   if (!membership) redirect("/dashboard");
+
+  // Fetch org name separately
+  const { data: org } = await admin
+    .from("organizations")
+    .select("id, name")
+    .eq("id", event.organization_id)
+    .single();
+
+  const eventWithOrg = { ...event, organizations: org };
 
   // Load pages and theme
   const [pagesRes, themeRes] = await Promise.all([
@@ -55,7 +65,7 @@ export default async function EditorPage({ params }: PageProps) {
 
   return (
     <FullScreenEditor
-      event={event}
+      event={eventWithOrg}
       initialPages={(pagesRes.data || []) as EventPage[]}
       initialTheme={themeRes.data as EventTheme | null}
       workspaceId={event.organization_id}

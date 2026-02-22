@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +53,9 @@ const STATUS_CONFIG: Record<string, { variant: "default" | "secondary" | "succes
 
 export default function MeetingsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const eventId = (params.id || params.eventId) as string | undefined;
+  const requestParticipantId = searchParams.get("request");
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -61,9 +63,76 @@ export default function MeetingsPage() {
   const [ratingMeeting, setRatingMeeting] = useState<string | null>(null);
   const [selectedRating, setSelectedRating] = useState(0);
 
+  // Meeting request modal state
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestTarget, setRequestTarget] = useState<{
+    participantId: string;
+    fullName: string;
+    title: string | null;
+    companyName: string | null;
+  } | null>(null);
+  const [agendaNote, setAgendaNote] = useState("");
+  const [meetingType, setMeetingType] = useState("in-person");
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
+
   useEffect(() => {
     loadMeetings();
   }, []);
+
+  // Handle ?request= query param
+  useEffect(() => {
+    if (!requestParticipantId || !eventId) return;
+    openRequestModal(requestParticipantId);
+  }, [requestParticipantId, eventId]);
+
+  async function openRequestModal(participantId: string) {
+    const supabase = createClient();
+    const { data: participant } = await supabase
+      .from("participants")
+      .select("id, profiles!inner(full_name, title, company_name)")
+      .eq("id", participantId)
+      .single();
+
+    if (participant) {
+      setRequestTarget({
+        participantId: participant.id,
+        fullName: (participant.profiles as any).full_name,
+        title: (participant.profiles as any).title,
+        companyName: (participant.profiles as any).company_name,
+      });
+      setShowRequestModal(true);
+    }
+  }
+
+  async function sendMeetingRequest() {
+    if (!requestTarget || !eventId) return;
+    setSendingRequest(true);
+
+    const res = await fetch("/api/meetings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId,
+        recipientParticipantId: requestTarget.participantId,
+        agendaNote: agendaNote.trim() || null,
+        meetingType,
+      }),
+    });
+
+    if (res.ok) {
+      setRequestSent(true);
+      loadMeetings();
+      setTimeout(() => {
+        setShowRequestModal(false);
+        setRequestTarget(null);
+        setAgendaNote("");
+        setRequestSent(false);
+      }, 1500);
+    }
+
+    setSendingRequest(false);
+  }
 
   async function loadMeetings() {
     const supabase = createClient();
@@ -366,6 +435,96 @@ export default function MeetingsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Meeting Request Modal */}
+      {showRequestModal && requestTarget && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => { setShowRequestModal(false); setRequestTarget(null); setAgendaNote(""); }}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <Card className="w-full max-w-md shadow-xl animate-fade-in">
+              <CardContent className="pt-6">
+                {requestSent ? (
+                  <div className="text-center py-6">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-4">
+                      <Check className="h-6 w-6 text-emerald-500" />
+                    </div>
+                    <h3 className="text-h3 font-semibold">Request sent!</h3>
+                    <p className="mt-1 text-caption text-muted-foreground">
+                      {requestTarget.fullName} will be notified.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-h3 font-semibold mb-1">Request a meeting</h3>
+                    <p className="text-caption text-muted-foreground mb-5">
+                      Send a meeting request to {requestTarget.fullName}
+                      {requestTarget.title && requestTarget.companyName
+                        ? `, ${requestTarget.title} at ${requestTarget.companyName}`
+                        : ""}
+                    </p>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-caption font-medium">Meeting type</label>
+                        <div className="flex gap-2">
+                          {["in-person", "virtual", "hybrid"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => setMeetingType(type)}
+                              className={`rounded-full border px-3 py-1.5 text-caption transition-all ${
+                                meetingType === type
+                                  ? "border-primary bg-primary/5 text-primary font-medium"
+                                  : "border-border text-muted-foreground hover:border-border-strong"
+                              }`}
+                            >
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-caption font-medium">Note (optional)</label>
+                        <textarea
+                          rows={3}
+                          placeholder="What would you like to discuss?"
+                          value={agendaNote}
+                          onChange={(e) => setAgendaNote(e.target.value)}
+                          className="flex w-full rounded bg-input px-4 py-3 text-body text-foreground border border-border placeholder:text-muted-foreground transition-colors duration-150 hover:border-border-strong focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/20 resize-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          className="flex-1"
+                          onClick={sendMeetingRequest}
+                          disabled={sendingRequest}
+                        >
+                          {sendingRequest ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Calendar className="mr-2 h-4 w-4" />
+                          )}
+                          Send request
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => { setShowRequestModal(false); setRequestTarget(null); setAgendaNote(""); }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
     </div>
   );

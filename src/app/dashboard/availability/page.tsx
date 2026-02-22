@@ -209,11 +209,17 @@ export default function AvailabilityPage() {
     });
   }
 
+  // The visible grid starts at 8AM (480 min), so add offset to mouse position
+  const VISIBLE_START_HOUR = 8;
+  const VISIBLE_START_MIN = VISIBLE_START_HOUR * 60;
+
   const handleMouseDown = useCallback(
     (date: string, e: React.MouseEvent<HTMLDivElement>) => {
+      e.preventDefault();
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const minute = Math.floor(y / (SLOT_HEIGHT / 60));
+      const minuteInView = Math.floor(y / (SLOT_HEIGHT / 60));
+      const minute = minuteInView + VISIBLE_START_MIN;
       const snapped = Math.floor(minute / 30) * 30;
       setDragging({ date, startMinute: snapped, currentMinute: snapped + 30 });
     },
@@ -225,7 +231,8 @@ export default function AvailabilityPage() {
       if (!dragging) return;
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const minute = Math.floor(y / (SLOT_HEIGHT / 60));
+      const minuteInView = Math.floor(y / (SLOT_HEIGHT / 60));
+      const minute = minuteInView + VISIBLE_START_MIN;
       const snapped = Math.ceil(minute / 30) * 30;
       if (snapped !== dragging.currentMinute && snapped > dragging.startMinute) {
         setDragging((prev) => prev ? { ...prev, currentMinute: snapped } : null);
@@ -244,6 +251,15 @@ export default function AvailabilityPage() {
     setDragging(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragging]);
+
+  // Global mouseup listener so drag completes even if mouse leaves column
+  useEffect(() => {
+    const handler = () => {
+      if (dragging) handleMouseUp();
+    };
+    window.addEventListener("mouseup", handler);
+    return () => window.removeEventListener("mouseup", handler);
+  }, [dragging, handleMouseUp]);
 
   const weekDays = getWeekDays();
   const today = new Date().toISOString().split("T")[0];

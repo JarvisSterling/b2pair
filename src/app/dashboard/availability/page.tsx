@@ -59,12 +59,7 @@ export default function AvailabilityPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [weekStart, setWeekStart] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - d.getDay() + 1); // Monday
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [dragging, setDragging] = useState<{
     date: string;
     startMinute: number;
@@ -79,9 +74,21 @@ export default function AvailabilityPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedEvent) loadSlots();
+    if (selectedEvent && weekStart) loadSlots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent, weekStart]);
+
+  // When switching events, jump to that event's start week
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const ev = events.find((e) => e.id === selectedEvent);
+    if (ev?.start_date) {
+      const eventStart = new Date(ev.start_date + "T00:00:00");
+      eventStart.setDate(eventStart.getDate() - ((eventStart.getDay() + 6) % 7));
+      setWeekStart(eventStart);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEvent]);
 
   async function loadEvents() {
     const {
@@ -105,11 +112,23 @@ export default function AvailabilityPage() {
       }));
       setEvents(evts);
       setSelectedEvent(evts[0].id);
+      // Default to the event's start week
+      if (evts[0].start_date) {
+        const eventStart = new Date(evts[0].start_date + "T00:00:00");
+        eventStart.setDate(eventStart.getDate() - ((eventStart.getDay() + 6) % 7)); // Monday of that week
+        setWeekStart(eventStart);
+      } else {
+        const d = new Date();
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        d.setHours(0, 0, 0, 0);
+        setWeekStart(d);
+      }
     }
     setLoading(false);
   }
 
   async function loadSlots() {
+    if (!weekStart) return;
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
@@ -131,6 +150,18 @@ export default function AvailabilityPage() {
   async function addSlot(date: string, startTime: string, endTime: string) {
     const event = events.find((e) => e.id === selectedEvent);
     if (!event) return;
+
+    // Check for overlapping slots
+    const newStart = timeToMinutes(startTime);
+    const newEnd = timeToMinutes(endTime);
+    const hasOverlap = slots.some((s) => {
+      if (s.date !== date) return false;
+      const sStart = timeToMinutes(s.start_time);
+      const sEnd = timeToMinutes(s.end_time);
+      return newStart < sEnd && newEnd > sStart;
+    });
+
+    if (hasOverlap) return; // Don't create overlapping slots
 
     setSaving(true);
     const { data, error } = await supabase
@@ -171,6 +202,7 @@ export default function AvailabilityPage() {
 
     setSaving(true);
     const days = getWeekDays();
+    if (!days.length) { setSaving(false); return; }
     const inserts = days
       .filter((d) => d.getDay() !== 0 && d.getDay() !== 6) // Skip weekends
       .map((d) => ({
@@ -194,6 +226,7 @@ export default function AvailabilityPage() {
   }
 
   function getWeekDays(): Date[] {
+    if (!weekStart) return [];
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(weekStart);
       d.setDate(d.getDate() + i);
@@ -203,6 +236,7 @@ export default function AvailabilityPage() {
 
   function navigateWeek(dir: number) {
     setWeekStart((prev) => {
+      if (!prev) return prev;
       const d = new Date(prev);
       d.setDate(d.getDate() + dir * 7);
       return d;
@@ -353,7 +387,7 @@ export default function AvailabilityPage() {
             size="sm"
             onClick={() => {
               const d = new Date();
-              d.setDate(d.getDate() - d.getDay() + 1);
+              d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
               d.setHours(0, 0, 0, 0);
               setWeekStart(d);
             }}
@@ -462,20 +496,25 @@ export default function AvailabilityPage() {
                       return (
                         <div
                           key={slot.id}
-                          className="absolute left-1 right-1 rounded-md bg-primary/15 border border-primary/30 group cursor-pointer transition-colors hover:bg-primary/25"
+                          className="absolute left-1 right-1 rounded-md bg-primary/15 border border-primary/30 group cursor-pointer transition-colors hover:bg-primary/25 z-10"
                           style={{ top: Math.max(0, top), height: Math.max(height, 24) }}
                           title={`${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}`}
+                          onMouseDown={(e) => e.stopPropagation()}
                         >
                           <div className="px-2 py-1 flex items-center justify-between h-full">
                             <span className="text-[10px] font-medium text-primary truncate">
                               {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                             </span>
                             <button
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 removeSlot(slot.id);
                               }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
                             >
                               <Trash2 className="h-3 w-3 text-destructive" />
                             </button>

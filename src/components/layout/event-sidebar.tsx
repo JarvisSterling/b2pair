@@ -34,7 +34,7 @@ interface Props {
 const EVENT_NAV = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "" },
   { id: "configure", label: "Configure", icon: Settings2, path: "/configure" },
-  { id: "page-editor", label: "Page Editor", icon: FileEdit, path: "/page-editor" },
+  { id: "page-editor", label: "Page Editor", icon: FileEdit, path: "/page-editor", absolute: true },
   { id: "participants", label: "Participants", icon: Users, path: "/participants" },
   { id: "participant-types", label: "Participant Types", icon: UserCog, path: "/participant-types" },
   { id: "matching", label: "Matching Rules", icon: Zap, path: "/matching" },
@@ -132,11 +132,12 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
         {EVENT_NAV.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
+          const href = (item as any).absolute ? `/editor/${eventId}` : basePath + item.path;
 
           return (
             <Link
               key={item.id}
-              href={basePath + item.path}
+              href={href}
               className={cn(
                 "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
                 "transition-all duration-150 ease-out",

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,43 @@ const BOTTOM_ITEMS = [
 export function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+
+      // Initial count
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false)
+        .then(({ count }) => setUnreadCount(count || 0));
+
+      // Real-time updates
+      channel = supabase
+        .channel("sidebar-notifs")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+          setUnreadCount((prev) => prev + 1);
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+          // Re-fetch on update (mark read)
+          supabase
+            .from("notifications")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("read", false)
+            .then(({ count }) => setUnreadCount(count || 0));
+        })
+        .subscribe();
+    });
+
+    return () => { if (channel) createClient().removeChannel(channel); };
+  }, []);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -96,6 +134,11 @@ export function Sidebar({ profile }: { profile: Profile }) {
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
               {item.label}
+              {item.label === "Notifications" && unreadCount > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Link>
           );
         })}

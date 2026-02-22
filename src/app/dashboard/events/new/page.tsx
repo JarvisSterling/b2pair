@@ -242,6 +242,16 @@ export default function NewEventPage() {
       status: "approved",
     });
 
+    // Seed default event pages and theme
+    const { DEFAULT_PAGES } = await import("@/types/event-pages");
+    await supabase.from("event_pages").insert(
+      DEFAULT_PAGES.map((p) => ({ ...p, event_id: event.id }))
+    );
+    await supabase.from("event_themes").insert({
+      event_id: event.id,
+      theme_key: "light-classic",
+    });
+
     router.push(`/dashboard/events/${event.id}`);
     router.refresh();
   }

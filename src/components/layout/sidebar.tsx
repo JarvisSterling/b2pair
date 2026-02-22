@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
+  Clock,
   Zap,
   MessageSquare,
   Bell,
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/events", label: "Events", icon: CalendarDays },
   { href: "/dashboard/matches", label: "Matches", icon: Zap },
   { href: "/dashboard/meetings", label: "Meetings", icon: Users },
+  { href: "/dashboard/availability", label: "Availability", icon: Clock },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
 ];

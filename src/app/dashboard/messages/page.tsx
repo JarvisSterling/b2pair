@@ -68,7 +68,11 @@ export default function MessagesPage() {
 
   // Handle ?to= query param to start conversation
   useEffect(() => {
+    console.log('Messages page - toParticipantId:', toParticipantId, 'conversations:', conversations.length, 'myParticipantIds:', myParticipantIds.length);
+    
     if (!toParticipantId || conversations.length === 0 || !myParticipantIds.length) return;
+    
+    console.log('Looking for existing conversation with participant:', toParticipantId);
     
     // Find existing conversation with this participant
     const existingConvo = conversations.find(c => 
@@ -76,35 +80,43 @@ export default function MessagesPage() {
     );
     
     if (existingConvo) {
+      console.log('Found existing conversation:', existingConvo.id);
       setSelectedConvo(existingConvo.id);
       loadMessages(existingConvo.id);
     } else {
+      console.log('Creating new conversation with:', toParticipantId);
       // Create new conversation
       createConversationWith(toParticipantId);
     }
   }, [conversations, toParticipantId, myParticipantIds]);
 
   async function createConversationWith(participantId: string) {
+    console.log('Creating conversation with participant ID:', participantId);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      console.log('No user found');
+      return;
+    }
 
     // Get my participant record for the same event as the target participant
-    const { data: targetParticipant } = await supabase
+    const { data: targetParticipant, error: targetError } = await supabase
       .from("participants")
       .select("event_id, profiles!inner(full_name, avatar_url, title, company_name)")
       .eq("id", participantId)
       .single();
     
+    console.log('Target participant query:', { targetParticipant, targetError });
     if (!targetParticipant) return;
 
-    const { data: myParticipant } = await supabase
+    const { data: myParticipant, error: myError } = await supabase
       .from("participants")
       .select("id")
       .eq("event_id", targetParticipant.event_id)
       .eq("user_id", user.id)
       .single();
 
+    console.log('My participant query:', { myParticipant, myError });
     if (!myParticipant) return;
 
     // Create conversation

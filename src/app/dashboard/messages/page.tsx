@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ interface Message {
 }
 
 export default function MessagesPage() {
+  const searchParams = useSearchParams();
+  const toParticipantId = searchParams.get('to');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConvo, setSelectedConvo] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,6 +65,79 @@ export default function MessagesPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Handle ?to= query param to start conversation
+  useEffect(() => {
+    if (!toParticipantId || conversations.length === 0 || !myParticipantIds.length) return;
+    
+    // Find existing conversation with this participant
+    const existingConvo = conversations.find(c => 
+      c.other_person.participant_id === toParticipantId
+    );
+    
+    if (existingConvo) {
+      setSelectedConvo(existingConvo.id);
+      loadMessages(existingConvo.id);
+    } else {
+      // Create new conversation
+      createConversationWith(toParticipantId);
+    }
+  }, [conversations, toParticipantId, myParticipantIds]);
+
+  async function createConversationWith(participantId: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Get my participant record for the same event as the target participant
+    const { data: targetParticipant } = await supabase
+      .from("participants")
+      .select("event_id, profiles!inner(full_name, avatar_url, title, company_name)")
+      .eq("id", participantId)
+      .single();
+    
+    if (!targetParticipant) return;
+
+    const { data: myParticipant } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("event_id", targetParticipant.event_id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!myParticipant) return;
+
+    // Create conversation
+    const { data: newConvo } = await supabase
+      .from("conversations")
+      .insert({
+        event_id: targetParticipant.event_id,
+        participant_a_id: myParticipant.id,
+        participant_b_id: participantId
+      })
+      .select("id")
+      .single();
+
+    if (newConvo) {
+      // Add to conversations list
+      const newConversation: Conversation = {
+        id: newConvo.id,
+        event_id: targetParticipant.event_id,
+        last_message_at: null,
+        other_person: {
+          participant_id: participantId,
+          full_name: targetParticipant.profiles[0].full_name,
+          avatar_url: targetParticipant.profiles[0].avatar_url,
+          title: targetParticipant.profiles[0].title,
+          company_name: targetParticipant.profiles[0].company_name,
+        }
+      };
+      
+      setConversations(prev => [newConversation, ...prev]);
+      setSelectedConvo(newConvo.id);
+      setMessages([]);
+    }
+  }
 
   async function loadConversations() {
     const supabase = createClient();

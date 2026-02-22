@@ -29,13 +29,13 @@ interface Profile {
 }
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["organizer", "participant"] },
-  { href: "/dashboard/events", label: "Events", icon: CalendarDays, roles: ["organizer", "participant"] },
+  { href: "/dashboard/home", label: "Dashboard", icon: LayoutDashboard, roles: ["participant"] },
+  { href: "/dashboard/events", label: "Events", icon: CalendarDays, roles: ["participant"] },
   { href: "/dashboard/matches", label: "Matches", icon: Zap, roles: ["participant"] },
   { href: "/dashboard/meetings", label: "Meetings", icon: Users, roles: ["participant"] },
   { href: "/dashboard/availability", label: "Availability", icon: Clock, roles: ["participant"] },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare, roles: ["participant"] },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell, roles: ["organizer", "participant"] },
+  { href: "/dashboard/notifications", label: "Notifications", icon: Bell, roles: ["participant"] },
 ];
 
 const BOTTOM_ITEMS = [
@@ -47,6 +47,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -62,6 +63,19 @@ export function Sidebar({ profile }: { profile: Profile }) {
         .eq("user_id", user.id)
         .eq("read", false)
         .then(({ count }) => setUnreadCount(count || 0));
+
+      // Load workspaces for organizers
+      if (profile.platform_role === "organizer") {
+        supabase
+          .from("organization_members")
+          .select("organization_id, organizations!inner(id, name)")
+          .eq("user_id", user.id)
+          .then(({ data }) => {
+            if (data) {
+              setWorkspaces(data.map((d: any) => ({ id: d.organizations.id, name: d.organizations.name })));
+            }
+          });
+      }
 
       // Real-time updates
       channel = supabase
@@ -120,32 +134,70 @@ export function Sidebar({ profile }: { profile: Profile }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {filteredNav.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-
-          return (
+        {role === "organizer" ? (
+          <>
+            <p className="px-3 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              Workspaces
+            </p>
+            {workspaces.map((ws) => {
+              const active = pathname.includes(`/w/${ws.id}`);
+              return (
+                <Link
+                  key={ws.id}
+                  href={`/dashboard/w/${ws.id}`}
+                  className={cn(
+                    "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                    "transition-all duration-150 ease-out",
+                    active
+                      ? "bg-primary/5 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
+                    {ws.name.charAt(0).toUpperCase()}
+                  </div>
+                  {ws.name}
+                </Link>
+              );
+            })}
             <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
-                "transition-all duration-150 ease-out",
-                active
-                  ? "bg-primary/5 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              )}
+              href="/dashboard/w/new"
+              className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-body text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-150"
             >
-              <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
-              {item.label}
-              {item.label === "Notifications" && unreadCount > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
+              <div className="flex h-5 w-5 items-center justify-center rounded border border-dashed border-muted-foreground/40 text-[12px]">
+                +
+              </div>
+              New workspace
             </Link>
-          );
-        })}
+          </>
+        ) : (
+          filteredNav.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                  "transition-all duration-150 ease-out",
+                  active
+                    ? "bg-primary/5 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+                {item.label}
+                {item.label === "Notifications" && unreadCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })
+        )}
       </nav>
 
       {/* Bottom */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createBrowserClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +71,7 @@ export default function AvailabilityPage() {
     currentMinute: number;
   } | null>(null);
 
-  const supabase = createBrowserClient();
+  const supabase = createClient();
 
   useEffect(() => {
     loadEvents();

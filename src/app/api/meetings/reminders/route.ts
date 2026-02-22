@@ -1,10 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
+
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 /**
  * GET /api/meetings/reminders
@@ -13,6 +17,7 @@ const supabaseAdmin = createClient(
  * Sends reminders 1 hour and 15 minutes before meetings.
  */
 export async function GET(request: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
   // Verify cron secret if configured
   const authHeader = request.headers.get("authorization");
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

@@ -1,10 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
+
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 /**
  * POST /api/matching/generate
@@ -12,6 +16,7 @@ const supabaseAdmin = createClient(
  * Called by organizers to run/refresh matching.
  */
 export async function POST(request: Request) {
+  const supabaseAdmin = getAdmin();
   const { eventId } = await request.json();
 
   if (!eventId) {
@@ -19,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   // Fetch all approved participants with profiles
-  const { data: participants, error: fetchError } = await supabaseAdmin
+  const { data: participants, error: fetchError } = await getAdmin()
     .from("participants")
     .select(`
       id, role, intent, tags, looking_for, offering,
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
   }
 
   // Fetch matching rules
-  const { data: rules } = await supabaseAdmin
+  const { data: rules } = await getAdmin()
     .from("matching_rules")
     .select("*")
     .eq("event_id", eventId)
@@ -118,13 +123,13 @@ export async function POST(request: Request) {
   }
 
   // Clear existing matches for this event and insert new ones
-  await supabaseAdmin.from("matches").delete().eq("event_id", eventId);
+  await getAdmin().from("matches").delete().eq("event_id", eventId);
 
   if (matches.length > 0) {
     // Insert in batches of 500
     for (let i = 0; i < matches.length; i += 500) {
       const batch = matches.slice(i, i + 500);
-      await supabaseAdmin.from("matches").insert(batch);
+      await getAdmin().from("matches").insert(batch);
     }
   }
 

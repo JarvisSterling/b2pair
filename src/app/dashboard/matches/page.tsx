@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createBrowserClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ export default function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "accepted" | "pending">("all");
 
-  const supabase = createBrowserClient();
+  const supabase = createClient();
 
   useEffect(() => {
     loadMatches();

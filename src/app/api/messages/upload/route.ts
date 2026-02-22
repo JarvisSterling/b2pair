@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { v4 as uuid } from "crypto";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [

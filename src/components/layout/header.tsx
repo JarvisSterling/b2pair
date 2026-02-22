@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -42,10 +42,55 @@ const NAV_ITEMS = [
 
 export function Header({ profile }: { profile: Profile }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const role = profile.platform_role || "participant";
   const filteredNav = NAV_ITEMS.filter((item) => item.roles.includes(role));
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function fetchUnread() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+
+      setUnreadCount(count || 0);
+    }
+
+    fetchUnread();
+
+    // Subscribe to new notifications for live badge updates
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+
+      const channel = supabase
+        .channel("header-notifications")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            fetchUnread();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    });
+  }, []);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -90,6 +135,11 @@ export function Header({ profile }: { profile: Profile }) {
           <Link href="/dashboard/notifications">
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-[18px] w-[18px]" strokeWidth={1.5} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Button>
           </Link>
 

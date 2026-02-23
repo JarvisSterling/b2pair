@@ -190,148 +190,206 @@ export function RegisterButton({
     );
   }
 
+  function closeModal() {
+    setStep("idle");
+    setError(null);
+  }
+
+  function handleSignIn() {
+    setIsLogin(true);
+    if (participantTypes.length > 0) {
+      setStep("type");
+    } else {
+      setStep("auth");
+    }
+  }
+
+  const showModal = step === "type" || step === "auth";
+
   return (
-    <div className="space-y-4">
-      {step === "idle" && (
-        <Button
-          size="lg"
-          onClick={handleStart}
-          className="gap-2 text-base px-8"
-        >
-          <UserPlus className="h-5 w-5" />
-          Register Now
-        </Button>
-      )}
-
-      {step === "type" && (
-        <Card className="max-w-md mx-auto text-left bg-white text-zinc-900">
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-1">Select your role</h3>
-            <p className="text-sm text-zinc-500 mb-4">
-              How will you participate?
-            </p>
-
-            <div className="space-y-2 mb-4">
-              {participantTypes.map((pt) => (
-                <button
-                  key={pt.id}
-                  onClick={() => setSelectedType(pt.id)}
-                  className={`w-full rounded-lg border p-3 text-left transition-all ${
-                    selectedType === pt.id
-                      ? "border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10"
-                      : "border-zinc-200 hover:border-zinc-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: pt.color }}
-                    />
-                    <span className="font-medium text-sm">{pt.name}</span>
-                  </div>
-                  {pt.description && (
-                    <p className="text-xs text-zinc-500 mt-1 ml-5">
-                      {pt.description}
-                    </p>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
-
+    <>
+      <div className="space-y-3">
+        {step === "idle" && (
+          <>
             <Button
-              onClick={handleTypeSelected}
-              disabled={!selectedType}
-              className="w-full"
+              size="lg"
+              onClick={handleStart}
+              className="gap-2 text-base px-8"
             >
-              Continue
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <UserPlus className="h-5 w-5" />
+              Register Now
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {step === "auth" && (
-        <Card className="max-w-md mx-auto text-left bg-white text-zinc-900">
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-1">
-              {isLogin ? "Sign in to register" : "Create your account"}
-            </h3>
-            <p className="text-sm text-zinc-500 mb-4">
-              {isLogin
-                ? "Welcome back! Sign in to register for this event."
-                : "Quick registration to join this event."}
-            </p>
-
-            <div className="space-y-3">
-              {!isLogin && (
-                <>
-                  <Input
-                    placeholder="Full name *"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      placeholder="Job title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Company"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
-              <Input
-                type="email"
-                placeholder="Email address *"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Input
-                type="password"
-                placeholder="Password *"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-
-              {error && <p className="text-sm text-red-600">{error}</p>}
-
-              <Button
-                onClick={handleAuthSubmit}
-                disabled={loading}
-                className="w-full"
-              >
-                {loading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isLogin
-                  ? "Sign in & Register"
-                  : "Create Account & Register"}
-              </Button>
-
-              <p className="text-center text-xs text-zinc-500">
-                {isLogin
-                  ? "Don't have an account? "
-                  : "Already have an account? "}
+            {!isLoggedIn && (
+              <p className="text-sm text-muted-foreground">
+                Already have an account?{" "}
                 <button
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    setError(null);
-                  }}
-                  className="underline font-medium text-zinc-900"
+                  onClick={handleSignIn}
+                  className="underline font-medium text-primary hover:text-primary/80"
                 >
-                  {isLogin ? "Sign up" : "Sign in"}
+                  Sign In
                 </button>
               </p>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Modal overlay for type selection and auth */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeModal}
+          />
+          <div className="relative z-10 w-full max-w-md mx-4 animate-scale-in">
+            {step === "type" && (
+              <Card className="text-left bg-white text-zinc-900 shadow-2xl">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-lg font-semibold">Select your role</h3>
+                    <button
+                      onClick={closeModal}
+                      className="text-zinc-400 hover:text-zinc-600 p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className="text-sm text-zinc-500 mb-4">
+                    How will you participate?
+                  </p>
+
+                  <div className="space-y-2 mb-4">
+                    {participantTypes.map((pt) => (
+                      <button
+                        key={pt.id}
+                        onClick={() => setSelectedType(pt.id)}
+                        className={`w-full rounded-lg border p-3 text-left transition-all ${
+                          selectedType === pt.id
+                            ? "border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10"
+                            : "border-zinc-200 hover:border-zinc-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: pt.color }}
+                          />
+                          <span className="font-medium text-sm">{pt.name}</span>
+                        </div>
+                        {pt.description && (
+                          <p className="text-xs text-zinc-500 mt-1 ml-5">
+                            {pt.description}
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+
+                  <Button
+                    onClick={handleTypeSelected}
+                    disabled={!selectedType}
+                    className="w-full"
+                  >
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === "auth" && (
+              <Card className="text-left bg-white text-zinc-900 shadow-2xl">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-lg font-semibold">
+                      {isLogin ? "Sign in to register" : "Create your account"}
+                    </h3>
+                    <button
+                      onClick={closeModal}
+                      className="text-zinc-400 hover:text-zinc-600 p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className="text-sm text-zinc-500 mb-4">
+                    {isLogin
+                      ? "Welcome back! Sign in to register for this event."
+                      : "Quick registration to join this event."}
+                  </p>
+
+                  <div className="space-y-3">
+                    {!isLogin && (
+                      <>
+                        <Input
+                          placeholder="Full name *"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                        />
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input
+                            placeholder="Job title"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                          />
+                          <Input
+                            placeholder="Company"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                          />
+                        </div>
+                      </>
+                    )}
+                    <Input
+                      type="email"
+                      placeholder="Email address *"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Password *"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+
+                    {error && <p className="text-sm text-red-600">{error}</p>}
+
+                    <Button
+                      onClick={handleAuthSubmit}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      {loading && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      {isLogin
+                        ? "Sign in & Register"
+                        : "Create Account & Register"}
+                    </Button>
+
+                    <p className="text-center text-xs text-zinc-500">
+                      {isLogin
+                        ? "Don't have an account? "
+                        : "Already have an account? "}
+                      <button
+                        onClick={() => {
+                          setIsLogin(!isLogin);
+                          setError(null);
+                        }}
+                        className="underline font-medium text-zinc-900"
+                      >
+                        {isLogin ? "Sign up" : "Sign in"}
+                      </button>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }

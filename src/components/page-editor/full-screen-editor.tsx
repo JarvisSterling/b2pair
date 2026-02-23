@@ -608,20 +608,20 @@ export function FullScreenEditor({
 
         {/* Center: Canvas */}
         <div className="flex-1 overflow-y-auto">
+          {/* Banner section - full width, above constrained content */}
+          {selectedPage?.page_type === "home" && (
+            <BannerEditor
+              eventName={event.name}
+              startDate={event.start_date}
+              endDate={event.end_date}
+              bannerUrl={bannerUrl}
+              bannerLayout={bannerLayout}
+              onBannerUrlChange={setBannerUrl}
+              onBannerLayoutChange={setBannerLayout}
+              eventId={event.id}
+            />
+          )}
           <div className="max-w-3xl mx-auto py-8 px-6">
-            {/* Banner section - always visible on Home page */}
-            {selectedPage?.page_type === "home" && (
-              <BannerEditor
-                eventName={event.name}
-                startDate={event.start_date}
-                endDate={event.end_date}
-                bannerUrl={bannerUrl}
-                bannerLayout={bannerLayout}
-                onBannerUrlChange={setBannerUrl}
-                onBannerLayoutChange={setBannerLayout}
-                eventId={event.id}
-              />
-            )}
             {selectedPage ? (
               <DndBlockCanvas
                 blocks={selectedPage.content}

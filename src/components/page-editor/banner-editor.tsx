@@ -79,8 +79,8 @@ export function BannerEditor({
   }
 
   return (
-    <div className="mb-6">
-      <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-background group">
+    <div>
+      <div className="relative overflow-hidden bg-background group">
         {/* Render the selected layout */}
         {bannerLayout === "split" && (
           <SplitLayout
@@ -305,15 +305,32 @@ function SplitLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="flex min-h-[280px]">
-      <div className="w-[58%] relative">
-        <BannerImage url={bannerUrl} className="w-full h-full absolute inset-0" />
-      </div>
-      <div className="w-[42%] flex flex-col justify-center px-8 py-10 bg-background">
-        <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
-        <h1 className="text-2xl font-bold tracking-tight mb-6">{eventName}</h1>
-        <div>
-          <RegisterButton />
+    <div className="relative min-h-[320px] overflow-hidden">
+      {/* Full-width blurred background */}
+      {bannerUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bannerUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 to-background/80" />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
+      )}
+      {/* Split card floating on top */}
+      <div className="relative z-10 flex max-w-3xl mx-auto my-8 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
+        <div className="w-[58%] relative min-h-[240px]">
+          <BannerImage url={bannerUrl} className="w-full h-full absolute inset-0" />
+        </div>
+        <div className="w-[42%] flex flex-col justify-center px-8 py-10">
+          <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
+          <h1 className="text-2xl font-bold tracking-tight mb-6">{eventName}</h1>
+          <div>
+            <RegisterButton />
+          </div>
         </div>
       </div>
     </div>
@@ -330,15 +347,25 @@ function ImageBelowLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="bg-slate-800 text-white">
-      <div className="flex items-center justify-between px-8 pt-8 pb-4">
-        <div>
-          <p className="text-sm text-white/60 mb-1">{dateRange}</p>
-          <h1 className="text-3xl font-bold tracking-tight">{eventName}</h1>
+    <div className="relative min-h-[380px] overflow-hidden">
+      {/* Full-width blurred background */}
+      {bannerUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-20" />
+          <div className="absolute inset-0 bg-slate-800/90" />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-slate-800" />
+      )}
+      <div className="relative z-10 max-w-3xl mx-auto pt-8 pb-8 px-4">
+        <div className="flex items-center justify-between mb-6 text-white">
+          <div>
+            <p className="text-sm text-white/60 mb-1">{dateRange}</p>
+            <h1 className="text-3xl font-bold tracking-tight">{eventName}</h1>
+          </div>
+          <RegisterButton />
         </div>
-        <RegisterButton />
-      </div>
-      <div className="px-8 pb-8">
         <div className="rounded-xl overflow-hidden shadow-lg">
           <BannerImage url={bannerUrl} className="w-full h-[240px]" />
         </div>
@@ -357,14 +384,21 @@ function CenteredLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="bg-slate-800 text-white text-center">
-      <div className="px-8 pt-10 pb-4">
+    <div className="relative min-h-[400px] overflow-hidden">
+      {bannerUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-20" />
+          <div className="absolute inset-0 bg-slate-800/90" />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-slate-800" />
+      )}
+      <div className="relative z-10 max-w-3xl mx-auto pt-10 pb-8 px-4 text-center text-white">
         <h1 className="text-4xl font-bold tracking-tight mb-2">{eventName}</h1>
         <p className="text-sm text-white/60 mb-4">{dateRange}</p>
         <RegisterButton />
-      </div>
-      <div className="px-8 pb-8 pt-4">
-        <div className="rounded-xl overflow-hidden shadow-lg max-w-2xl mx-auto">
+        <div className="mt-6 rounded-xl overflow-hidden shadow-lg max-w-2xl mx-auto">
           <BannerImage url={bannerUrl} className="w-full h-[260px]" />
         </div>
       </div>
@@ -382,7 +416,7 @@ function FullBleedLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="relative min-h-[320px] flex items-center justify-center">
+    <div className="relative min-h-[320px] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0">
         <BannerImage url={bannerUrl} className="w-full h-full" />
       </div>

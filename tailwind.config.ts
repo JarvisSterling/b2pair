@@ -128,6 +128,11 @@ const config: Config = {
           from: { opacity: "0", transform: "scale(0.98)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        "glass-gradient": {
+          "0%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+          "100%": { backgroundPosition: "0% 50%" },
+        },
       },
       animation: {
         "fade-in": "fade-in 200ms ease-out",
@@ -136,6 +141,7 @@ const config: Config = {
         "slide-down": "slide-down 200ms ease-out",
         "slide-right": "slide-right 200ms ease-out",
         "scale-in": "scale-in 200ms ease-out",
+        "glass-gradient": "glass-gradient 8s ease infinite",
       },
     },
   },

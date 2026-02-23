@@ -16,8 +16,19 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: [
-          "bg-primary text-primary-foreground",
-          "shadow-sm hover:shadow-md",
+          "relative overflow-hidden",
+          "text-white font-semibold",
+          "border border-white/20",
+          "backdrop-blur-sm",
+          "shadow-[0_0_15px_rgba(0,113,227,0.3)] hover:shadow-[0_0_25px_rgba(0,113,227,0.5)]",
+          "bg-primary/80",
+          "before:absolute before:inset-0 before:-z-10",
+          "before:bg-[linear-gradient(135deg,rgba(0,113,227,0.9),rgba(88,86,214,0.9),rgba(0,199,190,0.9),rgba(0,113,227,0.9))]",
+          "before:bg-[length:300%_300%]",
+          "before:animate-glass-gradient",
+          "after:absolute after:inset-0 after:-z-10",
+          "after:bg-white/5",
+          "hover:border-white/30",
           "hover:brightness-110",
         ].join(" "),
         secondary: [

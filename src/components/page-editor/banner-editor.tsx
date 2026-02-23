@@ -305,7 +305,7 @@ function SplitLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="relative min-h-[320px] overflow-hidden">
+    <div className="relative min-h-[440px] overflow-hidden">
       {/* Full-width blurred background */}
       {bannerUrl ? (
         <>
@@ -321,13 +321,13 @@ function SplitLayout({
         <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
       )}
       {/* Split card floating on top */}
-      <div className="relative z-10 flex max-w-3xl mx-auto my-8 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
-        <div className="w-[58%] relative min-h-[240px]">
+      <div className="relative z-10 flex max-w-3xl mx-auto my-12 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
+        <div className="w-[58%] relative min-h-[320px]">
           <BannerImage url={bannerUrl} className="w-full h-full absolute inset-0" />
         </div>
         <div className="w-[42%] flex flex-col justify-center px-8 py-10">
           <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
-          <h1 className="text-2xl font-bold tracking-tight mb-6">{eventName}</h1>
+          <h1 className="text-2xl font-bold tracking-tight mb-8">{eventName}</h1>
           <div>
             <RegisterButton />
           </div>
@@ -347,7 +347,7 @@ function ImageBelowLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="relative min-h-[380px] overflow-hidden">
+    <div className="relative min-h-[480px] overflow-hidden">
       {/* Full-width blurred background */}
       {bannerUrl ? (
         <>
@@ -358,16 +358,16 @@ function ImageBelowLayout({
       ) : (
         <div className="absolute inset-0 bg-slate-800" />
       )}
-      <div className="relative z-10 max-w-3xl mx-auto pt-8 pb-8 px-4">
-        <div className="flex items-center justify-between mb-6 text-white">
+      <div className="relative z-10 max-w-3xl mx-auto pt-12 pb-12 px-4">
+        <div className="flex items-center justify-between mb-8 text-white">
           <div>
-            <p className="text-sm text-white/60 mb-1">{dateRange}</p>
+            <p className="text-sm text-white/60 mb-2">{dateRange}</p>
             <h1 className="text-3xl font-bold tracking-tight">{eventName}</h1>
           </div>
           <RegisterButton />
         </div>
         <div className="rounded-xl overflow-hidden shadow-lg">
-          <BannerImage url={bannerUrl} className="w-full h-[240px]" />
+          <BannerImage url={bannerUrl} className="w-full h-[320px]" />
         </div>
       </div>
     </div>
@@ -384,7 +384,7 @@ function CenteredLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="relative min-h-[400px] overflow-hidden">
+    <div className="relative min-h-[500px] overflow-hidden">
       {bannerUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -394,12 +394,12 @@ function CenteredLayout({
       ) : (
         <div className="absolute inset-0 bg-slate-800" />
       )}
-      <div className="relative z-10 max-w-3xl mx-auto pt-10 pb-8 px-4 text-center text-white">
-        <h1 className="text-4xl font-bold tracking-tight mb-2">{eventName}</h1>
-        <p className="text-sm text-white/60 mb-4">{dateRange}</p>
+      <div className="relative z-10 max-w-3xl mx-auto pt-12 pb-12 px-4 text-center text-white">
+        <h1 className="text-4xl font-bold tracking-tight mb-3">{eventName}</h1>
+        <p className="text-sm text-white/60 mb-6">{dateRange}</p>
         <RegisterButton />
-        <div className="mt-6 rounded-xl overflow-hidden shadow-lg max-w-2xl mx-auto">
-          <BannerImage url={bannerUrl} className="w-full h-[260px]" />
+        <div className="mt-8 rounded-xl overflow-hidden shadow-lg max-w-2xl mx-auto">
+          <BannerImage url={bannerUrl} className="w-full h-[320px]" />
         </div>
       </div>
     </div>
@@ -416,7 +416,7 @@ function FullBleedLayout({
   bannerUrl: string | null;
 }) {
   return (
-    <div className="relative min-h-[320px] flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-[440px] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0">
         <BannerImage url={bannerUrl} className="w-full h-full" />
       </div>

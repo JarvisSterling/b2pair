@@ -68,7 +68,7 @@ export function BannerDisplay({
 
   if (bannerLayout === "split") {
     return (
-      <div className="relative min-h-[360px] overflow-hidden">
+      <div className="relative min-h-[520px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -78,13 +78,13 @@ export function BannerDisplay({
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
         )}
-        <div className="relative z-10 flex max-w-4xl mx-auto my-10 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
-          <div className="w-[58%] relative min-h-[280px]">
+        <div className="relative z-10 flex max-w-5xl mx-auto my-14 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
+          <div className="w-[58%] relative min-h-[380px]">
             <BannerImage url={bannerUrl} className="w-full h-full absolute inset-0" />
           </div>
-          <div className="w-[42%] flex flex-col justify-center px-10 py-12">
-            <p className="text-sm text-muted-foreground mb-2">{dateRange}</p>
-            <h1 className="text-3xl font-bold tracking-tight mb-8">{eventName}</h1>
+          <div className="w-[42%] flex flex-col justify-center px-10 py-14">
+            <p className="text-sm text-muted-foreground mb-3">{dateRange}</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-10">{eventName}</h1>
             <div>
               <RegisterButton slug={eventSlug} />
             </div>
@@ -96,7 +96,7 @@ export function BannerDisplay({
 
   if (bannerLayout === "image-below") {
     return (
-      <div className="relative min-h-[420px] overflow-hidden">
+      <div className="relative min-h-[560px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -106,16 +106,16 @@ export function BannerDisplay({
         ) : (
           <div className="absolute inset-0 bg-slate-800" />
         )}
-        <div className="relative z-10 max-w-4xl mx-auto pt-10 pb-10 px-6">
-          <div className="flex items-center justify-between mb-8 text-white">
+        <div className="relative z-10 max-w-5xl mx-auto pt-14 pb-14 px-6">
+          <div className="flex items-center justify-between mb-10 text-white">
             <div>
-              <p className="text-sm text-white/60 mb-1">{dateRange}</p>
-              <h1 className="text-3xl font-bold tracking-tight">{eventName}</h1>
+              <p className="text-sm text-white/60 mb-2">{dateRange}</p>
+              <h1 className="text-4xl font-bold tracking-tight">{eventName}</h1>
             </div>
             <RegisterButton slug={eventSlug} />
           </div>
           <div className="rounded-xl overflow-hidden shadow-lg">
-            <BannerImage url={bannerUrl} className="w-full h-[300px]" />
+            <BannerImage url={bannerUrl} className="w-full h-[380px]" />
           </div>
         </div>
       </div>
@@ -124,7 +124,7 @@ export function BannerDisplay({
 
   if (bannerLayout === "centered") {
     return (
-      <div className="relative min-h-[440px] overflow-hidden">
+      <div className="relative min-h-[580px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -134,12 +134,12 @@ export function BannerDisplay({
         ) : (
           <div className="absolute inset-0 bg-slate-800" />
         )}
-        <div className="relative z-10 max-w-4xl mx-auto pt-12 pb-10 px-6 text-center text-white">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">{eventName}</h1>
-          <p className="text-sm text-white/60 mb-6">{dateRange}</p>
+        <div className="relative z-10 max-w-5xl mx-auto pt-14 pb-14 px-6 text-center text-white">
+          <h1 className="text-5xl font-bold tracking-tight mb-3">{eventName}</h1>
+          <p className="text-sm text-white/60 mb-8">{dateRange}</p>
           <RegisterButton slug={eventSlug} />
-          <div className="mt-8 rounded-xl overflow-hidden shadow-lg max-w-3xl mx-auto">
-            <BannerImage url={bannerUrl} className="w-full h-[300px]" />
+          <div className="mt-10 rounded-xl overflow-hidden shadow-lg max-w-4xl mx-auto">
+            <BannerImage url={bannerUrl} className="w-full h-[380px]" />
           </div>
         </div>
       </div>
@@ -148,7 +148,7 @@ export function BannerDisplay({
 
   // full-bleed
   return (
-    <div className="relative min-h-[400px] flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-[520px] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0">
         <BannerImage url={bannerUrl} className="w-full h-full" />
       </div>

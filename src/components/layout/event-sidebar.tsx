@@ -12,6 +12,7 @@ import {
   Zap,
   BarChart3,
   UserCog,
+  Calendar,
   ArrowLeft,
   LogOut,
   ChevronDown,
@@ -34,6 +35,7 @@ interface Props {
 const EVENT_NAV = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "" },
   { id: "analytics", label: "Analytics", icon: BarChart3, path: "/analytics" },
+  { id: "agenda", label: "Agenda", icon: Calendar, path: "/agenda" },
   { id: "configure", label: "Configure", icon: Settings2, path: "/configure" },
   { id: "page-editor", label: "Page Editor", icon: FileEdit, path: "/page-editor", absolute: true },
   { id: "participants", label: "Participants", icon: Users, path: "/participants" },

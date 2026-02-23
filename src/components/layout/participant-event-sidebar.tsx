@@ -107,6 +107,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
       <nav className="flex-1 px-3 py-2 space-y-0.5">
         {[
           { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "", show: true },
+          { id: "agenda", label: "Agenda", icon: CalendarDays, path: "/agenda", show: true },
           { id: "matches", label: "Matches", icon: Zap, path: "/matches", show: true },
           { id: "meetings", label: "Meetings", icon: Users, path: "/meetings", show: perms.can_book_meetings },
           { id: "messages", label: "Messages", icon: MessageSquare, path: "/messages", show: perms.can_message },

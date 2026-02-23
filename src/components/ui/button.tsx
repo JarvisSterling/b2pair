@@ -24,7 +24,7 @@ const buttonVariants = cva(
           "shadow-[0_0_20px_rgba(0,113,227,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]",
           "hover:shadow-[0_0_30px_rgba(0,113,227,0.4),inset_0_1px_0_rgba(255,255,255,0.2)]",
           "before:absolute before:inset-0 before:-z-10 before:rounded-[inherit]",
-          "before:bg-[linear-gradient(135deg,#0071E3,#5856D6,#00C7BE,#34C759,#5856D6,#0071E3)]",
+          "before:bg-[linear-gradient(135deg,#0071E3,#5856D6,#00C7BE,#5856D6,#0071E3)]",
           "before:bg-[length:400%_400%]",
           "before:animate-glass-gradient",
           "before:opacity-70",

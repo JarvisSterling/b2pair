@@ -141,7 +141,7 @@ const config: Config = {
         "slide-down": "slide-down 200ms ease-out",
         "slide-right": "slide-right 200ms ease-out",
         "scale-in": "scale-in 200ms ease-out",
-        "glass-gradient": "glass-gradient 12s ease-in-out infinite",
+        "glass-gradient": "glass-gradient 8s ease infinite",
       },
     },
   },

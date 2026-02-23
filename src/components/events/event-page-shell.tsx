@@ -61,6 +61,7 @@ export function EventPageShell({
             endDate={event.end_date}
             bannerUrl={event.banner_url}
             bannerLayout={event.banner_layout || "split"}
+            bannerSettings={event.banner_settings || {}}
             eventSlug={event.slug}
           />
           <div className="max-w-4xl mx-auto px-6 mt-8 text-center" id="register">

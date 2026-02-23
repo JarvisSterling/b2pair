@@ -311,6 +311,8 @@ interface LayoutProps {
 function SplitLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps) {
   const bgOpacity = (settings.bgOpacity ?? 30) / 100;
   const blur = settings.blur ?? 4;
+  // Fade the gradient overlay inversely with opacity so at 100% there's no whitewash
+  const gradientOpacity = Math.max(0, 1 - bgOpacity);
 
   return (
     <div className="relative min-h-[440px] overflow-hidden">
@@ -323,7 +325,7 @@ function SplitLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps)
             className="absolute inset-0 w-full h-full object-cover scale-110"
             style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 to-background/80" />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(255,255,255,${gradientOpacity * 0.4}), rgba(255,255,255,${gradientOpacity * 0.8}))` }} />
         </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
@@ -347,6 +349,7 @@ function SplitLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps)
 function ImageBelowLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps) {
   const bgOpacity = (settings.bgOpacity ?? 20) / 100;
   const blur = settings.blur ?? 4;
+  const darkOverlay = Math.max(0.3, 0.9 - bgOpacity * 0.6);
 
   return (
     <div className="relative min-h-[480px] overflow-hidden">
@@ -354,7 +357,7 @@ function ImageBelowLayout({ eventName, dateRange, bannerUrl, settings }: LayoutP
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
-          <div className="absolute inset-0 bg-slate-800/90" />
+          <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
         </>
       ) : (
         <div className="absolute inset-0 bg-slate-800" />
@@ -378,6 +381,7 @@ function ImageBelowLayout({ eventName, dateRange, bannerUrl, settings }: LayoutP
 function CenteredLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps) {
   const bgOpacity = (settings.bgOpacity ?? 20) / 100;
   const blur = settings.blur ?? 4;
+  const darkOverlay = Math.max(0.3, 0.9 - bgOpacity * 0.6);
 
   return (
     <div className="relative min-h-[500px] overflow-hidden">
@@ -385,7 +389,7 @@ function CenteredLayout({ eventName, dateRange, bannerUrl, settings }: LayoutPro
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
-          <div className="absolute inset-0 bg-slate-800/90" />
+          <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
         </>
       ) : (
         <div className="absolute inset-0 bg-slate-800" />

@@ -10,6 +10,7 @@ interface BannerDisplayProps {
   endDate: string;
   bannerUrl: string | null;
   bannerLayout: BannerLayout;
+  bannerSettings?: Record<string, any>;
   eventSlug: string;
 }
 
@@ -62,18 +63,23 @@ export function BannerDisplay({
   endDate,
   bannerUrl,
   bannerLayout,
+  bannerSettings = {},
   eventSlug,
 }: BannerDisplayProps) {
   const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  const bgOpacity = (bannerSettings.bgOpacity ?? 30) / 100;
+  const blur = bannerSettings.blur ?? 4;
+  const overlayOpacity = (bannerSettings.overlayOpacity ?? 50) / 100;
 
   if (bannerLayout === "split") {
+    const gradientOpacity = Math.max(0, 1 - bgOpacity);
     return (
       <div className="relative min-h-[520px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-30" />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/40 to-background/80" />
+            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(255,255,255,${gradientOpacity * 0.4}), rgba(255,255,255,${gradientOpacity * 0.8}))` }} />
           </>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
@@ -95,13 +101,14 @@ export function BannerDisplay({
   }
 
   if (bannerLayout === "image-below") {
+    const darkOverlay = Math.max(0.3, 0.9 - bgOpacity * 0.6);
     return (
       <div className="relative min-h-[560px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-20" />
-            <div className="absolute inset-0 bg-slate-800/90" />
+            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
+            <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
           </>
         ) : (
           <div className="absolute inset-0 bg-slate-800" />
@@ -123,13 +130,14 @@ export function BannerDisplay({
   }
 
   if (bannerLayout === "centered") {
+    const darkOverlay = Math.max(0.3, 0.9 - bgOpacity * 0.6);
     return (
       <div className="relative min-h-[580px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-20" />
-            <div className="absolute inset-0 bg-slate-800/90" />
+            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
+            <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
           </>
         ) : (
           <div className="absolute inset-0 bg-slate-800" />
@@ -152,7 +160,7 @@ export function BannerDisplay({
       <div className="absolute inset-0">
         <BannerImage url={bannerUrl} className="w-full h-full" />
       </div>
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${overlayOpacity})` }} />
       <div className="relative z-10 text-center text-white px-10 py-16">
         <p className="text-sm text-white/70 mb-3">{dateRange}</p>
         <h1 className="text-4xl font-bold tracking-tight mb-8">{eventName}</h1>

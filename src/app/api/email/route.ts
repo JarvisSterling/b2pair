@@ -17,7 +17,7 @@ const BRAND = {
   color: "#18181b",
   bg: "#fafafa",
   accent: "#18181b",
-  url: process.env.NEXT_PUBLIC_APP_URL || "https://b2pair.vercel.app",
+  url: process.env.NEXT_PUBLIC_APP_URL || "https://b2pair.com",
 };
 
 function baseLayout(content: string): string {

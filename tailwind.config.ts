@@ -124,6 +124,10 @@ const config: Config = {
           from: { opacity: "0", transform: "translateX(-100%)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
+        "slide-in-right": {
+          from: { opacity: "0", transform: "translateX(100%)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
         "scale-in": {
           from: { opacity: "0", transform: "scale(0.98)" },
           to: { opacity: "1", transform: "scale(1)" },
@@ -140,6 +144,7 @@ const config: Config = {
         "slide-up": "slide-up 200ms ease-out",
         "slide-down": "slide-down 200ms ease-out",
         "slide-right": "slide-right 200ms ease-out",
+        "slide-in-right": "slide-in-right 300ms ease-out",
         "scale-in": "scale-in 200ms ease-out",
         "glass-gradient": "glass-gradient 8s ease infinite",
       },

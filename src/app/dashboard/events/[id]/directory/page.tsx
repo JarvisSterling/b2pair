@@ -272,7 +272,7 @@ export default function DirectoryPage() {
             className="fixed inset-0 z-40 bg-black/20"
             onClick={() => setSelectedEntry(null)}
           />
-          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l border-border shadow-xl animate-slide-right overflow-y-auto">
+          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l border-border shadow-xl animate-slide-in-right overflow-y-auto">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-start justify-between mb-6">

@@ -83,7 +83,8 @@ export default function AvailabilityPage() {
     if (!selectedEvent) return;
     const ev = events.find((e) => e.id === selectedEvent);
     if (ev?.start_date) {
-      const eventStart = new Date(ev.start_date + "T00:00:00");
+      const eventStart = new Date(ev.start_date);
+      eventStart.setHours(0, 0, 0, 0);
       eventStart.setDate(eventStart.getDate() - ((eventStart.getDay() + 6) % 7));
       setWeekStart(eventStart);
     }
@@ -113,16 +114,10 @@ export default function AvailabilityPage() {
       setEvents(evts);
       setSelectedEvent(evts[0].id);
       // Default to the event's start week
-      if (evts[0].start_date) {
-        const eventStart = new Date(evts[0].start_date + "T00:00:00");
-        eventStart.setDate(eventStart.getDate() - ((eventStart.getDay() + 6) % 7)); // Monday of that week
-        setWeekStart(eventStart);
-      } else {
-        const d = new Date();
-        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-        d.setHours(0, 0, 0, 0);
-        setWeekStart(d);
-      }
+      const startDate = evts[0].start_date ? new Date(evts[0].start_date) : new Date();
+      startDate.setHours(0, 0, 0, 0);
+      startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7)); // Monday of that week
+      setWeekStart(startDate);
     }
     setLoading(false);
   }

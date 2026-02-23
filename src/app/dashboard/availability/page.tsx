@@ -298,7 +298,7 @@ export default function AvailabilityPage() {
   const weekDays = getWeekDays();
   const today = new Date().toISOString().split("T")[0];
 
-  if (loading) {
+  if (loading || (events.length > 0 && !weekStart)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

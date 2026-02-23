@@ -24,6 +24,7 @@ import { DndBlockCanvas } from "@/components/page-editor/dnd-block-canvas";
 import { BlockPalette } from "@/components/page-editor/block-palette";
 import { BlockProperties } from "@/components/page-editor/block-properties";
 import { ThemePicker } from "@/components/page-editor/theme-picker";
+import { BannerEditor, type BannerLayout } from "@/components/page-editor/banner-editor";
 import { BlockRenderer } from "@/components/events/block-renderer";
 import { EventThemeProvider } from "@/components/events/theme-provider";
 import type {
@@ -65,6 +66,7 @@ export function FullScreenEditor({
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile" | null>(null);
   const [rightPanel, setRightPanel] = useState<"properties" | "theme">("properties");
   const [bannerUrl, setBannerUrl] = useState<string | null>(event.banner_url || null);
+  const [bannerLayout, setBannerLayout] = useState<BannerLayout>(event.banner_layout || "split");
   const [logoUrl, setLogoUrl] = useState<string | null>(event.logo_url || null);
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) || null;
@@ -240,7 +242,7 @@ export function FullScreenEditor({
       // Save banner/logo
       await supabase
         .from("events")
-        .update({ banner_url: bannerUrl, logo_url: logoUrl })
+        .update({ banner_url: bannerUrl, banner_layout: bannerLayout, logo_url: logoUrl })
         .eq("id", event.id);
 
       setSaved(true);
@@ -607,6 +609,19 @@ export function FullScreenEditor({
         {/* Center: Canvas */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto py-8 px-6">
+            {/* Banner section - always visible on Home page */}
+            {selectedPage?.page_type === "home" && (
+              <BannerEditor
+                eventName={event.name}
+                startDate={event.start_date}
+                endDate={event.end_date}
+                bannerUrl={bannerUrl}
+                bannerLayout={bannerLayout}
+                onBannerUrlChange={setBannerUrl}
+                onBannerLayoutChange={setBannerLayout}
+                eventId={event.id}
+              />
+            )}
             {selectedPage ? (
               <DndBlockCanvas
                 blocks={selectedPage.content}

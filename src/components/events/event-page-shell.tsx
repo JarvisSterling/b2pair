@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { RegisterButton } from "@/components/events/register-button";
 import { EventThemeProvider } from "@/components/events/theme-provider";
 import { BlockRenderer } from "@/components/events/block-renderer";
+import { BannerDisplay } from "@/components/events/banner-display";
 import type { EventPage, EventTheme, ContentBlock, ThemeKey } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
 
@@ -52,84 +52,19 @@ export function EventPageShell({
 
   return (
     <EventThemeProvider themeKey={themeKey} accentColor={theme?.accent_color}>
-      {/* Hero (always shown, uses banner from events table) */}
+      {/* Banner */}
       {isHome && (
-        <div
-          className="relative"
-          style={
-            event.banner_url
-              ? {
-                  backgroundImage: `url(${event.banner_url})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }
-              : {
-                  background: `linear-gradient(135deg, var(--page-surface), var(--page-bg))`,
-                }
-          }
-        >
-          {event.banner_url && (
-            <div className="absolute inset-0 bg-black/50" />
-          )}
-          <div className="relative max-w-4xl mx-auto px-6 py-20 text-center">
-            {event.logo_url && (
-              <div className="mb-4 flex justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={event.logo_url}
-                  alt={`${event.name} logo`}
-                  className="h-16 w-16 rounded-2xl object-contain bg-white/10 p-2"
-                />
-              </div>
-            )}
-            <Badge
-              className="mb-4"
-              style={{
-                backgroundColor: event.banner_url ? "rgba(255,255,255,0.1)" : "var(--page-surface)",
-                color: event.banner_url ? "#fff" : "var(--page-text-secondary)",
-                borderColor: event.banner_url ? "rgba(255,255,255,0.2)" : "var(--page-border)",
-              }}
-            >
-              {event.event_type}
-            </Badge>
-            <h1
-              className="text-4xl sm:text-5xl font-bold tracking-tight mb-4"
-              style={{
-                color: event.banner_url ? "#fff" : "var(--page-text)",
-                fontFamily: "var(--page-font-heading)",
-              }}
-            >
-              {event.name}
-            </h1>
-            {event.description && (
-              <p
-                className="text-lg max-w-2xl mx-auto mb-8"
-                style={{ color: event.banner_url ? "rgba(255,255,255,0.8)" : "var(--page-text-secondary)" }}
-              >
-                {event.description}
-              </p>
-            )}
-
-            <div
-              className="flex flex-wrap items-center justify-center gap-6 text-sm mb-8"
-              style={{ color: event.banner_url ? "rgba(255,255,255,0.7)" : "var(--page-text-secondary)" }}
-            >
-              <span className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {dateFormatter.format(startDate)}
-              </span>
-              <span className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                {location}
-              </span>
-              {participantCount > 0 && (
-                <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  {participantCount} participants
-                </span>
-              )}
-            </div>
-
+        <div className="max-w-4xl mx-auto px-6 pt-8">
+          <BannerDisplay
+            eventName={event.name}
+            startDate={event.start_date}
+            endDate={event.end_date}
+            bannerUrl={event.banner_url}
+            bannerLayout={event.banner_layout || "split"}
+            eventSlug={event.slug}
+          />
+          {/* Registration section below banner */}
+          <div className="mt-8 text-center" id="register">
             <RegisterButton
               eventId={event.id}
               eventSlug={event.slug}

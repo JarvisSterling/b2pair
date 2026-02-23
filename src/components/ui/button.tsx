@@ -17,7 +17,7 @@ const buttonVariants = cva(
       variant: {
         default: [
           "relative overflow-hidden isolate",
-          "text-white font-semibold tracking-wide",
+          "!text-white font-semibold tracking-wide",
           "border border-white/25",
           "backdrop-blur-xl",
           "bg-white/[0.08]",

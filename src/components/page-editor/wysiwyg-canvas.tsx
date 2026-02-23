@@ -108,13 +108,11 @@ export function WysiwygCanvas({
     [blocks, onChange]
   );
 
-  const isHome = page.page_type === "home";
-
   return (
     <div className="bg-background min-h-full">
       <EventThemeProvider themeKey={themeKey} accentColor={accentColor}>
-        {/* Banner - full width, only on Home page */}
-        {isHome && (
+        {/* Banner - always visible across all pages */}
+        {(
           <div
             onClick={() => onBannerSelect()}
             className={cn(

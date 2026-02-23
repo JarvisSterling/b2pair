@@ -52,32 +52,28 @@ export function EventPageShell({
 
   return (
     <EventThemeProvider themeKey={themeKey} accentColor={theme?.accent_color}>
-      {/* Banner - full width */}
-      {isHome && (
-        <>
-          <BannerDisplay
-            eventName={event.name}
-            startDate={event.start_date}
-            endDate={event.end_date}
-            bannerUrl={event.banner_url}
-            bannerLayout={event.banner_layout || "split"}
-            bannerSettings={event.banner_settings || {}}
+      {/* Banner - always visible across all pages */}
+      <BannerDisplay
+        eventName={event.name}
+        startDate={event.start_date}
+        endDate={event.end_date}
+        bannerUrl={event.banner_url}
+        bannerLayout={event.banner_layout || "split"}
+        bannerSettings={event.banner_settings || {}}
+        eventSlug={event.slug}
+        isRegistered={isRegistered}
+      />
+      {!isRegistered && isHome && (
+        <div className="max-w-4xl mx-auto px-6 mt-8 text-center" id="register">
+          <RegisterButton
+            eventId={event.id}
             eventSlug={event.slug}
             isRegistered={isRegistered}
+            isLoggedIn={isLoggedIn}
+            requiresApproval={event.requires_approval}
+            participantTypes={participantTypes}
           />
-          {!isRegistered && (
-            <div className="max-w-4xl mx-auto px-6 mt-8 text-center" id="register">
-              <RegisterButton
-                eventId={event.id}
-                eventSlug={event.slug}
-                isRegistered={isRegistered}
-                isLoggedIn={isLoggedIn}
-                requiresApproval={event.requires_approval}
-                participantTypes={participantTypes}
-              />
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {/* Tab navigation */}

@@ -16,6 +16,7 @@ import {
   User,
   CalendarDays,
   Building2,
+  QrCode,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParticipantPerms } from "@/hooks/use-participant-perms";
@@ -115,6 +116,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           { id: "directory", label: "Directory", icon: Search, path: "/directory", show: perms.can_view_directory },
           { id: "exhibitors", label: "Exhibitors", icon: Building2, path: "/exhibitors", show: true },
           { id: "availability", label: "Availability", icon: Clock, path: "/availability", show: perms.can_book_meetings },
+          { id: "qr-code", label: "My QR Code", icon: QrCode, path: "/qr-code", show: true },
         ]
           .filter((item) => item.show)
           .map((item) => {

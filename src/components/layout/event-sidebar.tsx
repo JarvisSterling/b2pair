@@ -13,6 +13,7 @@ import {
   BarChart3,
   UserCog,
   Calendar,
+  QrCode,
   ArrowLeft,
   LogOut,
   ChevronDown,
@@ -42,6 +43,7 @@ const EVENT_NAV = [
   { id: "participant-types", label: "Participant Types", icon: UserCog, path: "/participant-types" },
   { id: "matching", label: "Matching Rules", icon: Zap, path: "/matching" },
   { id: "sponsors", label: "Sponsors", icon: Building2, path: "/sponsors" },
+  { id: "check-in", label: "Check-in", icon: QrCode, path: "/check-in" },
 ];
 
 export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Props) {

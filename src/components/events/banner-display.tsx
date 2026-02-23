@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { RegisterButton as FullRegisterButton } from "@/components/events/register-button";
+import { Check, ArrowRight } from "lucide-react";
 
 type BannerLayout = "split" | "image-below" | "centered" | "full-bleed";
 
@@ -56,9 +57,6 @@ function BannerRegisterSection({
   slug,
   isRegistered,
   isLoggedIn,
-  eventId,
-  requiresApproval,
-  participantTypes,
 }: {
   slug: string;
   isRegistered: boolean;
@@ -67,16 +65,46 @@ function BannerRegisterSection({
   requiresApproval: boolean;
   participantTypes: any[];
 }) {
+  if (isRegistered) {
+    return (
+      <div className="space-y-3">
+        <span className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-lg">
+          <Check className="h-4 w-4" />
+          Already Registered
+        </span>
+        {isLoggedIn && (
+          <div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
+            >
+              Go to Dashboard <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="pointer-events-auto">
-      <FullRegisterButton
-        eventId={eventId}
-        eventSlug={slug}
-        isRegistered={isRegistered}
-        isLoggedIn={isLoggedIn}
-        requiresApproval={requiresApproval}
-        participantTypes={participantTypes}
-      />
+    <div className="space-y-3">
+      <Link
+        href={`/events/${slug}/register`}
+        className="inline-block px-8 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:brightness-110 transition-all"
+      >
+        Register now
+      </Link>
+      {!isLoggedIn && (
+        <p className="text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href={`/events/${slug}/register?mode=signin`}
+            className="underline font-medium text-primary hover:text-primary/80"
+          >
+            Sign In
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

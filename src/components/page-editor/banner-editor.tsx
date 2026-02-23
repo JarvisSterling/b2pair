@@ -21,6 +21,7 @@ interface BannerEditorProps {
   endDate: string;
   bannerUrl: string | null;
   bannerLayout: BannerLayout;
+  bannerSettings?: Record<string, any>;
   onBannerUrlChange: (url: string | null) => void;
   onBannerLayoutChange: (layout: BannerLayout) => void;
   eventId: string;
@@ -48,6 +49,7 @@ export function BannerEditor({
   endDate,
   bannerUrl,
   bannerLayout,
+  bannerSettings = {},
   onBannerUrlChange,
   onBannerLayoutChange,
   eventId,
@@ -87,6 +89,7 @@ export function BannerEditor({
             eventName={eventName}
             dateRange={dateRange}
             bannerUrl={bannerUrl}
+            settings={bannerSettings}
           />
         )}
         {bannerLayout === "image-below" && (
@@ -94,6 +97,7 @@ export function BannerEditor({
             eventName={eventName}
             dateRange={dateRange}
             bannerUrl={bannerUrl}
+            settings={bannerSettings}
           />
         )}
         {bannerLayout === "centered" && (
@@ -101,6 +105,7 @@ export function BannerEditor({
             eventName={eventName}
             dateRange={dateRange}
             bannerUrl={bannerUrl}
+            settings={bannerSettings}
           />
         )}
         {bannerLayout === "full-bleed" && (
@@ -108,6 +113,7 @@ export function BannerEditor({
             eventName={eventName}
             dateRange={dateRange}
             bannerUrl={bannerUrl}
+            settings={bannerSettings}
           />
         )}
 
@@ -295,32 +301,33 @@ function RegisterButton() {
   );
 }
 
-function SplitLayout({
-  eventName,
-  dateRange,
-  bannerUrl,
-}: {
+interface LayoutProps {
   eventName: string;
   dateRange: string;
   bannerUrl: string | null;
-}) {
+  settings: Record<string, any>;
+}
+
+function SplitLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps) {
+  const bgOpacity = (settings.bgOpacity ?? 30) / 100;
+  const blur = settings.blur ?? 4;
+
   return (
     <div className="relative min-h-[440px] overflow-hidden">
-      {/* Full-width blurred background */}
       {bannerUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={bannerUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-30"
+            className="absolute inset-0 w-full h-full object-cover scale-110"
+            style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 to-background/80" />
         </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
       )}
-      {/* Split card floating on top */}
       <div className="relative z-10 flex max-w-3xl mx-auto my-12 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
         <div className="w-[58%] relative min-h-[320px]">
           <BannerImage url={bannerUrl} className="w-full h-full absolute inset-0" />
@@ -337,22 +344,16 @@ function SplitLayout({
   );
 }
 
-function ImageBelowLayout({
-  eventName,
-  dateRange,
-  bannerUrl,
-}: {
-  eventName: string;
-  dateRange: string;
-  bannerUrl: string | null;
-}) {
+function ImageBelowLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps) {
+  const bgOpacity = (settings.bgOpacity ?? 20) / 100;
+  const blur = settings.blur ?? 4;
+
   return (
     <div className="relative min-h-[480px] overflow-hidden">
-      {/* Full-width blurred background */}
       {bannerUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-20" />
+          <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
           <div className="absolute inset-0 bg-slate-800/90" />
         </>
       ) : (
@@ -374,21 +375,16 @@ function ImageBelowLayout({
   );
 }
 
-function CenteredLayout({
-  eventName,
-  dateRange,
-  bannerUrl,
-}: {
-  eventName: string;
-  dateRange: string;
-  bannerUrl: string | null;
-}) {
+function CenteredLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps) {
+  const bgOpacity = (settings.bgOpacity ?? 20) / 100;
+  const blur = settings.blur ?? 4;
+
   return (
     <div className="relative min-h-[500px] overflow-hidden">
       {bannerUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm opacity-20" />
+          <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
           <div className="absolute inset-0 bg-slate-800/90" />
         </>
       ) : (
@@ -406,21 +402,15 @@ function CenteredLayout({
   );
 }
 
-function FullBleedLayout({
-  eventName,
-  dateRange,
-  bannerUrl,
-}: {
-  eventName: string;
-  dateRange: string;
-  bannerUrl: string | null;
-}) {
+function FullBleedLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps) {
+  const overlayOpacity = (settings.overlayOpacity ?? 50) / 100;
+
   return (
     <div className="relative min-h-[440px] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0">
         <BannerImage url={bannerUrl} className="w-full h-full" />
       </div>
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${overlayOpacity})` }} />
       <div className="relative z-10 text-center text-white px-8 py-12">
         <p className="text-sm text-white/70 mb-2">{dateRange}</p>
         <h1 className="text-4xl font-bold tracking-tight mb-6">{eventName}</h1>

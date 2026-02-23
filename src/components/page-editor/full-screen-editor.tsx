@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { BlockPalette } from "@/components/page-editor/block-palette";
 import { BlockProperties } from "@/components/page-editor/block-properties";
 import { ThemePicker } from "@/components/page-editor/theme-picker";
@@ -67,6 +68,8 @@ export function FullScreenEditor({
   const [rightPanel, setRightPanel] = useState<"properties" | "theme">("properties");
   const [bannerUrl, setBannerUrl] = useState<string | null>(event.banner_url || null);
   const [bannerLayout, setBannerLayout] = useState<BannerLayout>(event.banner_layout || "split");
+  const [bannerSettings, setBannerSettings] = useState<Record<string, any>>(event.banner_settings || {});
+  const [bannerSelected, setBannerSelected] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(event.logo_url || null);
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) || null;
@@ -242,7 +245,7 @@ export function FullScreenEditor({
       // Save banner/logo
       await supabase
         .from("events")
-        .update({ banner_url: bannerUrl, banner_layout: bannerLayout, logo_url: logoUrl })
+        .update({ banner_url: bannerUrl, banner_layout: bannerLayout, banner_settings: bannerSettings, logo_url: logoUrl })
         .eq("id", event.id);
 
       setSaved(true);
@@ -616,6 +619,7 @@ export function FullScreenEditor({
               selectedBlockId={selectedBlockId}
               onSelectBlock={(id) => {
                 setSelectedBlockId(id);
+                setBannerSelected(false);
                 setRightPanel("properties");
               }}
               onRemoveBlock={removeBlock}
@@ -623,8 +627,15 @@ export function FullScreenEditor({
               event={event}
               bannerUrl={bannerUrl}
               bannerLayout={bannerLayout}
+              bannerSettings={bannerSettings}
               onBannerUrlChange={setBannerUrl}
               onBannerLayoutChange={setBannerLayout}
+              onBannerSelect={() => {
+                setBannerSelected(true);
+                setSelectedBlockId(null);
+                setRightPanel("properties");
+              }}
+              bannerSelected={bannerSelected}
               themeKey={(theme?.theme_key as ThemeKey) || "light-classic"}
               accentColor={theme?.accent_color || null}
             />
@@ -679,6 +690,11 @@ export function FullScreenEditor({
                   )
                 }
               />
+            ) : bannerSelected ? (
+              <BannerProperties
+                bannerSettings={bannerSettings}
+                onUpdate={(updates) => setBannerSettings({ ...bannerSettings, ...updates })}
+              />
             ) : selectedBlock ? (
               <BlockProperties
                 block={selectedBlock}
@@ -695,6 +711,77 @@ export function FullScreenEditor({
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BannerProperties({
+  bannerSettings,
+  onUpdate,
+}: {
+  bannerSettings: Record<string, any>;
+  onUpdate: (updates: Record<string, any>) => void;
+}) {
+  const bgOpacity = bannerSettings.bgOpacity ?? 30;
+  const overlayOpacity = bannerSettings.overlayOpacity ?? 50;
+  const blur = bannerSettings.blur ?? 4;
+
+  return (
+    <div className="space-y-5">
+      <h3 className="text-sm font-semibold">Banner Settings</h3>
+
+      <div className="border-t pt-4 space-y-4">
+        <div>
+          <Label className="text-xs">Background Image Opacity</Label>
+          <div className="flex items-center gap-3 mt-1.5">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={bgOpacity}
+              onChange={(e) => onUpdate({ bgOpacity: Number(e.target.value) })}
+              className="flex-1 accent-primary"
+            />
+            <span className="text-xs text-muted-foreground w-8 text-right">{bgOpacity}%</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            How visible the blurred background image is behind the banner
+          </p>
+        </div>
+
+        <div>
+          <Label className="text-xs">Background Blur</Label>
+          <div className="flex items-center gap-3 mt-1.5">
+            <input
+              type="range"
+              min={0}
+              max={20}
+              value={blur}
+              onChange={(e) => onUpdate({ blur: Number(e.target.value) })}
+              className="flex-1 accent-primary"
+            />
+            <span className="text-xs text-muted-foreground w-8 text-right">{blur}px</span>
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-xs">Dark Overlay Strength</Label>
+          <div className="flex items-center gap-3 mt-1.5">
+            <input
+              type="range"
+              min={0}
+              max={80}
+              value={overlayOpacity}
+              onChange={(e) => onUpdate({ overlayOpacity: Number(e.target.value) })}
+              className="flex-1 accent-primary"
+            />
+            <span className="text-xs text-muted-foreground w-8 text-right">{overlayOpacity}%</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Only applies to full-bleed layout
+          </p>
         </div>
       </div>
     </div>

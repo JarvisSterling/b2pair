@@ -57,8 +57,11 @@ interface WysiwygCanvasProps {
   event: any;
   bannerUrl: string | null;
   bannerLayout: BannerLayout;
+  bannerSettings: Record<string, any>;
   onBannerUrlChange: (url: string | null) => void;
   onBannerLayoutChange: (layout: BannerLayout) => void;
+  onBannerSelect: () => void;
+  bannerSelected: boolean;
   // Theme
   themeKey: ThemeKey;
   accentColor: string | null;
@@ -75,8 +78,11 @@ export function WysiwygCanvas({
   event,
   bannerUrl,
   bannerLayout,
+  bannerSettings,
   onBannerUrlChange,
   onBannerLayoutChange,
+  onBannerSelect,
+  bannerSelected,
   themeKey,
   accentColor,
 }: WysiwygCanvasProps) {
@@ -109,16 +115,25 @@ export function WysiwygCanvas({
       <EventThemeProvider themeKey={themeKey} accentColor={accentColor}>
         {/* Banner - full width, only on Home page */}
         {isHome && (
-          <BannerEditor
-            eventName={event.name}
-            startDate={event.start_date}
-            endDate={event.end_date}
-            bannerUrl={bannerUrl}
-            bannerLayout={bannerLayout}
-            onBannerUrlChange={onBannerUrlChange}
-            onBannerLayoutChange={onBannerLayoutChange}
-            eventId={event.id}
-          />
+          <div
+            onClick={() => onBannerSelect()}
+            className={cn(
+              "cursor-pointer transition-all",
+              bannerSelected && "ring-2 ring-primary/40"
+            )}
+          >
+            <BannerEditor
+              eventName={event.name}
+              startDate={event.start_date}
+              endDate={event.end_date}
+              bannerUrl={bannerUrl}
+              bannerLayout={bannerLayout}
+              bannerSettings={bannerSettings}
+              onBannerUrlChange={onBannerUrlChange}
+              onBannerLayoutChange={onBannerLayoutChange}
+              eventId={event.id}
+            />
+          </div>
         )}
 
         {/* Content blocks */}

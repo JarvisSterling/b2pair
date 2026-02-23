@@ -205,28 +205,24 @@ export function RegisterButton({
   return (
     <>
       <div className="space-y-3">
-        {step === "idle" && (
-          <>
-            <Button
-              size="lg"
-              onClick={handleStart}
-              className="gap-2 text-base px-8"
+        <Button
+          size="lg"
+          onClick={handleStart}
+          className="gap-2 text-base px-8"
+        >
+          <UserPlus className="h-5 w-5" />
+          Register Now
+        </Button>
+        {!isLoggedIn && (
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button
+              onClick={handleSignIn}
+              className="underline font-medium text-primary hover:text-primary/80"
             >
-              <UserPlus className="h-5 w-5" />
-              Register Now
-            </Button>
-            {!isLoggedIn && (
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <button
-                  onClick={handleSignIn}
-                  className="underline font-medium text-primary hover:text-primary/80"
-                >
-                  Sign In
-                </button>
-              </p>
-            )}
-          </>
+              Sign In
+            </button>
+          </p>
         )}
       </div>
 

@@ -1,8 +1,16 @@
 "use client";
 
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, Loader2, Eye, EyeOff, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 
 type BannerLayout = "split" | "image-below" | "centered" | "full-bleed";
 
@@ -57,6 +65,7 @@ function BannerRegisterSection({
   slug,
   isRegistered,
   isLoggedIn,
+  eventId,
 }: {
   slug: string;
   isRegistered: boolean;
@@ -65,6 +74,41 @@ function BannerRegisterSection({
   requiresApproval: boolean;
   participantTypes: any[];
 }) {
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  async function handleSignIn() {
+    setLoading(true);
+    setError(null);
+
+    if (!email || !password) {
+      setError("Email and password are required");
+      setLoading(false);
+      return;
+    }
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Check if registered for this event
+    router.push("/dashboard");
+    setLoading(false);
+  }
+
   if (isRegistered) {
     return (
       <div className="space-y-3">
@@ -87,25 +131,101 @@ function BannerRegisterSection({
   }
 
   return (
-    <div className="space-y-3">
-      <Link
-        href={`/events/${slug}/register`}
-        className="inline-block px-8 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:brightness-110 transition-all"
-      >
-        Register now
-      </Link>
-      {!isLoggedIn && (
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link
-            href={`/events/${slug}/register?mode=signin`}
-            className="underline font-medium text-primary hover:text-primary/80"
-          >
-            Sign In
-          </Link>
-        </p>
+    <>
+      <div className="space-y-3">
+        <Link
+          href={`/events/${slug}/register`}
+          className="inline-block px-8 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:brightness-110 transition-all"
+        >
+          Register now
+        </Link>
+        {!isLoggedIn && (
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button
+              onClick={() => setShowSignIn(true)}
+              className="underline font-medium text-primary hover:text-primary/80"
+            >
+              Sign In
+            </button>
+          </p>
+        )}
+      </div>
+
+      {/* Sign In Modal */}
+      {showSignIn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSignIn(false)}
+          />
+          <div className="relative z-10 w-full max-w-md mx-4 animate-scale-in">
+            <Card className="text-left bg-white text-zinc-900 shadow-2xl">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-lg font-semibold">Sign in</h3>
+                  <button
+                    onClick={() => setShowSignIn(false)}
+                    className="text-zinc-400 hover:text-zinc-600 p-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-sm text-zinc-500 mb-4">
+                  Welcome back! Sign in to access your events.
+                </p>
+
+                <div className="space-y-3">
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+
+                  <Button
+                    onClick={handleSignIn}
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Sign In
+                  </Button>
+
+                  <p className="text-center text-xs text-zinc-500">
+                    Don&apos;t have an account?{" "}
+                    <Link
+                      href={`/events/${slug}/register`}
+                      className="underline font-medium text-zinc-900"
+                    >
+                      Register
+                    </Link>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }
 

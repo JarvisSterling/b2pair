@@ -105,73 +105,61 @@ export function WysiwygCanvas({
   const isHome = page.page_type === "home";
 
   return (
-    <div className="flex justify-center py-8 px-6">
-      {/* Page frame - looks like a browser/page */}
-      <div className="w-full max-w-4xl rounded-2xl border border-border/60 bg-background shadow-lg overflow-hidden">
-        <EventThemeProvider themeKey={themeKey} accentColor={accentColor}>
-          {/* Banner - only on Home page */}
-          {isHome && (
-            <BannerEditor
-              eventName={event.name}
-              startDate={event.start_date}
-              endDate={event.end_date}
-              bannerUrl={bannerUrl}
-              bannerLayout={bannerLayout}
-              onBannerUrlChange={onBannerUrlChange}
-              onBannerLayoutChange={onBannerLayoutChange}
-              eventId={event.id}
-            />
-          )}
+    <div className="bg-background min-h-full">
+      <EventThemeProvider themeKey={themeKey} accentColor={accentColor}>
+        {/* Banner - full width, only on Home page */}
+        {isHome && (
+          <BannerEditor
+            eventName={event.name}
+            startDate={event.start_date}
+            endDate={event.end_date}
+            bannerUrl={bannerUrl}
+            bannerLayout={bannerLayout}
+            onBannerUrlChange={onBannerUrlChange}
+            onBannerLayoutChange={onBannerLayoutChange}
+            eventId={event.id}
+          />
+        )}
 
-          {/* Content area */}
-          <div className="px-8 py-10 max-w-3xl mx-auto">
-            {blocks.length === 0 ? (
-              <div className="rounded-xl border-2 border-dashed border-border/40 p-12 text-center">
-                <p className="text-muted-foreground mb-2">
-                  This page is empty
-                </p>
-                <p className="text-sm text-muted-foreground/60 mb-6">
-                  Add content blocks from the left panel
-                </p>
-                <InsertDropdown onAdd={(type) => onAddBlock(type)} />
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={blocks.map((b) => b.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-1">
-                    {blocks.map((block, index) => (
-                      <SortableLiveBlock
-                        key={block.id}
-                        block={block}
-                        isSelected={block.id === selectedBlockId}
-                        onSelect={() => onSelectBlock(block.id)}
-                        onRemove={() => onRemoveBlock(block.id)}
-                        onInsertAfter={(type) => onAddBlock(type, index + 1)}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div style={{ borderTop: "1px solid var(--page-border, rgba(0,0,0,0.06))" }}>
-            <div className="px-8 py-6 text-center">
-              <p className="text-xs" style={{ color: "var(--page-text-secondary, #6E6E73)" }}>
-                Powered by <span className="font-semibold" style={{ color: "var(--page-text, #1D1D1F)" }}>B2Pair</span>
+        {/* Content blocks */}
+        <div className="max-w-3xl mx-auto px-6 py-10">
+          {blocks.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-border/40 p-12 text-center">
+              <p className="text-muted-foreground mb-2">
+                This page is empty
               </p>
+              <p className="text-sm text-muted-foreground/60 mb-6">
+                Add content blocks from the left panel
+              </p>
+              <InsertDropdown onAdd={(type) => onAddBlock(type)} />
             </div>
-          </div>
-        </EventThemeProvider>
-      </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={blocks.map((b) => b.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-1">
+                  {blocks.map((block, index) => (
+                    <SortableLiveBlock
+                      key={block.id}
+                      block={block}
+                      isSelected={block.id === selectedBlockId}
+                      onSelect={() => onSelectBlock(block.id)}
+                      onRemove={() => onRemoveBlock(block.id)}
+                      onInsertAfter={(type) => onAddBlock(type, index + 1)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
+      </EventThemeProvider>
     </div>
   );
 }

@@ -607,7 +607,7 @@ export function FullScreenEditor({
         </div>
 
         {/* Center: Canvas */}
-        <div className="flex-1 overflow-y-auto bg-muted/30">
+        <div className="flex-1 overflow-y-auto">
           {selectedPage ? (
             <WysiwygCanvas
               page={selectedPage}

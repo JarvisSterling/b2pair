@@ -70,7 +70,7 @@ export function EventPageShell({
       {/* Tab navigation */}
       {pages.length > 1 && (
         <div
-          className="sticky top-0 z-10"
+          className="sticky top-0 z-[5]"
           style={{
             backgroundColor: "var(--page-bg)",
             borderBottom: "1px solid var(--page-border)",

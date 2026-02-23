@@ -63,17 +63,20 @@ export function EventPageShell({
             bannerLayout={event.banner_layout || "split"}
             bannerSettings={event.banner_settings || {}}
             eventSlug={event.slug}
+            isRegistered={isRegistered}
           />
-          <div className="max-w-4xl mx-auto px-6 mt-8 text-center" id="register">
-            <RegisterButton
-              eventId={event.id}
-              eventSlug={event.slug}
-              isRegistered={isRegistered}
-              isLoggedIn={isLoggedIn}
-              requiresApproval={event.requires_approval}
-              participantTypes={participantTypes}
-            />
-          </div>
+          {!isRegistered && (
+            <div className="max-w-4xl mx-auto px-6 mt-8 text-center" id="register">
+              <RegisterButton
+                eventId={event.id}
+                eventSlug={event.slug}
+                isRegistered={isRegistered}
+                isLoggedIn={isLoggedIn}
+                requiresApproval={event.requires_approval}
+                participantTypes={participantTypes}
+              />
+            </div>
+          )}
         </>
       )}
 

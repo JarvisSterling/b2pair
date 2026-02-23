@@ -12,6 +12,7 @@ interface BannerDisplayProps {
   bannerLayout: BannerLayout;
   bannerSettings?: Record<string, any>;
   eventSlug: string;
+  isRegistered?: boolean;
 }
 
 function formatDate(dateStr: string): string {
@@ -46,7 +47,17 @@ function BannerImage({
   );
 }
 
-function RegisterButton({ slug }: { slug: string }) {
+function RegisterButton({ slug, isRegistered }: { slug: string; isRegistered: boolean }) {
+  if (isRegistered) {
+    return (
+      <span className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-lg">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        Already Registered
+      </span>
+    );
+  }
   return (
     <a
       href={`/events/${slug}#register`}
@@ -65,6 +76,7 @@ export function BannerDisplay({
   bannerLayout,
   bannerSettings = {},
   eventSlug,
+  isRegistered = false,
 }: BannerDisplayProps) {
   const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
   const bgOpacity = (bannerSettings.bgOpacity ?? 30) / 100;
@@ -92,7 +104,7 @@ export function BannerDisplay({
             <p className="text-sm text-muted-foreground mb-3">{dateRange}</p>
             <h1 className="text-3xl font-bold tracking-tight mb-10">{eventName}</h1>
             <div>
-              <RegisterButton slug={eventSlug} />
+              <RegisterButton slug={eventSlug} isRegistered={isRegistered} />
             </div>
           </div>
         </div>
@@ -119,7 +131,7 @@ export function BannerDisplay({
               <p className="text-sm text-white/60 mb-2">{dateRange}</p>
               <h1 className="text-4xl font-bold tracking-tight">{eventName}</h1>
             </div>
-            <RegisterButton slug={eventSlug} />
+            <RegisterButton slug={eventSlug} isRegistered={isRegistered} />
           </div>
           <div className="rounded-xl overflow-hidden shadow-lg">
             <BannerImage url={bannerUrl} className="w-full h-[380px]" />
@@ -145,7 +157,7 @@ export function BannerDisplay({
         <div className="relative z-10 max-w-5xl mx-auto pt-14 pb-14 px-6 text-center text-white">
           <h1 className="text-5xl font-bold tracking-tight mb-3">{eventName}</h1>
           <p className="text-sm text-white/60 mb-8">{dateRange}</p>
-          <RegisterButton slug={eventSlug} />
+          <RegisterButton slug={eventSlug} isRegistered={isRegistered} />
           <div className="mt-10 rounded-xl overflow-hidden shadow-lg max-w-4xl mx-auto">
             <BannerImage url={bannerUrl} className="w-full h-[380px]" />
           </div>
@@ -164,7 +176,7 @@ export function BannerDisplay({
       <div className="relative z-10 text-center text-white px-10 py-16">
         <p className="text-sm text-white/70 mb-3">{dateRange}</p>
         <h1 className="text-4xl font-bold tracking-tight mb-8">{eventName}</h1>
-        <RegisterButton slug={eventSlug} />
+        <RegisterButton slug={eventSlug} isRegistered={isRegistered} />
       </div>
     </div>
   );

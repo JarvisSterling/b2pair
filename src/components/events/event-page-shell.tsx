@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { RegisterButton } from "@/components/events/register-button";
 import { EventThemeProvider } from "@/components/events/theme-provider";
 import { BlockRenderer } from "@/components/events/block-renderer";
 import { BannerDisplay } from "@/components/events/banner-display";
@@ -62,19 +61,11 @@ export function EventPageShell({
         bannerSettings={event.banner_settings || {}}
         eventSlug={event.slug}
         isRegistered={isRegistered}
+        isLoggedIn={isLoggedIn}
+        eventId={event.id}
+        requiresApproval={event.requires_approval}
+        participantTypes={participantTypes}
       />
-      {!isRegistered && isHome && (
-        <div className="max-w-4xl mx-auto px-6 mt-8 text-center" id="register">
-          <RegisterButton
-            eventId={event.id}
-            eventSlug={event.slug}
-            isRegistered={isRegistered}
-            isLoggedIn={isLoggedIn}
-            requiresApproval={event.requires_approval}
-            participantTypes={participantTypes}
-          />
-        </div>
-      )}
 
       {/* Tab navigation */}
       {pages.length > 1 && (

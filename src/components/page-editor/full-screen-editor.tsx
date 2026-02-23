@@ -498,7 +498,7 @@ export function FullScreenEditor({
       {/* Main area: left panel + canvas + right panel */}
       <div className="flex flex-1 overflow-hidden bg-zinc-200">
         {/* Left panel: Block palette + page settings */}
-        <div className="w-[260px] bg-background overflow-y-auto shrink-0 mr-2 shadow-md z-10">
+        <div className="w-[260px] bg-background overflow-y-auto shrink-0 mr-4 shadow-md z-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="p-4 space-y-6">
             {/* Block palette */}
             <div>
@@ -607,7 +607,7 @@ export function FullScreenEditor({
         </div>
 
         {/* Center: Canvas */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {selectedPage ? (
             <WysiwygCanvas
               page={selectedPage}
@@ -636,7 +636,7 @@ export function FullScreenEditor({
         </div>
 
         {/* Right panel: Properties or Theme */}
-        <div className="w-[280px] bg-background overflow-y-auto shrink-0 ml-2 shadow-md z-10">
+        <div className="w-[280px] bg-background overflow-y-auto shrink-0 ml-4 shadow-md z-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex border-b">
             <button
               onClick={() => setRightPanel("properties")}

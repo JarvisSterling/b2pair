@@ -15,6 +15,7 @@ import {
   LogOut,
   User,
   CalendarDays,
+  Building2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParticipantPerms } from "@/hooks/use-participant-perms";
@@ -112,6 +113,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           { id: "meetings", label: "Meetings", icon: Users, path: "/meetings", show: perms.can_book_meetings },
           { id: "messages", label: "Messages", icon: MessageSquare, path: "/messages", show: perms.can_message },
           { id: "directory", label: "Directory", icon: Search, path: "/directory", show: perms.can_view_directory },
+          { id: "exhibitors", label: "Exhibitors", icon: Building2, path: "/exhibitors", show: true },
           { id: "availability", label: "Availability", icon: Clock, path: "/availability", show: perms.can_book_meetings },
         ]
           .filter((item) => item.show)

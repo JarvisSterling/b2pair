@@ -496,9 +496,9 @@ export function FullScreenEditor({
       </div>
 
       {/* Main area: left panel + canvas + right panel */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden bg-muted/40">
         {/* Left panel: Block palette + page settings */}
-        <div className="w-[260px] border-r bg-background overflow-y-auto shrink-0">
+        <div className="w-[260px] bg-background overflow-y-auto shrink-0 shadow-sm z-10">
           <div className="p-4 space-y-6">
             {/* Block palette */}
             <div>
@@ -636,7 +636,7 @@ export function FullScreenEditor({
         </div>
 
         {/* Right panel: Properties or Theme */}
-        <div className="w-[280px] border-l bg-background overflow-y-auto shrink-0">
+        <div className="w-[280px] bg-background overflow-y-auto shrink-0 shadow-sm z-10">
           <div className="flex border-b">
             <button
               onClick={() => setRightPanel("properties")}

@@ -47,7 +47,7 @@ export function RegisterButton({
   if (registered && step !== "done") {
     return (
       <div className="space-y-3">
-        <Button size="lg" disabled className="gap-2 text-base px-8">
+        <Button size="lg" disabled className="gap-2 text-base px-8 bg-emerald-600 text-white hover:bg-emerald-600">
           <Check className="h-5 w-5" />
           Already Registered
         </Button>
@@ -55,7 +55,6 @@ export function RegisterButton({
           <Button
             variant="outline"
             onClick={() => router.push("/dashboard")}
-            className="text-white border-white/20 hover:bg-white/10"
           >
             Go to Dashboard
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -168,14 +167,14 @@ export function RegisterButton({
         <Button
           size="lg"
           disabled
-          className="gap-2 text-base px-8 bg-emerald-600"
+          className="gap-2 text-base px-8 bg-emerald-600 text-white hover:bg-emerald-600"
         >
           <Check className="h-5 w-5" />
           {pendingApproval
             ? "Registration Pending Approval"
             : "Successfully Registered!"}
         </Button>
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-muted-foreground">
           {pendingApproval
             ? "The organizer will review your registration. You'll be notified once approved."
             : "You can now access your event dashboard."}
@@ -183,7 +182,6 @@ export function RegisterButton({
         <Button
           variant="outline"
           onClick={() => router.push("/dashboard")}
-          className="text-white border-white/20 hover:bg-white/10"
         >
           Go to Dashboard
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -198,7 +196,7 @@ export function RegisterButton({
         <Button
           size="lg"
           onClick={handleStart}
-          className="gap-2 text-base px-8 bg-white text-zinc-900 hover:bg-white/90"
+          className="gap-2 text-base px-8"
         >
           <UserPlus className="h-5 w-5" />
           Register Now

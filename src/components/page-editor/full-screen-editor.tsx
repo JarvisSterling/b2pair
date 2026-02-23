@@ -20,11 +20,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DndBlockCanvas } from "@/components/page-editor/dnd-block-canvas";
 import { BlockPalette } from "@/components/page-editor/block-palette";
 import { BlockProperties } from "@/components/page-editor/block-properties";
 import { ThemePicker } from "@/components/page-editor/theme-picker";
-import { BannerEditor, type BannerLayout } from "@/components/page-editor/banner-editor";
+import { WysiwygCanvas } from "@/components/page-editor/wysiwyg-canvas";
+import type { BannerLayout } from "@/components/page-editor/banner-editor";
 import { BlockRenderer } from "@/components/events/block-renderer";
 import { EventThemeProvider } from "@/components/events/theme-provider";
 import type {
@@ -607,40 +607,32 @@ export function FullScreenEditor({
         </div>
 
         {/* Center: Canvas */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Banner section - full width, above constrained content */}
-          {selectedPage?.page_type === "home" && (
-            <BannerEditor
-              eventName={event.name}
-              startDate={event.start_date}
-              endDate={event.end_date}
+        <div className="flex-1 overflow-y-auto bg-muted/30">
+          {selectedPage ? (
+            <WysiwygCanvas
+              page={selectedPage}
+              blocks={selectedPage.content}
+              onChange={updatePageContent}
+              selectedBlockId={selectedBlockId}
+              onSelectBlock={(id) => {
+                setSelectedBlockId(id);
+                setRightPanel("properties");
+              }}
+              onRemoveBlock={removeBlock}
+              onAddBlock={addBlock}
+              event={event}
               bannerUrl={bannerUrl}
               bannerLayout={bannerLayout}
               onBannerUrlChange={setBannerUrl}
               onBannerLayoutChange={setBannerLayout}
-              eventId={event.id}
+              themeKey={(theme?.theme_key as ThemeKey) || "light-classic"}
+              accentColor={theme?.accent_color || null}
             />
+          ) : (
+            <div className="text-center text-sm text-muted-foreground py-20">
+              Select a page to start editing
+            </div>
           )}
-          <div className="max-w-3xl mx-auto py-8 px-6">
-            {selectedPage ? (
-              <DndBlockCanvas
-                blocks={selectedPage.content}
-                onChange={updatePageContent}
-                selectedBlockId={selectedBlockId}
-                onSelectBlock={(id) => {
-                  setSelectedBlockId(id);
-                  setRightPanel("properties");
-                }}
-                onRemoveBlock={removeBlock}
-                onAddBlock={addBlock}
-                eventId={event.id}
-              />
-            ) : (
-              <div className="text-center text-sm text-muted-foreground py-20">
-                Select a page to start editing
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right panel: Properties or Theme */}

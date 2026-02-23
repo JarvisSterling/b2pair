@@ -1,0 +1,301 @@
+"use client";
+
+import { useCallback } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  GripVertical,
+  Trash2,
+  Plus,
+  Type,
+  Image as ImageIcon,
+  Video,
+  HelpCircle,
+  MousePointerClick,
+  Minus,
+  Grid3X3,
+  BarChart3,
+  Layout,
+  Award,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { BlockRenderer } from "@/components/events/block-renderer";
+import { BannerEditor, type BannerLayout } from "@/components/page-editor/banner-editor";
+import { EventThemeProvider } from "@/components/events/theme-provider";
+import type { ContentBlock, BlockType, ThemeKey, EventPage } from "@/types/event-pages";
+import { cn } from "@/lib/utils";
+
+interface WysiwygCanvasProps {
+  page: EventPage;
+  blocks: ContentBlock[];
+  onChange: (blocks: ContentBlock[]) => void;
+  selectedBlockId: string | null;
+  onSelectBlock: (id: string | null) => void;
+  onRemoveBlock: (id: string) => void;
+  onAddBlock: (type: BlockType, index?: number) => void;
+  // Banner props
+  event: any;
+  bannerUrl: string | null;
+  bannerLayout: BannerLayout;
+  onBannerUrlChange: (url: string | null) => void;
+  onBannerLayoutChange: (layout: BannerLayout) => void;
+  // Theme
+  themeKey: ThemeKey;
+  accentColor: string | null;
+}
+
+export function WysiwygCanvas({
+  page,
+  blocks,
+  onChange,
+  selectedBlockId,
+  onSelectBlock,
+  onRemoveBlock,
+  onAddBlock,
+  event,
+  bannerUrl,
+  bannerLayout,
+  onBannerUrlChange,
+  onBannerLayoutChange,
+  themeKey,
+  accentColor,
+}: WysiwygCanvasProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = blocks.findIndex((b) => b.id === active.id);
+      const newIndex = blocks.findIndex((b) => b.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const updated = [...blocks];
+      const [moved] = updated.splice(oldIndex, 1);
+      updated.splice(newIndex, 0, moved);
+      onChange(updated);
+    },
+    [blocks, onChange]
+  );
+
+  const isHome = page.page_type === "home";
+
+  return (
+    <div className="flex justify-center py-8 px-6">
+      {/* Page frame - looks like a browser/page */}
+      <div className="w-full max-w-4xl rounded-2xl border border-border/60 bg-background shadow-lg overflow-hidden">
+        <EventThemeProvider themeKey={themeKey} accentColor={accentColor}>
+          {/* Banner - only on Home page */}
+          {isHome && (
+            <BannerEditor
+              eventName={event.name}
+              startDate={event.start_date}
+              endDate={event.end_date}
+              bannerUrl={bannerUrl}
+              bannerLayout={bannerLayout}
+              onBannerUrlChange={onBannerUrlChange}
+              onBannerLayoutChange={onBannerLayoutChange}
+              eventId={event.id}
+            />
+          )}
+
+          {/* Content area */}
+          <div className="px-8 py-10 max-w-3xl mx-auto">
+            {blocks.length === 0 ? (
+              <div className="rounded-xl border-2 border-dashed border-border/40 p-12 text-center">
+                <p className="text-muted-foreground mb-2">
+                  This page is empty
+                </p>
+                <p className="text-sm text-muted-foreground/60 mb-6">
+                  Add content blocks from the left panel
+                </p>
+                <InsertDropdown onAdd={(type) => onAddBlock(type)} />
+              </div>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={blocks.map((b) => b.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1">
+                    {blocks.map((block, index) => (
+                      <SortableLiveBlock
+                        key={block.id}
+                        block={block}
+                        isSelected={block.id === selectedBlockId}
+                        onSelect={() => onSelectBlock(block.id)}
+                        onRemove={() => onRemoveBlock(block.id)}
+                        onInsertAfter={(type) => onAddBlock(type, index + 1)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{ borderTop: "1px solid var(--page-border, rgba(0,0,0,0.06))" }}>
+            <div className="px-8 py-6 text-center">
+              <p className="text-xs" style={{ color: "var(--page-text-secondary, #6E6E73)" }}>
+                Powered by <span className="font-semibold" style={{ color: "var(--page-text, #1D1D1F)" }}>B2Pair</span>
+              </p>
+            </div>
+          </div>
+        </EventThemeProvider>
+      </div>
+    </div>
+  );
+}
+
+function SortableLiveBlock({
+  block,
+  isSelected,
+  onSelect,
+  onRemove,
+  onInsertAfter,
+}: {
+  block: ContentBlock;
+  isSelected: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  onInsertAfter: (type: BlockType) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="group/block relative">
+      {/* Clickable wrapper with selection ring */}
+      <div
+        onClick={onSelect}
+        className={cn(
+          "relative rounded-xl transition-all duration-150 cursor-pointer",
+          isSelected
+            ? "ring-2 ring-primary/40 ring-offset-2"
+            : "hover:ring-2 hover:ring-primary/20 hover:ring-offset-1",
+          isDragging && "opacity-40"
+        )}
+      >
+        {/* Floating toolbar - only visible on hover/select */}
+        <div
+          className={cn(
+            "absolute -top-3 -right-2 z-20 flex items-center gap-0.5 bg-background border border-border rounded-lg shadow-md px-1 py-0.5 transition-opacity",
+            isSelected ? "opacity-100" : "opacity-0 group-hover/block:opacity-100"
+          )}
+        >
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="text-muted-foreground hover:text-destructive p-1"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Render the actual block as it would appear live */}
+        <div className="pointer-events-none">
+          <BlockRenderer blocks={[block]} />
+        </div>
+      </div>
+
+      {/* Insert point between blocks */}
+      <div className="flex justify-center py-0.5 opacity-0 group-hover/block:opacity-100 transition-opacity">
+        <InsertDropdown onAdd={onInsertAfter} compact />
+      </div>
+    </div>
+  );
+}
+
+function InsertDropdown({
+  onAdd,
+  compact = false,
+}: {
+  onAdd: (type: BlockType) => void;
+  compact?: boolean;
+}) {
+  const items: { type: BlockType; label: string; icon: React.ReactNode }[] = [
+    { type: "hero", label: "Hero", icon: <Layout className="h-4 w-4" /> },
+    { type: "rich-text", label: "Text", icon: <Type className="h-4 w-4" /> },
+    { type: "image", label: "Image", icon: <ImageIcon className="h-4 w-4" /> },
+    { type: "gallery", label: "Gallery", icon: <Grid3X3 className="h-4 w-4" /> },
+    { type: "video", label: "Video", icon: <Video className="h-4 w-4" /> },
+    { type: "stats", label: "Stats", icon: <BarChart3 className="h-4 w-4" /> },
+    { type: "faq", label: "FAQ", icon: <HelpCircle className="h-4 w-4" /> },
+    { type: "cta", label: "Button", icon: <MousePointerClick className="h-4 w-4" /> },
+    { type: "sponsor", label: "Sponsors", icon: <Award className="h-4 w-4" /> },
+    { type: "divider", label: "Divider", icon: <Minus className="h-4 w-4" /> },
+  ];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant={compact ? "ghost" : "outline"}
+          size="sm"
+          className={cn(compact && "h-5 w-5 p-0 rounded-full")}
+        >
+          <Plus className={cn("h-3 w-3", !compact && "mr-1.5")} />
+          {!compact && "Add block"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center">
+        {items.map((item) => (
+          <DropdownMenuItem key={item.type} onClick={() => onAdd(item.type)}>
+            {item.icon}
+            <span className="ml-2">{item.label}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

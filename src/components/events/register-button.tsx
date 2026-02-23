@@ -197,11 +197,7 @@ export function RegisterButton({
 
   function handleSignIn() {
     setIsLogin(true);
-    if (participantTypes.length > 0) {
-      setStep("type");
-    } else {
-      setStep("auth");
-    }
+    setStep("auth");
   }
 
   const showModal = step === "type" || step === "auth";

@@ -83,6 +83,19 @@ export default function EventMeetingsPage() {
 
   useEffect(() => {
     loadMeetings();
+
+    // Real-time subscription for meeting updates
+    const supabase = createClient();
+    const channel = supabase
+      .channel("meetings-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "meetings", filter: `event_id=eq.${eventId}` },
+        () => loadMeetings()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [eventId]);
 
   // Handle ?request= query param

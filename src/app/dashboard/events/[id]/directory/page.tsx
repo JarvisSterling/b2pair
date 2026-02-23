@@ -9,7 +9,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Users, MessageSquare, Calendar, Loader2 } from "lucide-react";
+import {
+  Search,
+  Users,
+  MessageSquare,
+  Calendar,
+  Loader2,
+  X,
+  Globe,
+  Mail,
+  Building2,
+  Briefcase,
+  Tag,
+} from "lucide-react";
 
 interface DirectoryEntry {
   id: string;
@@ -47,6 +59,7 @@ export default function DirectoryPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [industryFilter, setIndustryFilter] = useState("all");
+  const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
 
   const loadEntries = useCallback(async () => {
     const supabase = createClient();
@@ -167,7 +180,11 @@ export default function DirectoryPage() {
               .slice(0, 2);
 
             return (
-              <Card key={entry.id} className="hover:shadow-md hover:border-border-strong transition-all duration-150">
+              <Card
+                key={entry.id}
+                className="hover:shadow-md hover:border-border-strong transition-all duration-150 cursor-pointer"
+                onClick={() => setSelectedEntry(entry)}
+              >
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3 mb-3">
                     {p.avatar_url ? (
@@ -218,7 +235,10 @@ export default function DirectoryPage() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => router.push(`/dashboard/events/${eventId}/messages?to=${entry.id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/events/${eventId}/messages?to=${entry.id}`);
+                        }}
                       >
                         <MessageSquare className="mr-1 h-3 w-3" />
                         Message
@@ -228,7 +248,10 @@ export default function DirectoryPage() {
                       <Button
                         size="sm"
                         className="flex-1"
-                        onClick={() => router.push(`/dashboard/events/${eventId}/meetings?request=${entry.id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/events/${eventId}/meetings?request=${entry.id}`);
+                        }}
                       >
                         <Calendar className="mr-1 h-3 w-3" />
                         Meet
@@ -240,6 +263,157 @@ export default function DirectoryPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Participant Detail Panel */}
+      {selectedEntry && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => setSelectedEntry(null)}
+          />
+          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l border-border shadow-xl animate-slide-right overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  {selectedEntry.profiles.avatar_url ? (
+                    <img
+                      src={selectedEntry.profiles.avatar_url}
+                      alt={selectedEntry.profiles.full_name}
+                      className="h-16 w-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary text-h3 font-semibold">
+                      {selectedEntry.profiles.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-h3 font-semibold">{selectedEntry.profiles.full_name}</h2>
+                    <p className="text-caption text-muted-foreground">
+                      {[selectedEntry.profiles.title, selectedEntry.profiles.company_name]
+                        .filter(Boolean)
+                        .join(" at ")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedEntry(null)}
+                  className="p-2 rounded hover:bg-secondary"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Badge variant="secondary" className="capitalize">{selectedEntry.role}</Badge>
+                {selectedEntry.profiles.industry && (
+                  <Badge variant="outline">
+                    <Building2 className="mr-1 h-3 w-3" />
+                    {selectedEntry.profiles.industry}
+                  </Badge>
+                )}
+                {selectedEntry.intent && (
+                  <Badge variant="outline">
+                    <Tag className="mr-1 h-3 w-3" />
+                    {INTENT_LABELS[selectedEntry.intent] || selectedEntry.intent}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Bio */}
+              {selectedEntry.profiles.bio && (
+                <div className="mb-6">
+                  <h3 className="text-caption font-semibold mb-2">About</h3>
+                  <p className="text-body text-muted-foreground whitespace-pre-wrap">
+                    {selectedEntry.profiles.bio}
+                  </p>
+                </div>
+              )}
+
+              {/* Contact */}
+              <div className="mb-6">
+                <h3 className="text-caption font-semibold mb-2">Contact</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-caption text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>{selectedEntry.profiles.email}</span>
+                  </div>
+                  {selectedEntry.profiles.company_name && (
+                    <div className="flex items-center gap-2 text-caption text-muted-foreground">
+                      <Building2 className="h-3.5 w-3.5" />
+                      <span>{selectedEntry.profiles.company_name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Expertise */}
+              {selectedEntry.profiles.expertise_areas.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-caption font-semibold mb-2">Expertise</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedEntry.profiles.expertise_areas.map((area) => (
+                      <span
+                        key={area}
+                        className="text-small bg-secondary text-foreground rounded-full px-2.5 py-1"
+                      >
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {selectedEntry.tags?.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-caption font-semibold mb-2">Tags</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedEntry.tags.map((tag) => (
+                      <Badge key={tag} variant="outline">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 mt-8 pt-6 border-t border-border">
+                {perms.can_message && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setSelectedEntry(null);
+                      router.push(`/dashboard/events/${eventId}/messages?to=${selectedEntry.id}`);
+                    }}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Message
+                  </Button>
+                )}
+                {perms.can_book_meetings && (
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      setSelectedEntry(null);
+                      router.push(`/dashboard/events/${eventId}/meetings?request=${selectedEntry.id}`);
+                    }}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Request meeting
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

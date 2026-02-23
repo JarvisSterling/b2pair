@@ -21,6 +21,7 @@ interface Conversation {
   id: string;
   event_id: string;
   last_message_at: string | null;
+  unread_count: number;
   other_person: {
     participant_id: string;
     full_name: string;
@@ -196,7 +197,7 @@ export default function EventMessagesPage() {
       .eq("participant_b_id", myParticipant.id)
       .order("last_message_at", { ascending: false, nullsFirst: false });
 
-    const combined: Conversation[] = [
+    const rawCombined = [
       ...(convosA || []).map((c: any) => ({
         id: c.id,
         event_id: c.event_id,
@@ -215,20 +216,64 @@ export default function EventMessagesPage() {
           ...c.participant_a?.profiles,
         },
       })),
-    ].sort((a, b) => {
+    ];
+
+    // Count unread messages per conversation
+    const withUnread: Conversation[] = await Promise.all(
+      rawCombined.map(async (c) => {
+        const { count } = await supabase
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", c.id)
+          .neq("sender_id", myParticipant.id)
+          .is("read_at", null);
+        return { ...c, unread_count: count || 0 };
+      })
+    );
+
+    withUnread.sort((a, b) => {
       if (!a.last_message_at) return 1;
       if (!b.last_message_at) return -1;
       return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
     });
 
-    setConversations(combined);
+    setConversations(withUnread);
     setLoading(false);
+  }
+
+  async function markAsRead(convoId: string) {
+    if (!myParticipantId) return;
+    const supabase = createClient();
+    await supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("conversation_id", convoId)
+      .neq("sender_id", myParticipantId)
+      .is("read_at", null);
+
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convoId ? { ...c, unread_count: 0 } : c))
+    );
   }
 
   const loadMessages = useCallback(
     async (convoId: string) => {
       setLoadingMessages(true);
       const supabase = createClient();
+
+      // Mark messages as read
+      if (myParticipantId) {
+        await supabase
+          .from("messages")
+          .update({ read_at: new Date().toISOString() })
+          .eq("conversation_id", convoId)
+          .neq("sender_id", myParticipantId)
+          .is("read_at", null);
+
+        setConversations((prev) =>
+          prev.map((c) => (c.id === convoId ? { ...c, unread_count: 0 } : c))
+        );
+      }
 
       const { data } = await supabase
         .from("messages")
@@ -395,6 +440,11 @@ export default function EventMessagesPage() {
                         {other.title || other.company_name || "Participant"}
                       </p>
                     </div>
+                    {convo.unread_count > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-white shrink-0">
+                        {convo.unread_count}
+                      </span>
+                    )}
                   </button>
                 );
               })

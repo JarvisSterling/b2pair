@@ -196,10 +196,9 @@ export default function AvailabilityPage() {
     const range = ranges[pattern];
 
     setSaving(true);
-    const days = getWeekDays();
+    const days = getEventDays();
     if (!days.length) { setSaving(false); return; }
     const inserts = days
-      .filter((d) => d.getDay() !== 0 && d.getDay() !== 6) // Skip weekends
       .map((d) => ({
         participant_id: event.participant_id,
         event_id: selectedEvent,
@@ -220,13 +219,28 @@ export default function AvailabilityPage() {
     setSaving(false);
   }
 
-  function getWeekDays(): Date[] {
-    if (!weekStart) return [];
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
+  function getEventDays(): Date[] {
+    const ev = events.find((e) => e.id === selectedEvent);
+    if (!ev) return [];
+    const start = new Date(ev.start_date);
+    const end = new Date(ev.end_date);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    const days: Date[] = [];
+    const current = new Date(start);
+    while (current <= end && days.length < 14) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return days;
+  }
+
+  function getEventHours(): { startHour: number; endHour: number } {
+    const ev = events.find((e) => e.id === selectedEvent);
+    if (!ev) return { startHour: 8, endHour: 22 };
+    const startHour = Math.max(0, new Date(ev.start_date).getHours() - 1);
+    const endHour = Math.min(24, new Date(ev.end_date).getHours() + 2);
+    return { startHour: Math.min(startHour, 8), endHour: Math.max(endHour, 20) };
   }
 
   function navigateWeek(dir: number) {
@@ -238,9 +252,10 @@ export default function AvailabilityPage() {
     });
   }
 
-  // The visible grid starts at 8AM (480 min), so add offset to mouse position
-  const VISIBLE_START_HOUR = 8;
+  // Visible grid derived from event hours
+  const { startHour: VISIBLE_START_HOUR, endHour: VISIBLE_END_HOUR } = getEventHours();
   const VISIBLE_START_MIN = VISIBLE_START_HOUR * 60;
+  const VISIBLE_HOURS = Array.from({ length: VISIBLE_END_HOUR - VISIBLE_START_HOUR }, (_, i) => VISIBLE_START_HOUR + i);
 
   const handleMouseDown = useCallback(
     (date: string, e: React.MouseEvent<HTMLDivElement>) => {
@@ -290,10 +305,10 @@ export default function AvailabilityPage() {
     return () => window.removeEventListener("mouseup", handler);
   }, [dragging, handleMouseUp]);
 
-  const weekDays = getWeekDays();
+  const eventDays = getEventDays();
   const today = new Date().toISOString().split("T")[0];
 
-  if (loading || (events.length > 0 && !weekStart)) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -374,23 +389,10 @@ export default function AvailabilityPage() {
             </Button>
           </div>
 
-          <Button variant="outline" size="sm" onClick={() => navigateWeek(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const d = new Date();
-              d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
-              d.setHours(0, 0, 0, 0);
-              setWeekStart(d);
-            }}
-            className="text-xs font-medium"
-          >
-            Today
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => navigateWeek(1)}>
+          <span className="text-xs font-medium text-muted-foreground px-2">
+            Event days only
+          </span>
+          <Button variant="outline" size="sm" onClick={() => navigateWeek(1)} className="invisible">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -401,9 +403,9 @@ export default function AvailabilityPage() {
         <div className="overflow-x-auto">
           <div className="min-w-[700px]">
             {/* Day headers */}
-            <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b">
+            <div className="grid border-b" style={{ gridTemplateColumns: `60px repeat(${eventDays.length}, 1fr)` }}>
               <div className="p-2" />
-              {weekDays.map((d) => {
+              {eventDays.map((d) => {
                 const dateStr = d.toISOString().split("T")[0];
                 const isToday = dateStr === today;
                 const daySlots = slots.filter((s) => s.date === dateStr);
@@ -435,12 +437,15 @@ export default function AvailabilityPage() {
 
             {/* Time grid */}
             <div
-              className="grid grid-cols-[60px_repeat(7,1fr)] relative select-none"
-              style={{ height: SLOT_HEIGHT * 16 }} // Show 8AM-midnight (16 hours)
+              className={`grid relative select-none`}
+              style={{
+                gridTemplateColumns: `60px repeat(${eventDays.length}, 1fr)`,
+                height: SLOT_HEIGHT * VISIBLE_HOURS.length,
+              }}
             >
               {/* Hour labels */}
-              <div className="relative" style={{ marginTop: -SLOT_HEIGHT * 8 }}>
-                {HOURS.map((h) => (
+              <div className="relative">
+                {VISIBLE_HOURS.map((h) => (
                   <div
                     key={h}
                     className="flex items-start justify-end pr-3 text-[11px] text-muted-foreground"
@@ -458,7 +463,7 @@ export default function AvailabilityPage() {
               </div>
 
               {/* Day columns (visible: 8AM-midnight) */}
-              {weekDays.map((d) => {
+              {eventDays.map((d) => {
                 const dateStr = d.toISOString().split("T")[0];
                 const daySlots = slots.filter((s) => s.date === dateStr);
 
@@ -470,12 +475,12 @@ export default function AvailabilityPage() {
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
                   >
-                    {/* Hour grid lines (offset by -8h) */}
-                    {HOURS.slice(8).map((h) => (
+                    {/* Hour grid lines */}
+                    {VISIBLE_HOURS.map((h) => (
                       <div
                         key={h}
                         className="absolute w-full border-t border-dashed border-border/40"
-                        style={{ top: (h - 8) * SLOT_HEIGHT }}
+                        style={{ top: (h - VISIBLE_START_HOUR) * SLOT_HEIGHT }}
                       />
                     ))}
 
@@ -483,7 +488,7 @@ export default function AvailabilityPage() {
                     {daySlots.map((slot) => {
                       const startMin = timeToMinutes(slot.start_time);
                       const endMin = timeToMinutes(slot.end_time);
-                      const top = (startMin / 60 - 8) * SLOT_HEIGHT;
+                      const top = (startMin / 60 - VISIBLE_START_HOUR) * SLOT_HEIGHT;
                       const height = ((endMin - startMin) / 60) * SLOT_HEIGHT;
 
                       if (top + height < 0) return null; // Before visible range
@@ -523,7 +528,7 @@ export default function AvailabilityPage() {
                       <div
                         className="absolute left-1 right-1 rounded-md bg-primary/20 border-2 border-primary/50 border-dashed"
                         style={{
-                          top: (dragging.startMinute / 60 - 8) * SLOT_HEIGHT,
+                          top: (dragging.startMinute / 60 - VISIBLE_START_HOUR) * SLOT_HEIGHT,
                           height:
                             ((dragging.currentMinute - dragging.startMinute) / 60) * SLOT_HEIGHT,
                         }}

@@ -16,22 +16,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: [
-          "relative overflow-hidden isolate",
-          "!text-white font-semibold tracking-wide",
-          "border border-white/25",
-          "backdrop-blur-xl",
-          "bg-white/[0.08]",
-          "shadow-[0_0_20px_rgba(0,113,227,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]",
-          "hover:shadow-[0_0_30px_rgba(0,113,227,0.4),inset_0_1px_0_rgba(255,255,255,0.2)]",
-          "before:absolute before:inset-0 before:-z-10 before:rounded-[inherit]",
-          "before:bg-[linear-gradient(135deg,#0071E3,#5856D6,#00C7BE,#5856D6,#0071E3)]",
-          "before:bg-[length:400%_400%]",
-          "before:animate-glass-gradient",
-          "before:opacity-70",
-          "after:absolute after:inset-0 after:-z-[5] after:rounded-[inherit]",
-          "after:bg-gradient-to-b after:from-white/10 after:to-transparent",
-          "hover:border-white/40",
-          "hover:before:opacity-85",
+          "bg-primary !text-white font-semibold",
+          "shadow-sm hover:shadow-md",
+          "hover:brightness-110",
         ].join(" "),
         secondary: [
           "bg-secondary text-secondary-foreground",
@@ -58,10 +45,10 @@ const buttonVariants = cva(
         ].join(" "),
       },
       size: {
-        sm: "h-9 rounded-lg px-3 text-caption",
-        default: "h-10 rounded-xl px-5 text-body",
-        lg: "h-12 rounded-xl px-6 text-body",
-        icon: "h-10 w-10 rounded-xl",
+        sm: "h-9 rounded-sm px-3 text-caption",
+        default: "h-10 rounded px-5 text-body",
+        lg: "h-12 rounded-md px-6 text-body",
+        icon: "h-10 w-10 rounded",
       },
     },
     defaultVariants: {

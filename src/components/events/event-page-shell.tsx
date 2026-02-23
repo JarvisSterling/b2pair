@@ -52,9 +52,9 @@ export function EventPageShell({
 
   return (
     <EventThemeProvider themeKey={themeKey} accentColor={theme?.accent_color}>
-      {/* Banner */}
+      {/* Banner - full width */}
       {isHome && (
-        <div className="max-w-4xl mx-auto px-6 pt-8">
+        <>
           <BannerDisplay
             eventName={event.name}
             startDate={event.start_date}
@@ -63,8 +63,7 @@ export function EventPageShell({
             bannerLayout={event.banner_layout || "split"}
             eventSlug={event.slug}
           />
-          {/* Registration section below banner */}
-          <div className="mt-8 text-center" id="register">
+          <div className="max-w-4xl mx-auto px-6 mt-8 text-center" id="register">
             <RegisterButton
               eventId={event.id}
               eventSlug={event.slug}
@@ -74,7 +73,7 @@ export function EventPageShell({
               participantTypes={participantTypes}
             />
           </div>
-        </div>
+        </>
       )}
 
       {/* Tab navigation */}

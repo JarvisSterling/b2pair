@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Image as ImageIcon } from "lucide-react";
 
 type BannerLayout = "split" | "image-below" | "centered" | "full-bleed";
 
@@ -69,7 +68,7 @@ export function BannerDisplay({
 
   if (bannerLayout === "split") {
     return (
-      <div className="relative min-h-[360px] overflow-hidden -mx-6 -mt-8">
+      <div className="relative min-h-[360px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -97,7 +96,7 @@ export function BannerDisplay({
 
   if (bannerLayout === "image-below") {
     return (
-      <div className="relative min-h-[420px] overflow-hidden -mx-6 -mt-8">
+      <div className="relative min-h-[420px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -125,7 +124,7 @@ export function BannerDisplay({
 
   if (bannerLayout === "centered") {
     return (
-      <div className="relative min-h-[440px] overflow-hidden -mx-6 -mt-8">
+      <div className="relative min-h-[440px] overflow-hidden">
         {bannerUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -149,7 +148,7 @@ export function BannerDisplay({
 
   // full-bleed
   return (
-    <div className="relative min-h-[400px] flex items-center justify-center overflow-hidden -mx-6 -mt-8">
+    <div className="relative min-h-[400px] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0">
         <BannerImage url={bannerUrl} className="w-full h-full" />
       </div>

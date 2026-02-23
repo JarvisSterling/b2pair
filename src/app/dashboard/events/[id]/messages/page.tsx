@@ -138,6 +138,7 @@ export default function EventMessagesPage() {
         id: newConvo.id,
         event_id: eventId,
         last_message_at: null,
+        unread_count: 0,
         other_person: {
           participant_id: participantId,
           full_name: profile.full_name,

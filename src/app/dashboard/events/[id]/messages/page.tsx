@@ -61,51 +61,58 @@ export default function EventMessagesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Ref to track if ?to= has been handled (prevents double-firing)
-  const toHandledRef = useRef(false);
-
   useEffect(() => {
-    toHandledRef.current = false; // reset when param changes
     loadConversations();
-  }, [eventId, toParticipantId]);
+  }, [eventId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function openOrCreateConversation(
-    participantId: string,
-    myPid: string,
-    loadedConversations: Conversation[]
-  ) {
-    const supabase = createClient();
+  // Handle ?to= param
+  useEffect(() => {
+    if (!toParticipantId || !myParticipantId) return;
 
-    // First check loaded conversations in memory
-    const existing = loadedConversations.find(
-      (c) => c.other_person.participant_id === participantId
+    const existing = conversations.find(
+      (c) => c.other_person.participant_id === toParticipantId
     );
+
     if (existing) {
       setSelectedConvo(existing.id);
       loadMessages(existing.id);
-      return;
+    } else {
+      createConversationWith(toParticipantId);
     }
+  }, [toParticipantId, myParticipantId, conversations.length]);
 
-    // Query DB directly for existing conversation (either direction)
+  async function createConversationWith(participantId: string) {
+    if (!myParticipantId) return;
+    const supabase = createClient();
+
+    const { data: targetParticipant } = await supabase
+      .from("participants")
+      .select("id, profiles!inner(full_name, avatar_url, title, company_name)")
+      .eq("id", participantId)
+      .single();
+
+    if (!targetParticipant) return;
+
+    // Check if conversation already exists (might have been created from the other side)
     const { data: existingA } = await supabase
       .from("conversations")
       .select("id")
       .eq("event_id", eventId)
-      .eq("participant_a_id", myPid)
+      .eq("participant_a_id", myParticipantId)
       .eq("participant_b_id", participantId)
-      .maybeSingle();
+      .single();
 
     const { data: existingB } = await supabase
       .from("conversations")
       .select("id")
       .eq("event_id", eventId)
       .eq("participant_a_id", participantId)
-      .eq("participant_b_id", myPid)
-      .maybeSingle();
+      .eq("participant_b_id", myParticipantId)
+      .single();
 
     const existingConvoId = existingA?.id || existingB?.id;
 
@@ -115,51 +122,35 @@ export default function EventMessagesPage() {
       return;
     }
 
-    // Fetch target participant info for the conversation UI
-    const { data: targetParticipant, error: targetError } = await supabase
-      .from("participants")
-      .select("id, profiles!inner(full_name, avatar_url, title, company_name)")
-      .eq("id", participantId)
-      .single();
-
-    if (!targetParticipant || targetError) {
-      console.error("Could not find target participant:", targetError);
-      return;
-    }
-
-    // Create new conversation
-    const { data: newConvo, error: insertError } = await supabase
+    const { data: newConvo } = await supabase
       .from("conversations")
       .insert({
         event_id: eventId,
-        participant_a_id: myPid,
+        participant_a_id: myParticipantId,
         participant_b_id: participantId,
       })
       .select("id")
       .single();
 
-    if (insertError || !newConvo) {
-      console.error("Failed to create conversation:", insertError);
-      return;
+    if (newConvo) {
+      const profile = (targetParticipant as any).profiles;
+      const newConversation: Conversation = {
+        id: newConvo.id,
+        event_id: eventId,
+        last_message_at: null,
+        unread_count: 0,
+        other_person: {
+          participant_id: participantId,
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+          title: profile.title,
+          company_name: profile.company_name,
+        },
+      };
+      setConversations((prev) => [newConversation, ...prev]);
+      setSelectedConvo(newConvo.id);
+      setMessages([]);
     }
-
-    const profile = (targetParticipant as any).profiles;
-    const newConversation: Conversation = {
-      id: newConvo.id,
-      event_id: eventId,
-      last_message_at: null,
-      unread_count: 0,
-      other_person: {
-        participant_id: participantId,
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url,
-        title: profile.title,
-        company_name: profile.company_name,
-      },
-    };
-    setConversations((prev) => [newConversation, ...prev]);
-    setSelectedConvo(newConvo.id);
-    setMessages([]);
   }
 
   async function loadConversations() {
@@ -207,11 +198,12 @@ export default function EventMessagesPage() {
       .eq("participant_b_id", myParticipant.id)
       .order("last_message_at", { ascending: false, nullsFirst: false });
 
-    const rawCombined = [
+    const combined: Conversation[] = [
       ...(convosA || []).map((c: any) => ({
         id: c.id,
         event_id: c.event_id,
         last_message_at: c.last_message_at,
+        unread_count: 0,
         other_person: {
           participant_id: c.participant_b?.id,
           ...c.participant_b?.profiles,
@@ -221,55 +213,41 @@ export default function EventMessagesPage() {
         id: c.id,
         event_id: c.event_id,
         last_message_at: c.last_message_at,
+        unread_count: 0,
         other_person: {
           participant_id: c.participant_a?.id,
           ...c.participant_a?.profiles,
         },
       })),
-    ];
+    ].sort((a, b) => {
+      if (!a.last_message_at) return 1;
+      if (!b.last_message_at) return -1;
+      return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+    });
 
-    // Count unread messages per conversation
-    const withUnread: Conversation[] = await Promise.all(
-      rawCombined.map(async (c) => {
+    // Set conversations + loading FIRST so ?to= effect can fire immediately
+    setConversations(combined);
+    setLoading(false);
+
+    // Count unread messages per conversation in the background (non-blocking)
+    Promise.all(
+      combined.map(async (c) => {
         const { count } = await supabase
           .from("messages")
           .select("id", { count: "exact", head: true })
           .eq("conversation_id", c.id)
           .neq("sender_id", myParticipant.id)
           .is("read_at", null);
-        return { ...c, unread_count: count || 0 };
+        return { id: c.id, unread: count || 0 };
       })
-    );
-
-    withUnread.sort((a, b) => {
-      if (!a.last_message_at) return 1;
-      if (!b.last_message_at) return -1;
-      return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+    ).then((unreads) => {
+      setConversations((prev) =>
+        prev.map((c) => {
+          const u = unreads.find((x) => x.id === c.id);
+          return u ? { ...c, unread_count: u.unread } : c;
+        })
+      );
     });
-
-    setConversations(withUnread);
-    setLoading(false);
-
-    // Handle ?to= param right here, after everything is loaded
-    if (toParticipantId && !toHandledRef.current) {
-      toHandledRef.current = true;
-      await openOrCreateConversation(toParticipantId, myParticipant.id, withUnread);
-    }
-  }
-
-  async function markAsRead(convoId: string) {
-    if (!myParticipantId) return;
-    const supabase = createClient();
-    await supabase
-      .from("messages")
-      .update({ read_at: new Date().toISOString() })
-      .eq("conversation_id", convoId)
-      .neq("sender_id", myParticipantId)
-      .is("read_at", null);
-
-    setConversations((prev) =>
-      prev.map((c) => (c.id === convoId ? { ...c, unread_count: 0 } : c))
-    );
   }
 
   const loadMessages = useCallback(

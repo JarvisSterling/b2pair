@@ -28,6 +28,7 @@ interface DirectoryEntry {
   role: string;
   intent: string | null;
   tags: string[];
+  matchScore?: number;
   profiles: {
     full_name: string;
     email: string;
@@ -63,6 +64,8 @@ export default function DirectoryPage() {
 
   const loadEntries = useCallback(async () => {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { data } = await supabase
       .from("participants")
       .select(`
@@ -74,7 +77,44 @@ export default function DirectoryPage() {
       .neq("role", "organizer")
       .order("created_at", { ascending: false });
 
-    if (data) setEntries(data as unknown as DirectoryEntry[]);
+    if (!data) { setLoading(false); return; }
+
+    let entriesWithScores = data as unknown as DirectoryEntry[];
+
+    // Load match scores in background
+    if (user) {
+      const { data: myP } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (myP) {
+        const { data: matchesA } = await supabase
+          .from("matches")
+          .select("participant_b_id, score")
+          .eq("event_id", eventId)
+          .eq("participant_a_id", myP.id);
+
+        const { data: matchesB } = await supabase
+          .from("matches")
+          .select("participant_a_id, score")
+          .eq("event_id", eventId)
+          .eq("participant_b_id", myP.id);
+
+        const scoreMap = new Map<string, number>();
+        (matchesA || []).forEach((m: any) => scoreMap.set(m.participant_b_id, m.score));
+        (matchesB || []).forEach((m: any) => scoreMap.set(m.participant_a_id, m.score));
+
+        entriesWithScores = entriesWithScores.map((e) => ({
+          ...e,
+          matchScore: scoreMap.get(e.id),
+        }));
+      }
+    }
+
+    setEntries(entriesWithScores);
     setLoading(false);
   }, [eventId]);
 
@@ -195,8 +235,21 @@ export default function DirectoryPage() {
                         {initials}
                       </div>
                     )}
-                    <div className="min-w-0">
-                      <p className="text-body font-medium truncate">{p.full_name}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-body font-medium truncate">{p.full_name}</p>
+                        {entry.matchScore !== undefined && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                            entry.matchScore >= 80
+                              ? "bg-emerald-500/10 text-emerald-600"
+                              : entry.matchScore >= 60
+                              ? "bg-primary/10 text-primary"
+                              : "bg-amber-500/10 text-amber-600"
+                          }`}>
+                            {entry.matchScore}% match
+                          </span>
+                        )}
+                      </div>
                       <p className="text-caption text-muted-foreground truncate">
                         {[p.title, p.company_name].filter(Boolean).join(" at ")}
                       </p>

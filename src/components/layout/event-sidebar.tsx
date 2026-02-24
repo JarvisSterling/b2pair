@@ -42,7 +42,7 @@ const EVENT_NAV = [
   { id: "participants", label: "Participants", icon: Users, path: "/participants" },
   { id: "participant-types", label: "Participant Types", icon: UserCog, path: "/participant-types" },
   { id: "matching", label: "Matching Rules", icon: Zap, path: "/matching" },
-  { id: "sponsors", label: "Sponsors", icon: Building2, path: "/sponsors" },
+  { id: "partners", label: "Partners", icon: Building2, path: "/partners" },
   { id: "check-in", label: "Check-in", icon: QrCode, path: "/check-in" },
 ];
 

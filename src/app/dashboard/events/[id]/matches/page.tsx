@@ -30,6 +30,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useActivityTracker } from "@/hooks/use-activity-tracker";
 
 interface MatchEntry {
   id: string;
@@ -85,6 +86,7 @@ export default function EventMatchesPage() {
   const eventId = useEventId();
   const router = useRouter();
   const perms = useParticipantPerms(eventId);
+  const track = useActivityTracker(eventId);
   const [matches, setMatches] = useState<MatchEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -182,12 +184,21 @@ export default function EventMatchesPage() {
     const supabase = createClient();
     await supabase.from("matches").update({ status }).eq("id", matchId);
     setMatches((prev) =>
-      prev.map((m) => (m.id === matchId ? { ...m, status } : m))
+      prev.map((m) => {
+        if (m.id === matchId) {
+          // Track the action
+          if (status === "saved") track("match_saved", m.other_participant?.id);
+          if (status === "dismissed") track("match_dismissed", m.other_participant?.id);
+          return { ...m, status };
+        }
+        return m;
+      })
     );
   }
 
   async function sendMeetingRequest(participantId: string) {
     setSendingRequest(true);
+    track("meeting_request", participantId, { source: "matches" });
     const res = await fetch("/api/meetings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

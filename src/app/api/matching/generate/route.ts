@@ -101,6 +101,33 @@ export async function POST(request: Request) {
   const excludeSameCompany = rules?.exclude_same_company ?? true;
   const excludeSameRole = rules?.exclude_same_role ?? false;
   const confidenceThreshold = rules?.intent_confidence_threshold ?? 40;
+  const useBehavioral = rules?.use_behavioral_intent !== false;
+
+  // Load behavioral activity if enabled
+  let activityMap = new Map<string, any[]>();
+  let targetIntentsMap = new Map<string, string[]>();
+
+  if (useBehavioral) {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: activities } = await admin
+      .from("participant_activity")
+      .select("participant_id, action_type, target_participant_id, metadata, created_at")
+      .eq("event_id", eventId)
+      .gte("created_at", thirtyDaysAgo);
+
+    if (activities) {
+      for (const a of activities) {
+        const list = activityMap.get(a.participant_id) || [];
+        list.push(a);
+        activityMap.set(a.participant_id, list);
+      }
+    }
+
+    for (const p of participants) {
+      const intents = (p.intents as string[]) || (p.intent ? [p.intent] : []);
+      if (intents.length > 0) targetIntentsMap.set(p.id, intents);
+    }
+  }
 
   // Compute/update intent vectors for all participants
   const participantVectors = new Map<string, { vector: IntentVector; confidence: number }>();
@@ -114,7 +141,12 @@ export async function POST(request: Request) {
       vector = p.intent_vector as IntentVector;
       confidence = p.intent_confidence as number;
     } else {
-      const computed = computeParticipantVector(p as any);
+      const activities = useBehavioral ? activityMap.get(p.id) : undefined;
+      const computed = computeParticipantVector(
+        p as any,
+        activities,
+        targetIntentsMap.size > 0 ? targetIntentsMap as any : undefined
+      );
       vector = computed.vector;
       confidence = computed.confidence;
 

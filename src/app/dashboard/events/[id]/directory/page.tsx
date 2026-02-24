@@ -22,6 +22,7 @@ import {
   Briefcase,
   Tag,
 } from "lucide-react";
+import { useActivityTracker } from "@/hooks/use-activity-tracker";
 
 interface DirectoryEntry {
   id: string;
@@ -55,6 +56,7 @@ export default function DirectoryPage() {
   const eventId = useEventId();
   const router = useRouter();
   const perms = useParticipantPerms(eventId);
+  const track = useActivityTracker(eventId);
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -164,7 +166,7 @@ export default function DirectoryPage() {
           <Input
             placeholder="Search by name, company, title, or expertise..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); if (e.target.value.length >= 3) track("search", undefined, { query: e.target.value }); }}
             className="pl-10"
           />
         </div>
@@ -223,7 +225,7 @@ export default function DirectoryPage() {
               <Card
                 key={entry.id}
                 className="hover:shadow-md hover:border-border-strong transition-all duration-150 cursor-pointer"
-                onClick={() => setSelectedEntry(entry)}
+                onClick={() => { setSelectedEntry(entry); track("profile_view", entry.id); }}
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3 mb-3">
@@ -290,6 +292,7 @@ export default function DirectoryPage() {
                         className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation();
+                          track("message_sent", entry.id);
                           router.push(`/dashboard/events/${eventId}/messages?to=${entry.id}`);
                         }}
                       >
@@ -303,6 +306,7 @@ export default function DirectoryPage() {
                         className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation();
+                          track("meeting_request", entry.id);
                           router.push(`/dashboard/events/${eventId}/meetings?request=${entry.id}`);
                         }}
                       >

@@ -238,6 +238,122 @@ export function computeIntentCompatibility(
   };
 }
 
+// ─── Behavioral Signal Processing ──────────────────────────────────────
+
+interface ActivityEvent {
+  action_type: string;
+  target_participant_id: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+// Map actions to intent signals
+const ACTION_INTENT_MAP: Record<string, { intent: IntentKey; weight: number }[]> = {
+  profile_view: [], // We'll infer from who they viewed
+  profile_click: [],
+  search: [], // Infer from search terms
+  meeting_request: [{ intent: "networking", weight: 5 }],
+  meeting_accepted: [{ intent: "networking", weight: 3 }],
+  message_sent: [{ intent: "networking", weight: 3 }],
+  match_saved: [], // Infer from the match they saved
+  match_dismissed: [],
+};
+
+// Search term → intent mapping
+const SEARCH_INTENT_SIGNALS: { pattern: RegExp; intent: IntentKey; weight: number }[] = [
+  { pattern: /\b(vendor|supplier|provider|pricing|quote|cost)\b/i, intent: "buying", weight: 12 },
+  { pattern: /\b(client|customer|prospect|lead|demo)\b/i, intent: "selling", weight: 12 },
+  { pattern: /\b(invest|fund|startup|seed|series|VC)\b/i, intent: "investing", weight: 15 },
+  { pattern: /\b(partner|alliance|collaboration|joint|distribution)\b/i, intent: "partnering", weight: 12 },
+  { pattern: /\b(learn|workshop|tutorial|course|education|training)\b/i, intent: "learning", weight: 12 },
+  { pattern: /\b(connect|network|meet|community)\b/i, intent: "networking", weight: 8 },
+];
+
+/**
+ * Time decay factor: recent actions matter more
+ */
+function timeDecay(createdAt: string): number {
+  const ageMs = Date.now() - new Date(createdAt).getTime();
+  const ageHours = ageMs / (1000 * 60 * 60);
+
+  if (ageHours <= 24) return 1.0;       // Last 24h: full weight
+  if (ageHours <= 168) return 0.7;      // Last 7 days: strong
+  if (ageHours <= 720) return 0.4;      // Last 30 days: moderate
+  return 0.15;                           // Older: fading
+}
+
+/**
+ * Compute intent signals from behavioral activity
+ */
+export function fromBehavioralSignals(
+  activities: ActivityEvent[],
+  targetIntents?: Map<string, IntentKey[]> // participant_id → their explicit intents
+): { vector: IntentVector; confidence: number } {
+  const raw = emptyVector();
+
+  if (activities.length === 0) {
+    return { vector: normalizeVector(raw), confidence: 0 };
+  }
+
+  let signalCount = 0;
+
+  for (const activity of activities) {
+    const decay = timeDecay(activity.created_at);
+
+    // Direct action signals
+    const actionSignals = ACTION_INTENT_MAP[activity.action_type] || [];
+    for (const signal of actionSignals) {
+      raw[signal.intent] += signal.weight * decay;
+      signalCount++;
+    }
+
+    // Infer from who they viewed/messaged/saved
+    if (
+      activity.target_participant_id &&
+      targetIntents &&
+      ["profile_view", "match_saved", "message_sent", "meeting_request"].includes(activity.action_type)
+    ) {
+      const targetExplicit = targetIntents.get(activity.target_participant_id);
+      if (targetExplicit && targetExplicit.length > 0) {
+        // If I'm viewing someone who is "selling", I might be "buying"
+        for (const targetIntent of targetExplicit) {
+          // Find the complementary intent (highest compatibility)
+          let bestComplement: IntentKey = "networking";
+          let bestScore = 0;
+          for (const myIntent of INTENT_KEYS) {
+            const compat = COMPATIBILITY_MATRIX[myIntent][targetIntent];
+            if (compat > bestScore) {
+              bestScore = compat;
+              bestComplement = myIntent;
+            }
+          }
+          const actionWeight = activity.action_type === "meeting_request" ? 15 :
+            activity.action_type === "match_saved" ? 10 :
+            activity.action_type === "message_sent" ? 8 : 5;
+          raw[bestComplement] += actionWeight * decay;
+          signalCount++;
+        }
+      }
+    }
+
+    // Infer from search terms
+    if (activity.action_type === "search" && activity.metadata?.query) {
+      const query = activity.metadata.query as string;
+      for (const signal of SEARCH_INTENT_SIGNALS) {
+        if (signal.pattern.test(query)) {
+          raw[signal.intent] += signal.weight * decay;
+          signalCount++;
+        }
+      }
+    }
+  }
+
+  // Confidence: more activity = more confidence, up to 80
+  const confidence = Math.min(Math.round(signalCount * 5), 80);
+
+  return { vector: normalizeVector(raw), confidence };
+}
+
 /**
  * Compute intent vector for a participant from all available signals
  */
@@ -251,7 +367,7 @@ export function computeParticipantVector(participant: {
     bio?: string | null;
     company_name?: string | null;
   };
-}): { vector: IntentVector; confidence: number } {
+}, activities?: ActivityEvent[], targetIntents?: Map<string, IntentKey[]>): { vector: IntentVector; confidence: number } {
   const signals: { vector: IntentVector; confidence: number; weight: number }[] = [];
 
   // 1. Explicit intents (strongest for cold start)
@@ -288,6 +404,14 @@ export function computeParticipantVector(participant: {
     const loSignal = fromProfileSignals(null, lookingOfferingText, null);
     if (loSignal.confidence > 0) {
       signals.push({ ...loSignal, weight: 2.0 });
+    }
+  }
+
+  // 4. Behavioral signals (strongest when available)
+  if (activities && activities.length > 0) {
+    const behaviorSignal = fromBehavioralSignals(activities, targetIntents);
+    if (behaviorSignal.confidence > 0) {
+      signals.push({ ...behaviorSignal, weight: 2.5 }); // strong weight, between explicit and profile
     }
   }
 

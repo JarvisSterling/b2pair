@@ -109,6 +109,7 @@ export default function OnboardWizardPage() {
         } else {
           setError(json.error || "Invalid invite");
         }
+        setLoading(false);
         return;
       }
       setData(json);
@@ -142,8 +143,9 @@ export default function OnboardWizardPage() {
       }
     } catch {
       setError("Failed to load invite");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [code]);
 
   useEffect(() => {

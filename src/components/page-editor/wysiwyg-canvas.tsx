@@ -336,21 +336,23 @@ function RichTextLiveBlock({
   return (
     <div className={bgClass} style={{ textAlign: block.alignment || "left" }}>
       {block.layout === "two-column" ? (
-        <div className="grid grid-cols-2 gap-0">
-          <div className="pr-6 border-r border-[var(--page-border,rgba(0,0,0,0.06))]">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-lg border border-dashed border-border/60 p-4 min-h-[120px] hover:border-primary/30 transition-colors">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-2 font-medium">Left column</p>
             <InlineTextEditor
               content={block.content}
               onChange={(html) => onUpdate({ content: html })}
               alignment={block.alignment}
-              placeholder="Left column — click to edit..."
+              placeholder="Click to start writing..."
             />
           </div>
-          <div className="pl-6">
+          <div className="rounded-lg border border-dashed border-border/60 p-4 min-h-[120px] hover:border-primary/30 transition-colors">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-2 font-medium">Right column</p>
             <InlineTextEditor
               content={block.contentRight || ""}
               onChange={(html) => onUpdate({ contentRight: html })}
               alignment={block.alignment}
-              placeholder="Right column — click to edit..."
+              placeholder="Click to start writing..."
             />
           </div>
         </div>

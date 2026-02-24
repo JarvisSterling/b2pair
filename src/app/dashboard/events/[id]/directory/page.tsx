@@ -29,6 +29,7 @@ interface DirectoryEntry {
   role: string;
   intent: string | null;
   tags: string[];
+  company_role: string | null;
   matchScore?: number;
   profiles: {
     full_name: string;
@@ -40,6 +41,11 @@ interface DirectoryEntry {
     bio: string | null;
     expertise_areas: string[];
   };
+  company?: {
+    name: string;
+    logo_url: string | null;
+    capabilities: string[];
+  } | null;
 }
 
 const INTENT_LABELS: Record<string, string> = {
@@ -71,8 +77,9 @@ export default function DirectoryPage() {
     const { data } = await supabase
       .from("participants")
       .select(`
-        id, role, intent, tags,
-        profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas)
+        id, role, intent, tags, company_role,
+        profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas),
+        company:companies(name, logo_url, capabilities)
       `)
       .eq("event_id", eventId)
       .eq("status", "approved")
@@ -263,6 +270,13 @@ export default function DirectoryPage() {
                   )}
 
                   <div className="flex flex-wrap gap-1 mb-4">
+                    {entry.company && entry.company_role && (
+                      <Badge variant="default" className="text-[10px] gap-1">
+                        <Building2 className="h-2.5 w-2.5" />
+                        {entry.company.name}
+                        {entry.company_role === "speaker" && " · Speaker"}
+                      </Badge>
+                    )}
                     {p.industry && <Badge variant="secondary">{p.industry}</Badge>}
                     {entry.intent && (
                       <Badge variant="outline">{INTENT_LABELS[entry.intent] || entry.intent}</Badge>

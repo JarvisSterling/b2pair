@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CompanyTracker, TrackDownload } from "@/components/events/company-tracker";
 import { Globe, Download, ShoppingBag, FileText, ExternalLink, Play, Calendar, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
@@ -51,6 +52,7 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
+      <CompanyTracker companyId={company.id} eventId={event.id} type="profile_view" />
       <Link href={`/events/${slug}/exhibitors`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block">
         ← All Exhibitors
       </Link>
@@ -154,19 +156,20 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
           </h2>
           <div className="space-y-2">
             {ep.resources.map((res: any, i: number) => (
-              <a
-                key={i}
-                href={res.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
-              >
-                <Download className="h-5 w-5 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">{res.name}</p>
-                  <p className="text-xs text-muted-foreground uppercase">{res.type}</p>
-                </div>
-              </a>
+              <TrackDownload key={i} companyId={company.id} eventId={event.id} resourceName={res.name}>
+                <a
+                  href={res.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
+                >
+                  <Download className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">{res.name}</p>
+                    <p className="text-xs text-muted-foreground uppercase">{res.type}</p>
+                  </div>
+                </a>
+              </TrackDownload>
             ))}
           </div>
         </div>

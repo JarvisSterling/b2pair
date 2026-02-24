@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CompanyTracker, TrackCtaClick, TrackDownload } from "@/components/events/company-tracker";
 import { Crown, Globe, Download, Play, ExternalLink, MessageSquare, Calendar } from "lucide-react";
 import Link from "next/link";
 
@@ -55,6 +56,7 @@ export default async function SponsorProfilePage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
+      <CompanyTracker companyId={company.id} eventId={event.id} type="profile_view" />
       <Link href={`/events/${slug}/sponsors`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block">
         ← All Sponsors
       </Link>
@@ -101,12 +103,14 @@ export default async function SponsorProfilePage({ params }: PageProps) {
             </a>
           )}
           {sp.cta_buttons.map((cta: any, i: number) => (
-            <a key={i} href={cta.url} target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant={cta.style === "outline" ? "outline" : cta.style === "secondary" ? "secondary" : "default"}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                {cta.label}
-              </Button>
-            </a>
+            <TrackCtaClick key={i} companyId={company.id} eventId={event.id} ctaLabel={cta.label}>
+              <a href={cta.url} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant={cta.style === "outline" ? "outline" : cta.style === "secondary" ? "secondary" : "default"}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {cta.label}
+                </Button>
+              </a>
+            </TrackCtaClick>
           ))}
         </div>
       )}
@@ -145,19 +149,20 @@ export default async function SponsorProfilePage({ params }: PageProps) {
           <h2 className="font-semibold mb-3">Resources</h2>
           <div className="space-y-2">
             {sp.downloadables.map((dl: any, i: number) => (
-              <a
-                key={i}
-                href={dl.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
-              >
-                <Download className="h-5 w-5 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">{dl.name}</p>
-                  <p className="text-xs text-muted-foreground uppercase">{dl.type}</p>
-                </div>
-              </a>
+              <TrackDownload key={i} companyId={company.id} eventId={event.id} resourceName={dl.name}>
+                <a
+                  href={dl.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
+                >
+                  <Download className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">{dl.name}</p>
+                    <p className="text-xs text-muted-foreground uppercase">{dl.type}</p>
+                  </div>
+                </a>
+              </TrackDownload>
             ))}
           </div>
         </div>

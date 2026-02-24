@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: Params) {
       *,
       sponsor_profiles(*, tier:sponsor_tiers(*)),
       exhibitor_profiles(*),
-      company_members(id, email, name, role, invite_status, accepted_at)
+      company_members(id, email, name, role, invite_status, invite_code, accepted_at)
     `)
     .eq("id", companyId)
     .eq("event_id", eventId)

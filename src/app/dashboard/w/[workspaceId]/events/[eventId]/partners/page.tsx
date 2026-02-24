@@ -620,6 +620,7 @@ export default function PartnersPage() {
               <CompanyDetailPanel
                 company={selectedCompany}
                 tiers={tiers}
+                eventSlug={eventSlug || eventId}
                 onClose={() => setSelectedCompany(null)}
                 onApprove={(id) => { changeStatus(id, "approved"); setSelectedCompany(null); }}
                 onReject={(id) => { setSelectedCompany(null); setShowRejectModal(id); }}
@@ -637,6 +638,7 @@ export default function PartnersPage() {
 function CompanyDetailPanel({
   company,
   tiers,
+  eventSlug,
   onClose,
   onApprove,
   onReject,
@@ -644,16 +646,30 @@ function CompanyDetailPanel({
 }: {
   company: any;
   tiers: SponsorTier[];
+  eventSlug: string;
   onClose: () => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onPublish: (id: string) => void;
 }) {
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const sponsorProfile = Array.isArray(company.sponsor_profiles) ? company.sponsor_profiles[0] : company.sponsor_profiles;
   const exhibitorProfile = Array.isArray(company.exhibitor_profiles) ? company.exhibitor_profiles[0] : company.exhibitor_profiles;
   const members: any[] = company.company_members || [];
   const tier = sponsorProfile?.tier;
   const capabilities: string[] = company.capabilities || [];
+
+  // Find the admin invite code for re-sharing
+  const adminMember = members.find((m: any) => m.role === "admin");
+  const inviteCode = adminMember?.invite_code;
+
+  function copyInvite() {
+    if (!inviteCode) return;
+    const url = `${window.location.origin}/events/${eventSlug}/partners/onboard/${inviteCode}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -738,6 +754,14 @@ function CompanyDetailPanel({
                 <DetailField label="Contact" value={company.contact_email} />
               )}
             </div>
+            {inviteCode && (
+              <div className="mt-3">
+                <Button size="sm" variant="outline" className="text-xs" onClick={copyInvite}>
+                  {copiedInvite ? <Check className="mr-1.5 h-3 w-3" /> : <Copy className="mr-1.5 h-3 w-3" />}
+                  {copiedInvite ? "Link Copied!" : "Copy Invite Link"}
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 

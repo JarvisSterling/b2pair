@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const { data: participants, error: fetchError } = await admin
     .from("participants")
     .select(`
-      id, intent, intents, looking_for, offering,
+      id, intent, intents, looking_for, offering, ai_intent_classification,
       profiles!inner(title, bio, company_name)
     `)
     .eq("event_id", eventId)

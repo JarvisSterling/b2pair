@@ -249,11 +249,12 @@ interface ActivityEvent {
 
 // Map actions to intent signals
 const ACTION_INTENT_MAP: Record<string, { intent: IntentKey; weight: number }[]> = {
-  profile_view: [], // We'll infer from who they viewed
+  profile_view: [], // Infer from who they viewed
   profile_click: [],
   search: [], // Infer from search terms
   meeting_request: [{ intent: "networking", weight: 5 }],
   meeting_accepted: [{ intent: "networking", weight: 3 }],
+  meeting_rated: [], // Infer from who they rated positively (strong outcome signal)
   message_sent: [{ intent: "networking", weight: 3 }],
   match_saved: [], // Infer from the match they saved
   match_dismissed: [],
@@ -311,7 +312,7 @@ export function fromBehavioralSignals(
     if (
       activity.target_participant_id &&
       targetIntents &&
-      ["profile_view", "match_saved", "message_sent", "meeting_request"].includes(activity.action_type)
+      ["profile_view", "match_saved", "message_sent", "meeting_request", "meeting_rated"].includes(activity.action_type)
     ) {
       const targetExplicit = targetIntents.get(activity.target_participant_id);
       if (targetExplicit && targetExplicit.length > 0) {
@@ -327,7 +328,8 @@ export function fromBehavioralSignals(
               bestComplement = myIntent;
             }
           }
-          const actionWeight = activity.action_type === "meeting_request" ? 15 :
+          const actionWeight = activity.action_type === "meeting_rated" ? 20 :
+            activity.action_type === "meeting_request" ? 15 :
             activity.action_type === "match_saved" ? 10 :
             activity.action_type === "message_sent" ? 8 : 5;
           raw[bestComplement] += actionWeight * decay;
@@ -362,6 +364,7 @@ export function computeParticipantVector(participant: {
   intent?: string | null;
   looking_for?: string | null;
   offering?: string | null;
+  ai_intent_classification?: Record<string, number> | null;
   profiles?: {
     title?: string | null;
     bio?: string | null;
@@ -407,7 +410,23 @@ export function computeParticipantVector(participant: {
     }
   }
 
-  // 4. Behavioral signals (strongest when available)
+  // 4. AI classification (very strong when available)
+  if (participant.ai_intent_classification && Object.keys(participant.ai_intent_classification).length > 0) {
+    const aiVector = emptyVector();
+    let hasValues = false;
+    for (const key of INTENT_KEYS) {
+      const val = participant.ai_intent_classification[key];
+      if (typeof val === "number" && val > 0) {
+        aiVector[key] = val;
+        hasValues = true;
+      }
+    }
+    if (hasValues) {
+      signals.push({ vector: normalizeVector(aiVector), confidence: 85, weight: 2.8 });
+    }
+  }
+
+  // 5. Behavioral signals (strongest when available)
   if (activities && activities.length > 0) {
     const behaviorSignal = fromBehavioralSignals(activities, targetIntents);
     if (behaviorSignal.confidence > 0) {

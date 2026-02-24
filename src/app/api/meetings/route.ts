@@ -149,5 +149,48 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // ── Outcome feedback loop for intent engine ──
+  // Record activity signals when meetings are accepted or rated
+  try {
+    const { data: meetingData } = await supabase
+      .from("meetings")
+      .select("event_id, requester_id, recipient_id, status, requester_rating, recipient_rating")
+      .eq("id", meetingId)
+      .single();
+
+    if (meetingData) {
+      const { data: myParticipants } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("user_id", user.id);
+      const myIds = new Set((myParticipants || []).map((p) => p.id));
+      const myPid = myIds.has(meetingData.requester_id) ? meetingData.requester_id : meetingData.recipient_id;
+      const otherPid = myPid === meetingData.requester_id ? meetingData.recipient_id : meetingData.requester_id;
+
+      if (status === "accepted") {
+        await supabase.from("participant_activity").insert({
+          participant_id: myPid,
+          event_id: meetingData.event_id,
+          action_type: "meeting_accepted",
+          target_participant_id: otherPid,
+          metadata: {},
+        });
+      }
+
+      if (rating !== undefined && rating >= 4) {
+        // Positive rating = strong signal that this was a good match
+        await supabase.from("participant_activity").insert({
+          participant_id: myPid,
+          event_id: meetingData.event_id,
+          action_type: "meeting_rated",
+          target_participant_id: otherPid,
+          metadata: { rating, positive: true },
+        });
+      }
+    }
+  } catch {
+    // Don't fail the request if tracking fails
+  }
+
   return NextResponse.json({ success: true });
 }

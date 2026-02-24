@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     .from("participants")
     .select(`
       id, role, intent, intents, tags, looking_for, offering,
-      intent_vector, intent_confidence,
+      intent_vector, intent_confidence, ai_intent_classification,
       profiles!inner(full_name, title, company_name, industry, expertise_areas, interests, bio)
     `)
     .eq("event_id", eventId)

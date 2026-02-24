@@ -35,8 +35,10 @@ export default function MatchingRulesPage() {
   const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
   const [embeddingCount, setEmbeddingCount] = useState<number | null>(null);
   const [embeddingResult, setEmbeddingResult] = useState<string | null>(null);
-  const [intentStats, setIntentStats] = useState<{ total: number; withVector: number; highConfidence: number } | null>(null);
+  const [intentStats, setIntentStats] = useState<{ total: number; withVector: number; highConfidence: number; withAI: number } | null>(null);
   const [computingIntents, setComputingIntents] = useState(false);
+  const [classifyingAI, setClassifyingAI] = useState(false);
+  const [aiResult, setAiResult] = useState<string | null>(null);
 
   const loadRules = useCallback(async () => {
     const supabase = createClient();
@@ -59,14 +61,15 @@ export default function MatchingRulesPage() {
     // Load intent data quality stats
     const { data: allParticipants } = await supabase
       .from("participants")
-      .select("id, intent_vector, intent_confidence")
+      .select("id, intent_vector, intent_confidence, ai_intent_classification")
       .eq("event_id", eventId)
       .eq("status", "approved");
 
     if (allParticipants) {
       const withVector = allParticipants.filter((p: any) => p.intent_vector && Object.keys(p.intent_vector).length > 0 && p.intent_confidence > 0).length;
       const highConfidence = allParticipants.filter((p: any) => p.intent_confidence >= 50).length;
-      setIntentStats({ total: allParticipants.length, withVector, highConfidence });
+      const withAI = allParticipants.filter((p: any) => p.ai_intent_classification && Object.keys(p.ai_intent_classification).length > 0).length;
+      setIntentStats({ total: allParticipants.length, withVector, highConfidence, withAI });
     }
 
     if (data) {
@@ -358,7 +361,7 @@ export default function MatchingRulesPage() {
                     `${Math.round((intentStats.highConfidence / intentStats.total) * 100)}% high confidence`}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="grid grid-cols-4 gap-3 text-center">
                 <div>
                   <p className="text-h3 font-bold">{intentStats.total}</p>
                   <p className="text-small text-muted-foreground">Participants</p>
@@ -370,6 +373,10 @@ export default function MatchingRulesPage() {
                 <div>
                   <p className="text-h3 font-bold">{intentStats.highConfidence}</p>
                   <p className="text-small text-muted-foreground">High confidence</p>
+                </div>
+                <div>
+                  <p className="text-h3 font-bold">{intentStats.withAI}</p>
+                  <p className="text-small text-muted-foreground">AI classified</p>
                 </div>
               </div>
               <Button
@@ -402,6 +409,46 @@ export default function MatchingRulesPage() {
                 )}
                 {intentStats.withVector > 0 ? "Recompute intent vectors" : "Compute intent vectors"}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={classifyingAI}
+                onClick={async () => {
+                  setClassifyingAI(true);
+                  setAiResult(null);
+                  try {
+                    const res = await fetch("/api/intent/classify", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ eventId }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      setAiResult(`Classified ${data.classified} of ${data.total} participants`);
+                      loadRules(); // Refresh stats
+                    } else {
+                      setAiResult(`Error: ${data.error}`);
+                    }
+                  } catch {
+                    setAiResult("Failed to classify");
+                  } finally {
+                    setClassifyingAI(false);
+                  }
+                }}
+              >
+                {classifyingAI ? (
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Brain className="mr-2 h-3.5 w-3.5" />
+                )}
+                {classifyingAI ? "Classifying with AI..." : "Classify intents with AI"}
+              </Button>
+              {aiResult && (
+                <p className={`text-caption ${aiResult.startsWith("Error") ? "text-destructive" : "text-success"}`}>
+                  {aiResult}
+                </p>
+              )}
             </div>
           )}
 

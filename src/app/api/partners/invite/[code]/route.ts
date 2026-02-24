@@ -147,7 +147,7 @@ export async function POST(request: Request, { params }: Params) {
         status: "approved",
         company_id: company.id,
         company_role: companyRole,
-        intent: interests || "networking",
+        intent: "networking",
       })
       .select("id")
       .single();

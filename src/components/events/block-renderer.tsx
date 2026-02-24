@@ -130,7 +130,7 @@ function RenderBlock({ block }: { block: ContentBlock }) {
           : block.background === "accent"
           ? "bg-[var(--page-accent,#0071E3)]/5 rounded-2xl px-8 py-8"
           : "";
-      const proseClass = "prose max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed";
+      const proseClass = "prose max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed prose-p:my-4 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em]";
       const textStyle = {
         color: "var(--page-text)",
         fontFamily: "var(--page-font-body)",

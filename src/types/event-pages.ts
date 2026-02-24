@@ -46,6 +46,14 @@ export interface StatsBlock extends BaseBlock {
 export interface RichTextBlock extends BaseBlock {
   type: "rich-text";
   content: string; // HTML string from editor
+  contentRight?: string; // HTML for second column (when layout is "two-column")
+  alignment?: "left" | "center" | "right";
+  layout?: "single" | "two-column";
+  background?: "none" | "surface" | "accent";
+  ctaEnabled?: boolean;
+  ctaLabel?: string;
+  ctaHref?: string;
+  ctaStyle?: "primary" | "secondary" | "outline";
 }
 
 export interface ImageBlock extends BaseBlock {

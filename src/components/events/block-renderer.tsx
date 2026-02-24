@@ -123,17 +123,60 @@ function RenderBlock({ block }: { block: ContentBlock }) {
         </div>
       );
 
-    case "rich-text":
+    case "rich-text": {
+      const bgClass =
+        block.background === "surface"
+          ? "bg-[var(--page-surface,#F5F5F7)] rounded-2xl px-8 py-8"
+          : block.background === "accent"
+          ? "bg-[var(--page-accent,#0071E3)]/5 rounded-2xl px-8 py-8"
+          : "";
+      const proseClass = "prose max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed";
+      const textStyle = {
+        color: "var(--page-text)",
+        fontFamily: "var(--page-font-body)",
+        textAlign: (block.alignment || "left") as "left" | "center" | "right",
+      };
       return (
-        <div
-          className="prose max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed"
-          style={{
-            color: "var(--page-text)",
-            fontFamily: "var(--page-font-body)",
-          }}
-          dangerouslySetInnerHTML={{ __html: block.content }}
-        />
+        <div className={bgClass}>
+          {block.layout === "two-column" ? (
+            <div className="grid grid-cols-2 gap-8">
+              <div
+                className={proseClass}
+                style={textStyle}
+                dangerouslySetInnerHTML={{ __html: block.content }}
+              />
+              <div
+                className={proseClass}
+                style={textStyle}
+                dangerouslySetInnerHTML={{ __html: block.contentRight || "" }}
+              />
+            </div>
+          ) : (
+            <div
+              className={proseClass}
+              style={textStyle}
+              dangerouslySetInnerHTML={{ __html: block.content }}
+            />
+          )}
+          {block.ctaEnabled && (
+            <div className={`mt-6 ${block.alignment === "center" ? "text-center" : block.alignment === "right" ? "text-right" : ""}`}>
+              <a
+                href={block.ctaHref || "#"}
+                className={`inline-block px-6 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  block.ctaStyle === "outline"
+                    ? "border border-[var(--page-accent)] text-[var(--page-accent)]"
+                    : block.ctaStyle === "secondary"
+                    ? "bg-[var(--page-surface)] text-[var(--page-text)]"
+                    : "bg-[var(--page-accent)] text-white"
+                }`}
+              >
+                {block.ctaLabel || "Learn More"}
+              </a>
+            </div>
+          )}
+        </div>
       );
+    }
 
     case "image":
       return (

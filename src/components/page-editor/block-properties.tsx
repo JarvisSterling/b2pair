@@ -64,18 +64,7 @@ function BlockFields({
     case "hero":
       return <HeroFields block={block} onUpdate={onUpdate} eventId={eventId} />;
     case "rich-text":
-      return (
-        <div className="space-y-3">
-          <Label className="text-xs">Content (HTML supported)</Label>
-          <textarea
-            value={block.content}
-            onChange={(e) => onUpdate({ content: e.target.value })}
-            placeholder="Enter text content..."
-            rows={8}
-            className="flex w-full rounded-lg bg-input/50 px-3 py-2 text-sm border border-border placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary/50 resize-y font-mono"
-          />
-        </div>
-      );
+      return <RichTextProperties block={block} onUpdate={onUpdate} />;
     case "image":
       return <ImageFields block={block} onUpdate={onUpdate} eventId={eventId} />;
     case "gallery":
@@ -626,6 +615,168 @@ function FaqFields({
       >
         <Plus className="h-3 w-3 mr-1" /> Add Q&A
       </Button>
+    </div>
+  );
+}
+
+function RichTextProperties({
+  block,
+  onUpdate,
+}: {
+  block: import("@/types/event-pages").RichTextBlock;
+  onUpdate: (updates: Partial<import("@/types/event-pages").RichTextBlock>) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <p className="text-xs text-muted-foreground">
+        Click the text block in the canvas to edit content directly.
+      </p>
+
+      {/* Alignment */}
+      <div>
+        <Label className="text-xs">Text Alignment</Label>
+        <div className="flex gap-1 mt-1.5">
+          {(["left", "center", "right"] as const).map((align) => (
+            <button
+              key={align}
+              onClick={() => onUpdate({ alignment: align })}
+              className={cn(
+                "flex-1 py-1.5 rounded-md text-xs font-medium transition-colors border",
+                block.alignment === align || (!block.alignment && align === "left")
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {align.charAt(0).toUpperCase() + align.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Layout */}
+      <div>
+        <Label className="text-xs">Layout</Label>
+        <div className="flex gap-1 mt-1.5">
+          <button
+            onClick={() => onUpdate({ layout: "single" })}
+            className={cn(
+              "flex-1 py-2 rounded-md text-xs font-medium transition-colors border",
+              !block.layout || block.layout === "single"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className="flex justify-center gap-0.5 mb-1">
+              <div className="w-10 h-1 bg-current rounded opacity-40" />
+            </div>
+            Single
+          </button>
+          <button
+            onClick={() => onUpdate({ layout: "two-column" })}
+            className={cn(
+              "flex-1 py-2 rounded-md text-xs font-medium transition-colors border",
+              block.layout === "two-column"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className="flex justify-center gap-1 mb-1">
+              <div className="w-4 h-1 bg-current rounded opacity-40" />
+              <div className="w-4 h-1 bg-current rounded opacity-40" />
+            </div>
+            Two Column
+          </button>
+        </div>
+      </div>
+
+      {/* Background */}
+      <div>
+        <Label className="text-xs">Background</Label>
+        <div className="flex gap-1 mt-1.5">
+          {([
+            { key: "none" as const, label: "None", preview: "bg-background" },
+            { key: "surface" as const, label: "Surface", preview: "bg-zinc-100" },
+            { key: "accent" as const, label: "Accent", preview: "bg-blue-50" },
+          ]).map(({ key, label, preview }) => (
+            <button
+              key={key}
+              onClick={() => onUpdate({ background: key })}
+              className={cn(
+                "flex-1 py-2 rounded-md text-xs font-medium transition-colors border",
+                (block.background || "none") === key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <div className={cn("w-6 h-3 rounded mx-auto mb-1 border border-border/30", preview)} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA Button */}
+      <div className="border-t pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <Label className="text-xs">CTA Button</Label>
+          <button
+            onClick={() => onUpdate({ ctaEnabled: !block.ctaEnabled })}
+            className={cn(
+              "relative w-9 h-5 rounded-full transition-colors",
+              block.ctaEnabled ? "bg-primary" : "bg-muted"
+            )}
+          >
+            <div
+              className={cn(
+                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
+                block.ctaEnabled ? "translate-x-4" : "translate-x-0.5"
+              )}
+            />
+          </button>
+        </div>
+
+        {block.ctaEnabled && (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Button Label</Label>
+              <Input
+                value={block.ctaLabel || ""}
+                onChange={(e) => onUpdate({ ctaLabel: e.target.value })}
+                placeholder="Learn More"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Button URL</Label>
+              <Input
+                value={block.ctaHref || ""}
+                onChange={(e) => onUpdate({ ctaHref: e.target.value })}
+                placeholder="https://..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Button Style</Label>
+              <div className="flex gap-1 mt-1.5">
+                {(["primary", "secondary", "outline"] as const).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => onUpdate({ ctaStyle: style })}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-md text-xs font-medium transition-colors border capitalize",
+                      (block.ctaStyle || "primary") === style
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

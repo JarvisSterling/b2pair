@@ -41,6 +41,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BlockRenderer } from "@/components/events/block-renderer";
 import { BannerEditor, type BannerLayout } from "@/components/page-editor/banner-editor";
+import { InlineTextEditor } from "@/components/page-editor/inline-text-editor";
+import type { RichTextBlock } from "@/types/event-pages";
 import { EventThemeProvider } from "@/components/events/theme-provider";
 import type { ContentBlock, BlockType, ThemeKey, EventPage } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
@@ -165,6 +167,12 @@ export function WysiwygCanvas({
                       onSelect={() => onSelectBlock(block.id)}
                       onRemove={() => onRemoveBlock(block.id)}
                       onInsertAfter={(type) => onAddBlock(type, index + 1)}
+                      onUpdateBlock={(updates) => {
+                        const updated = blocks.map((b) =>
+                          b.id === block.id ? { ...b, ...updates } as ContentBlock : b
+                        );
+                        onChange(updated);
+                      }}
                     />
                   ))}
                 </div>
@@ -183,12 +191,14 @@ function SortableLiveBlock({
   onSelect,
   onRemove,
   onInsertAfter,
+  onUpdateBlock,
 }: {
   block: ContentBlock;
   isSelected: boolean;
   onSelect: () => void;
   onRemove: () => void;
   onInsertAfter: (type: BlockType) => void;
+  onUpdateBlock: (updates: Partial<ContentBlock>) => void;
 }) {
   const {
     attributes,
@@ -243,10 +253,17 @@ function SortableLiveBlock({
           </button>
         </div>
 
-        {/* Render the actual block as it would appear live */}
-        <div className="pointer-events-none">
-          <BlockRenderer blocks={[block]} />
-        </div>
+        {/* Render the actual block — inline editable for text blocks */}
+        {block.type === "rich-text" ? (
+          <RichTextLiveBlock
+            block={block as RichTextBlock}
+            onUpdate={onUpdateBlock}
+          />
+        ) : (
+          <div className="pointer-events-none">
+            <BlockRenderer blocks={[block]} />
+          </div>
+        )}
       </div>
 
       {/* Insert point between blocks */}
@@ -298,5 +315,66 @@ function InsertDropdown({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/* ─── Rich Text Live Block with inline editing ─── */
+function RichTextLiveBlock({
+  block,
+  onUpdate,
+}: {
+  block: RichTextBlock;
+  onUpdate: (updates: Partial<RichTextBlock>) => void;
+}) {
+  const bgClass =
+    block.background === "surface"
+      ? "bg-[var(--page-surface,#F5F5F7)] rounded-2xl px-8 py-8"
+      : block.background === "accent"
+      ? "bg-[var(--page-accent,#0071E3)]/5 rounded-2xl px-8 py-8"
+      : "";
+
+  return (
+    <div className={bgClass} style={{ textAlign: block.alignment || "left" }}>
+      {block.layout === "two-column" ? (
+        <div className="grid grid-cols-2 gap-8">
+          <InlineTextEditor
+            content={block.content}
+            onChange={(html) => onUpdate({ content: html })}
+            alignment={block.alignment}
+            placeholder="Click to start writing..."
+          />
+          <InlineTextEditor
+            content={block.contentRight || ""}
+            onChange={(html) => onUpdate({ contentRight: html })}
+            alignment={block.alignment}
+            placeholder="Second column..."
+          />
+        </div>
+      ) : (
+        <InlineTextEditor
+          content={block.content}
+          onChange={(html) => onUpdate({ content: html })}
+          alignment={block.alignment}
+          placeholder="Click to start writing..."
+        />
+      )}
+      {block.ctaEnabled && (
+        <div className={cn("mt-6", block.alignment === "center" ? "text-center" : block.alignment === "right" ? "text-right" : "")}>
+          <a
+            href={block.ctaHref || "#"}
+            className={cn(
+              "inline-block px-6 py-2.5 text-sm font-medium rounded-lg transition-colors",
+              block.ctaStyle === "outline"
+                ? "border border-[var(--page-accent)] text-[var(--page-accent)]"
+                : block.ctaStyle === "secondary"
+                ? "bg-[var(--page-surface)] text-[var(--page-text)]"
+                : "bg-[var(--page-accent)] text-white"
+            )}
+          >
+            {block.ctaLabel || "Learn More"}
+          </a>
+        </div>
+      )}
+    </div>
   );
 }

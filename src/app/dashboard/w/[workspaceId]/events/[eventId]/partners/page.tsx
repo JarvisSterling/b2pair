@@ -27,7 +27,7 @@ import {
   GripVertical,
   Globe,
 } from "lucide-react";
-import type { Company, CompanyStatus, SponsorTier } from "@/types/sponsors";
+import type { Company, CompanyStatus, SponsorTier, SponsorProfile, ExhibitorProfile, CompanyMember } from "@/types/sponsors";
 
 type ActiveTab = "sponsors" | "exhibitors" | "tiers" | "settings";
 
@@ -61,6 +61,8 @@ export default function PartnersPage() {
   const [showRejectModal, setShowRejectModal] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Settings
   const [autoPublish, setAutoPublish] = useState(false);
@@ -193,6 +195,17 @@ export default function PartnersPage() {
     setTimeout(() => setCopiedLink(null), 2000);
   }
 
+  async function openCompanyDetail(companyId: string) {
+    setDetailLoading(true);
+    setSelectedCompany(null);
+    const res = await fetch(`/api/events/${eventId}/companies/${companyId}`);
+    if (res.ok) {
+      const { company } = await res.json();
+      setSelectedCompany(company);
+    }
+    setDetailLoading(false);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -300,6 +313,7 @@ export default function PartnersPage() {
             onReject={(id) => setShowRejectModal(id)}
             onPublish={(id) => changeStatus(id, "live")}
             onDelete={deleteCompany}
+            onView={openCompanyDetail}
             deleting={deleting}
             copyInviteLink={copyInviteLink}
             copiedLink={copiedLink}
@@ -372,6 +386,7 @@ export default function PartnersPage() {
             onReject={(id) => setShowRejectModal(id)}
             onPublish={(id) => changeStatus(id, "live")}
             onDelete={deleteCompany}
+            onView={openCompanyDetail}
             deleting={deleting}
             copyInviteLink={copyInviteLink}
             copiedLink={copiedLink}
@@ -588,6 +603,317 @@ export default function PartnersPage() {
           </Card>
         </div>
       )}
+
+      {/* Company detail slide-over */}
+      {(selectedCompany || detailLoading) && (
+        <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedCompany(null)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative w-full max-w-lg bg-background border-l border-border shadow-2xl overflow-y-auto animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {detailLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : selectedCompany && (
+              <CompanyDetailPanel
+                company={selectedCompany}
+                tiers={tiers}
+                onClose={() => setSelectedCompany(null)}
+                onApprove={(id) => { changeStatus(id, "approved"); setSelectedCompany(null); }}
+                onReject={(id) => { setSelectedCompany(null); setShowRejectModal(id); }}
+                onPublish={(id) => { changeStatus(id, "live"); setSelectedCompany(null); }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Company detail slide-over panel for organizers */
+function CompanyDetailPanel({
+  company,
+  tiers,
+  onClose,
+  onApprove,
+  onReject,
+  onPublish,
+}: {
+  company: any;
+  tiers: SponsorTier[];
+  onClose: () => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onPublish: (id: string) => void;
+}) {
+  const sponsorProfile = Array.isArray(company.sponsor_profiles) ? company.sponsor_profiles[0] : company.sponsor_profiles;
+  const exhibitorProfile = Array.isArray(company.exhibitor_profiles) ? company.exhibitor_profiles[0] : company.exhibitor_profiles;
+  const members: any[] = company.company_members || [];
+  const tier = sponsorProfile?.tier;
+  const capabilities: string[] = company.capabilities || [];
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center gap-4 p-6 border-b border-border sticky top-0 bg-background z-10">
+        {company.logo_url ? (
+          <img src={company.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary text-lg font-bold shrink-0">
+            {company.name[0]}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-semibold truncate">{company.name}</h2>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLORS[company.status as CompanyStatus]}`}>
+              {company.status}
+            </span>
+            {capabilities.map((cap: string) => (
+              <Badge key={cap} variant="secondary" className="text-[10px] capitalize">{cap}</Badge>
+            ))}
+          </div>
+        </div>
+        <button onClick={onClose} className="p-2 rounded-lg hover:bg-secondary transition-colors">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 p-6 space-y-6">
+        {/* Status actions */}
+        {(company.status === "submitted" || company.status === "approved") && (
+          <div className="flex gap-2">
+            {company.status === "submitted" && (
+              <>
+                <Button size="sm" onClick={() => onApprove(company.id)}>
+                  <Check className="mr-1.5 h-3.5 w-3.5" /> Approve
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => onReject(company.id)}>
+                  <XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject
+                </Button>
+              </>
+            )}
+            {company.status === "approved" && (
+              <Button size="sm" onClick={() => onPublish(company.id)}>
+                <Globe className="mr-1.5 h-3.5 w-3.5" /> Publish
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Rejection reason */}
+        {company.status === "rejected" && company.rejection_reason && (
+          <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/10">
+            <p className="text-caption text-red-500">
+              <span className="font-semibold">Rejected:</span> {company.rejection_reason}
+            </p>
+          </div>
+        )}
+
+        {/* Company info */}
+        <section>
+          <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">Company Info</h3>
+          <div className="space-y-2">
+            {company.description_short && (
+              <p className="text-body text-muted-foreground">{company.description_short}</p>
+            )}
+            {company.description_long && (
+              <p className="text-caption text-muted-foreground">{company.description_long}</p>
+            )}
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {company.website && (
+                <DetailField label="Website" value={company.website} link />
+              )}
+              {company.industry && (
+                <DetailField label="Industry" value={company.industry} />
+              )}
+              {company.hq_location && (
+                <DetailField label="Location" value={company.hq_location} />
+              )}
+              {company.contact_email && (
+                <DetailField label="Contact" value={company.contact_email} />
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Banner */}
+        {company.banner_url && (
+          <img src={company.banner_url} alt="Banner" className="w-full h-32 object-cover rounded-lg" />
+        )}
+
+        {/* Sponsor details */}
+        {sponsorProfile && (
+          <section>
+            <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <Crown className="inline h-3.5 w-3.5 mr-1" />
+              Sponsor Details
+            </h3>
+            <div className="space-y-3">
+              {tier && (
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: tier.color }} />
+                  <span className="text-body font-medium">{tier.name}</span>
+                  <Badge variant="outline" className="text-[10px]">Rank {tier.rank}</Badge>
+                </div>
+              )}
+              {sponsorProfile.tagline && (
+                <p className="text-caption text-muted-foreground italic">&ldquo;{sponsorProfile.tagline}&rdquo;</p>
+              )}
+              {sponsorProfile.cta_buttons?.length > 0 && (
+                <div>
+                  <p className="text-caption font-medium mb-1.5">CTA Buttons</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {sponsorProfile.cta_buttons.map((cta: any, i: number) => (
+                      <a key={i} href={cta.url} target="_blank" rel="noopener noreferrer" className="text-caption text-primary underline">
+                        {cta.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {sponsorProfile.downloadables?.length > 0 && (
+                <div>
+                  <p className="text-caption font-medium mb-1.5">Downloadables</p>
+                  <div className="space-y-1">
+                    {sponsorProfile.downloadables.map((dl: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-caption">
+                        <span className="text-muted-foreground">{dl.type}</span>
+                        <span className="font-medium">{dl.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {sponsorProfile.promo_video_url && (
+                <DetailField label="Promo Video" value={sponsorProfile.promo_video_url} link />
+              )}
+              {sponsorProfile.sessions?.length > 0 && (
+                <div>
+                  <p className="text-caption font-medium mb-1.5">Sessions</p>
+                  {sponsorProfile.sessions.map((s: any, i: number) => (
+                    <div key={i} className="text-caption mb-1">
+                      <span className="font-medium">{s.title}</span> — {s.speaker_name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Exhibitor details */}
+        {exhibitorProfile && (
+          <section>
+            <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <Building2 className="inline h-3.5 w-3.5 mr-1" />
+              Exhibitor Details
+            </h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {exhibitorProfile.booth_number && (
+                  <DetailField label="Booth" value={exhibitorProfile.booth_number} />
+                )}
+                {exhibitorProfile.booth_type && (
+                  <DetailField label="Booth Type" value={exhibitorProfile.booth_type} />
+                )}
+              </div>
+              {exhibitorProfile.product_categories?.length > 0 && (
+                <div>
+                  <p className="text-caption font-medium mb-1.5">Categories</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {exhibitorProfile.product_categories.map((cat: string) => (
+                      <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {exhibitorProfile.products?.length > 0 && (
+                <div>
+                  <p className="text-caption font-medium mb-1.5">Products ({exhibitorProfile.products.length})</p>
+                  <div className="space-y-2">
+                    {exhibitorProfile.products.map((p: any, i: number) => (
+                      <div key={i} className="flex items-start gap-3 p-2 rounded bg-muted/30">
+                        {p.image_url && <img src={p.image_url} alt="" className="h-10 w-10 rounded object-cover shrink-0" />}
+                        <div>
+                          <p className="text-caption font-medium">{p.name}</p>
+                          {p.description && <p className="text-[11px] text-muted-foreground">{p.description}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {exhibitorProfile.resources?.length > 0 && (
+                <div>
+                  <p className="text-caption font-medium mb-1.5">Resources</p>
+                  {exhibitorProfile.resources.map((r: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2 text-caption">
+                      <span className="text-muted-foreground">{r.type}</span>
+                      <span className="font-medium">{r.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Team members */}
+        {members.length > 0 && (
+          <section>
+            <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <Users className="inline h-3.5 w-3.5 mr-1" />
+              Team ({members.length})
+            </h3>
+            <div className="space-y-2">
+              {members.map((m: any) => (
+                <div key={m.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">
+                    {(m.name || m.email)[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-caption font-medium truncate">{m.name || m.email}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{m.email}</p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
+                  <span className={`text-[10px] ${m.invite_status === "accepted" ? "text-green-500" : "text-muted-foreground"}`}>
+                    {m.invite_status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Timestamps */}
+        <section className="pt-4 border-t border-border">
+          <div className="grid grid-cols-2 gap-3">
+            <DetailField label="Created" value={new Date(company.created_at).toLocaleDateString()} />
+            <DetailField label="Updated" value={new Date(company.updated_at).toLocaleDateString()} />
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+/** Small info field for detail panel */
+function DetailField({ label, value, link }: { label: string; value: string; link?: boolean }) {
+  return (
+    <div>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      {link ? (
+        <a href={value.startsWith("http") ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-caption text-primary hover:underline truncate block">
+          {value}
+        </a>
+      ) : (
+        <p className="text-caption font-medium truncate">{value}</p>
+      )}
     </div>
   );
 }
@@ -629,6 +955,7 @@ function CompanyList({
   onReject,
   onPublish,
   onDelete,
+  onView,
   deleting,
   copyInviteLink,
   copiedLink,
@@ -640,6 +967,7 @@ function CompanyList({
   onReject: (id: string) => void;
   onPublish: (id: string) => void;
   onDelete: (id: string) => void;
+  onView: (id: string) => void;
   deleting: string | null;
   copyInviteLink: (code: string, companyId: string) => void;
   copiedLink: string | null;
@@ -660,7 +988,7 @@ function CompanyList({
   return (
     <div className="space-y-2">
       {companies.map((company) => (
-        <Card key={company.id} className="group">
+        <Card key={company.id} className="group cursor-pointer hover:border-primary/30 transition-colors" onClick={() => onView(company.id)}>
           <CardContent className="py-4">
             <div className="flex items-center gap-4">
               {company.logo_url ? (
@@ -689,7 +1017,7 @@ function CompanyList({
               </div>
 
               {/* Status actions */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {company.status === "submitted" && (
                   <>
                     <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => onApprove(company.id)}>

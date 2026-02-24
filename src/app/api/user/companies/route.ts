@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * GET /api/user/companies
@@ -14,14 +15,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const eventId = searchParams.get("eventId");
 
-  // Get all company_members rows for this user
-  let query = supabase
+  const admin = createAdminClient();
+
+  // Get all company_members rows for this user (using admin to bypass RLS)
+  const { data: memberships, error: memErr } = await admin
     .from("company_members")
     .select("id, company_id, role, invite_status")
     .eq("user_id", user.id)
     .eq("invite_status", "accepted");
 
-  const { data: memberships, error: memErr } = await query;
   if (memErr) return NextResponse.json({ error: memErr.message }, { status: 500 });
   if (!memberships || memberships.length === 0) {
     return NextResponse.json({ memberships: [] });
@@ -29,7 +31,7 @@ export async function GET(request: Request) {
 
   // Get company details for each membership
   const companyIds = memberships.map((m) => m.company_id);
-  let companyQuery = supabase
+  let companyQuery = admin
     .from("companies")
     .select("id, event_id, name, slug, logo_url, capabilities, status")
     .in("id", companyIds);
@@ -44,7 +46,7 @@ export async function GET(request: Request) {
   // Get event names
   const eventIds = [...new Set((companies || []).map((c) => c.event_id))];
   const { data: events } = eventIds.length > 0
-    ? await supabase.from("events").select("id, name, slug").in("id", eventIds)
+    ? await admin.from("events").select("id, name, slug").in("id", eventIds)
     : { data: [] };
 
   const eventsMap = Object.fromEntries((events || []).map((e) => [e.id, e]));

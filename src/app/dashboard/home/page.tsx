@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,8 @@ export default async function ParticipantHome() {
   }));
 
   // Also get events where user is a company member (sponsor/exhibitor)
-  const { data: companyMemberships } = await supabase
+  const admin = createAdminClient();
+  const { data: companyMemberships } = await admin
     .from("company_members")
     .select(
       `company_id, role, created_at,

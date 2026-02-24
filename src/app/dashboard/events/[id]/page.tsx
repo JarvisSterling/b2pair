@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -47,15 +48,18 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
   if (!myParticipant) {
     // Check if user has a company membership for this event (sponsor/exhibitor)
     // If so, redirect to participant onboarding instead of 404
-    const { data: companyMember } = await supabase
+    const admin = createAdminClient();
+    const { data: companyMembers } = await admin
       .from("company_members")
       .select("company_id, companies!inner(event_id)")
       .eq("user_id", user.id)
-      .eq("invite_status", "accepted")
-      .single();
+      .eq("invite_status", "accepted");
 
-    if (companyMember && (companyMember as any).companies?.event_id === id) {
-      const { redirect } = await import("next/navigation");
+    const hasCompanyForEvent = (companyMembers || []).some(
+      (m: any) => m.companies?.event_id === id
+    );
+
+    if (hasCompanyForEvent) {
       redirect("/onboarding/participant");
     }
 

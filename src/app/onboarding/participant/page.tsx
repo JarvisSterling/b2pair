@@ -41,21 +41,18 @@ export default function ParticipantOnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/auth/sign-in"); return; }
 
-      // Get company membership to auto-fill company name and find event
-      const { data: memberships } = await supabase
-        .from("company_members")
-        .select("company_id, companies(id, name, event_id, events(id, name, slug))")
-        .eq("user_id", user.id)
-        .eq("invite_status", "accepted")
-        .limit(1);
+      // Get company membership via API (bypasses RLS)
+      const res = await fetch("/api/user/companies");
+      const json = await res.json();
+      const companies = json.memberships || [];
 
-      if (memberships && memberships.length > 0) {
-        const m = memberships[0] as any;
-        setCompanyName(m.companies?.name || "");
-        setCompanyId(m.company_id);
-        if (m.companies?.events) {
-          setEventId(m.companies.events.id);
-          setEventName(m.companies.events.name);
+      if (companies.length > 0) {
+        const c = companies[0];
+        setCompanyName(c.company_name || "");
+        setCompanyId(c.company_id);
+        if (c.event_id) {
+          setEventId(c.event_id);
+          setEventName(c.event_name || "");
         }
       }
 

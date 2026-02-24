@@ -22,6 +22,8 @@ interface MatchingRules {
   exclude_same_role: boolean;
   prioritize_sponsors: boolean;
   prioritize_vip: boolean;
+  use_behavioral_intent: boolean;
+  intent_confidence_threshold: number;
 }
 
 export default function MatchingRulesPage() {
@@ -33,6 +35,8 @@ export default function MatchingRulesPage() {
   const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
   const [embeddingCount, setEmbeddingCount] = useState<number | null>(null);
   const [embeddingResult, setEmbeddingResult] = useState<string | null>(null);
+  const [intentStats, setIntentStats] = useState<{ total: number; withVector: number; highConfidence: number } | null>(null);
+  const [computingIntents, setComputingIntents] = useState(false);
 
   const loadRules = useCallback(async () => {
     const supabase = createClient();
@@ -51,6 +55,19 @@ export default function MatchingRulesPage() {
         (await supabase.from("participants").select("id").eq("event_id", eventId).eq("status", "approved")).data?.map((p: any) => p.id) || []
       );
     setEmbeddingCount(embCount || 0);
+
+    // Load intent data quality stats
+    const { data: allParticipants } = await supabase
+      .from("participants")
+      .select("id, intent_vector, intent_confidence")
+      .eq("event_id", eventId)
+      .eq("status", "approved");
+
+    if (allParticipants) {
+      const withVector = allParticipants.filter((p: any) => p.intent_vector && Object.keys(p.intent_vector).length > 0 && p.intent_confidence > 0).length;
+      const highConfidence = allParticipants.filter((p: any) => p.intent_confidence >= 50).length;
+      setIntentStats({ total: allParticipants.length, withVector, highConfidence });
+    }
 
     if (data) {
       setRules(data as MatchingRules);
@@ -102,6 +119,8 @@ export default function MatchingRulesPage() {
         exclude_same_role: rules.exclude_same_role,
         prioritize_sponsors: rules.prioritize_sponsors,
         prioritize_vip: rules.prioritize_vip,
+        use_behavioral_intent: rules.use_behavioral_intent,
+        intent_confidence_threshold: rules.intent_confidence_threshold,
       })
       .eq("id", rules.id);
 
@@ -306,6 +325,114 @@ export default function MatchingRulesPage() {
               {embeddingResult}
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Intent Intelligence */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-primary" />
+            Intent Intelligence
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-caption text-muted-foreground">
+            The intent engine infers what each participant is looking to do at the event.
+            It combines their explicit selections with signals from their profile, title, and bio.
+          </p>
+
+          {/* Data quality indicator */}
+          {intentStats && (
+            <div className="rounded-sm border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-body font-medium">Intent data quality</p>
+                <span className={`text-caption font-medium px-2 py-0.5 rounded-full ${
+                  intentStats.highConfidence / Math.max(intentStats.total, 1) >= 0.6
+                    ? "bg-emerald-500/10 text-emerald-600"
+                    : intentStats.highConfidence / Math.max(intentStats.total, 1) >= 0.3
+                    ? "bg-amber-500/10 text-amber-600"
+                    : "bg-red-500/10 text-red-600"
+                }`}>
+                  {intentStats.total === 0 ? "No data" :
+                    `${Math.round((intentStats.highConfidence / intentStats.total) * 100)}% high confidence`}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-h3 font-bold">{intentStats.total}</p>
+                  <p className="text-small text-muted-foreground">Participants</p>
+                </div>
+                <div>
+                  <p className="text-h3 font-bold">{intentStats.withVector}</p>
+                  <p className="text-small text-muted-foreground">With vectors</p>
+                </div>
+                <div>
+                  <p className="text-h3 font-bold">{intentStats.highConfidence}</p>
+                  <p className="text-small text-muted-foreground">High confidence</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={computingIntents}
+                onClick={async () => {
+                  setComputingIntents(true);
+                  try {
+                    const res = await fetch("/api/intent/compute", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ eventId }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      // Reload stats
+                      loadRules();
+                    }
+                  } finally {
+                    setComputingIntents(false);
+                  }
+                }}
+              >
+                {computingIntents ? (
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Zap className="mr-2 h-3.5 w-3.5" />
+                )}
+                {intentStats.withVector > 0 ? "Recompute intent vectors" : "Compute intent vectors"}
+              </Button>
+            </div>
+          )}
+
+          <ToggleRow
+            label="Behavioral intent inference"
+            description="Learn participant intent from their activity, not just explicit selections"
+            checked={rules.use_behavioral_intent}
+            onChange={(v) => setRules({ ...rules, use_behavioral_intent: v })}
+          />
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-body font-medium">Confidence threshold</p>
+                <p className="text-caption text-muted-foreground">
+                  Minimum intent confidence to fully influence matching
+                </p>
+              </div>
+              <span className="text-body font-semibold tabular-nums w-12 text-right">
+                {rules.intent_confidence_threshold}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={10}
+              max={90}
+              value={rules.intent_confidence_threshold}
+              onChange={(e) => setRules({ ...rules, intent_confidence_threshold: parseInt(e.target.value) })}
+              className="w-full h-1.5 rounded-full appearance-none bg-border cursor-pointer accent-primary"
+            />
+          </div>
         </CardContent>
       </Card>
 

@@ -1,5 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import {
+  computeParticipantVector,
+  computeIntentCompatibility,
+  type IntentVector,
+  INTENT_KEYS,
+} from "@/lib/intent-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -13,21 +19,23 @@ function getAdmin() {
 /**
  * POST /api/matching/generate
  * Generate AI match scores for all participants in an event.
- * Called by organizers to run/refresh matching.
+ * Uses the Intent Engine for probability-vector-based matching.
  */
 export async function POST(request: Request) {
-  const supabaseAdmin = getAdmin();
   const { eventId } = await request.json();
 
   if (!eventId) {
     return NextResponse.json({ error: "eventId required" }, { status: 400 });
   }
 
+  const admin = getAdmin();
+
   // Fetch all approved participants with profiles
-  const { data: participants, error: fetchError } = await getAdmin()
+  const { data: participants, error: fetchError } = await admin
     .from("participants")
     .select(`
-      id, role, intent, tags, looking_for, offering,
+      id, role, intent, intents, tags, looking_for, offering,
+      intent_vector, intent_confidence,
       profiles!inner(full_name, title, company_name, industry, expertise_areas, interests, bio)
     `)
     .eq("event_id", eventId)
@@ -42,17 +50,16 @@ export async function POST(request: Request) {
   }
 
   // Fetch matching rules
-  const { data: rules } = await getAdmin()
+  const { data: rules } = await admin
     .from("matching_rules")
     .select("*")
     .eq("event_id", eventId)
     .single();
 
   // Fetch embedding similarities (if embeddings exist)
-  const { data: embeddingSims } = await getAdmin()
+  const { data: embeddingSims } = await admin
     .rpc("get_embedding_similarities", { p_event_id: eventId });
 
-  // Build a lookup map for embedding similarity: "idA|idB" -> similarity
   const embeddingMap = new Map<string, number>();
   let hasEmbeddings = false;
   if (embeddingSims && embeddingSims.length > 0) {
@@ -65,15 +72,15 @@ export async function POST(request: Request) {
     }
   }
 
+  // Weights from rules
   const weights = {
-    intent: rules?.intent_weight ?? 0.30,
-    industry: rules?.industry_weight ?? 0.20,
-    interest: rules?.interest_weight ?? 0.20,
-    complementarity: rules?.complementarity_weight ?? 0.10,
+    intent: rules?.intent_weight ?? 0.35,
+    industry: rules?.industry_weight ?? 0.25,
+    interest: rules?.interest_weight ?? 0.25,
+    complementarity: rules?.complementarity_weight ?? 0.15,
     embedding: hasEmbeddings ? (rules?.embedding_weight ?? 0.20) : 0,
   };
 
-  // If no embeddings, redistribute that weight proportionally
   if (!hasEmbeddings) {
     weights.intent = rules?.intent_weight ?? 0.35;
     weights.industry = rules?.industry_weight ?? 0.25;
@@ -93,6 +100,33 @@ export async function POST(request: Request) {
   const minScore = rules?.minimum_score ?? 40;
   const excludeSameCompany = rules?.exclude_same_company ?? true;
   const excludeSameRole = rules?.exclude_same_role ?? false;
+  const confidenceThreshold = rules?.intent_confidence_threshold ?? 40;
+
+  // Compute/update intent vectors for all participants
+  const participantVectors = new Map<string, { vector: IntentVector; confidence: number }>();
+
+  for (const p of participants) {
+    // Use stored vector if available and fresh, otherwise compute
+    let vector: IntentVector;
+    let confidence: number;
+
+    if (p.intent_vector && Object.keys(p.intent_vector).length > 0 && p.intent_confidence > 0) {
+      vector = p.intent_vector as IntentVector;
+      confidence = p.intent_confidence as number;
+    } else {
+      const computed = computeParticipantVector(p as any);
+      vector = computed.vector;
+      confidence = computed.confidence;
+
+      // Store for future use
+      await admin
+        .from("participants")
+        .update({ intent_vector: vector, intent_confidence: confidence })
+        .eq("id", p.id);
+    }
+
+    participantVectors.set(p.id, { vector, confidence });
+  }
 
   // Generate all pairwise matches
   const matches: {
@@ -117,16 +151,25 @@ export async function POST(request: Request) {
       if (excludeSameCompany && a.profiles.company_name && a.profiles.company_name === b.profiles.company_name) continue;
       if (excludeSameRole && a.role === b.role) continue;
 
-      // Ensure participant_a_id < participant_b_id for the unique constraint
+      // Ensure participant_a_id < participant_b_id for unique constraint
       const [pA, pB] = a.id < b.id ? [a, b] : [b, a];
 
-      const intentScore = computeIntentScore(pA, pB);
+      // Intent score — use Intent Engine vectors
+      const vecA = participantVectors.get(pA.id)!;
+      const vecB = participantVectors.get(pB.id)!;
+      const intentResult = computeIntentCompatibility(
+        vecA.vector, vecA.confidence,
+        vecB.vector, vecB.confidence
+      );
+
+      // If both users have very low confidence, reduce intent impact
+      const intentScore = intentResult.final;
+
       const industryScore = computeIndustryScore(pA.profiles, pB.profiles);
       const interestScore = computeInterestScore(pA.profiles, pB.profiles);
       const complementarityScore = computeComplementarityScore(pA, pB);
 
-      // Embedding similarity (0-100 scale)
-      let embeddingScore = 50; // neutral default when no embeddings
+      let embeddingScore = 50;
       if (hasEmbeddings) {
         const key = pA.id < pB.id ? `${pA.id}|${pB.id}` : `${pB.id}|${pA.id}`;
         const sim = embeddingMap.get(key);
@@ -143,7 +186,10 @@ export async function POST(request: Request) {
 
       if (totalScore < minScore) continue;
 
-      const reasons = generateReasons(pA, pB, intentScore, industryScore, interestScore, embeddingScore, hasEmbeddings);
+      const reasons = generateReasons(
+        pA, pB, vecA, vecB, intentResult,
+        industryScore, interestScore, embeddingScore, hasEmbeddings
+      );
 
       matches.push({
         event_id: eventId,
@@ -160,14 +206,13 @@ export async function POST(request: Request) {
     }
   }
 
-  // Clear existing matches for this event and insert new ones
-  await getAdmin().from("matches").delete().eq("event_id", eventId);
+  // Clear existing matches and insert new ones
+  await admin.from("matches").delete().eq("event_id", eventId);
 
   if (matches.length > 0) {
-    // Insert in batches of 500
     for (let i = 0; i < matches.length; i += 500) {
       const batch = matches.slice(i, i + 500);
-      await getAdmin().from("matches").insert(batch);
+      await admin.from("matches").insert(batch);
     }
   }
 
@@ -175,35 +220,11 @@ export async function POST(request: Request) {
     success: true,
     participantCount: participants.length,
     matchCount: matches.length,
+    vectorsComputed: participantVectors.size,
   });
 }
 
 /* ─── Scoring Functions ─── */
-
-const INTENT_COMPATIBILITY: Record<string, string[]> = {
-  buying: ["selling"],
-  selling: ["buying"],
-  investing: ["selling", "partnering"],
-  partnering: ["partnering", "investing", "selling"],
-  learning: ["selling", "partnering", "networking"],
-  networking: ["networking", "partnering", "learning"],
-};
-
-function computeIntentScore(a: any, b: any): number {
-  if (!a.intent || !b.intent) return 50;
-
-  const compatible = INTENT_COMPATIBILITY[a.intent] || [];
-  if (compatible.includes(b.intent)) return 100;
-
-  // Check reverse
-  const reverseCompatible = INTENT_COMPATIBILITY[b.intent] || [];
-  if (reverseCompatible.includes(a.intent)) return 100;
-
-  // Same intent gets partial credit
-  if (a.intent === b.intent) return 60;
-
-  return 30;
-}
 
 function computeIndustryScore(a: any, b: any): number {
   if (!a.industry || !b.industry) return 50;
@@ -220,21 +241,18 @@ function computeInterestScore(a: any, b: any): number {
   let score = 0;
   let factors = 0;
 
-  // A's expertise matches B's interests
   if (aExpertise.size > 0 && bInterests.size > 0) {
     const overlap = [...aExpertise].filter((x) => bInterests.has(x)).length;
     score += (overlap / Math.max(bInterests.size, 1)) * 100;
     factors++;
   }
 
-  // B's expertise matches A's interests
   if (bExpertise.size > 0 && aInterests.size > 0) {
     const overlap = [...bExpertise].filter((x) => aInterests.has(x)).length;
     score += (overlap / Math.max(aInterests.size, 1)) * 100;
     factors++;
   }
 
-  // Shared expertise (common ground)
   if (aExpertise.size > 0 && bExpertise.size > 0) {
     const overlap = [...aExpertise].filter((x) => bExpertise.has(x)).length;
     const union = new Set([...aExpertise, ...bExpertise]).size;
@@ -248,10 +266,8 @@ function computeInterestScore(a: any, b: any): number {
 function computeComplementarityScore(a: any, b: any): number {
   let score = 50;
 
-  // Different roles are complementary
   if (a.role !== b.role) score += 20;
 
-  // Looking for / offering match
   if (a.looking_for && b.offering) {
     const aLooking = a.looking_for.toLowerCase();
     const bOffering = b.offering.toLowerCase();
@@ -266,11 +282,51 @@ function computeComplementarityScore(a: any, b: any): number {
   return Math.min(score, 100);
 }
 
-function generateReasons(a: any, b: any, intentScore: number, industryScore: number, interestScore: number, embeddingScore: number = 50, hasEmbeddings: boolean = false): string[] {
+function generateReasons(
+  a: any,
+  b: any,
+  vecA: { vector: IntentVector; confidence: number },
+  vecB: { vector: IntentVector; confidence: number },
+  intentResult: { peak: number; base: number; confidence: number; final: number },
+  industryScore: number,
+  interestScore: number,
+  embeddingScore: number,
+  hasEmbeddings: boolean
+): string[] {
   const reasons: string[] = [];
 
-  if (intentScore >= 90) {
-    reasons.push(`${a.profiles.full_name} is ${a.intent || "networking"} and ${b.profiles.full_name} is ${b.intent || "networking"}`);
+  // Intent-based reasons using vectors
+  if (intentResult.final >= 40) {
+    // Find the strongest intent pairing
+    let bestI: string = "", bestJ: string = "";
+    let bestPairScore = 0;
+    for (const iA of INTENT_KEYS) {
+      for (const iB of INTENT_KEYS) {
+        const ps = vecA.vector[iA] * vecB.vector[iB];
+        if (ps > bestPairScore) {
+          bestPairScore = ps;
+          bestI = iA;
+          bestJ = iB;
+        }
+      }
+    }
+
+    if (bestI && bestJ) {
+      const intentLabels: Record<string, string> = {
+        buying: "looking to buy",
+        selling: "looking to sell",
+        investing: "looking to invest",
+        partnering: "looking to partner",
+        learning: "looking to learn",
+        networking: "networking",
+      };
+
+      if (bestI === bestJ) {
+        reasons.push(`Both are ${intentLabels[bestI]}`);
+      } else {
+        reasons.push(`${a.profiles.full_name} is ${intentLabels[bestI]}, ${b.profiles.full_name} is ${intentLabels[bestJ]}`);
+      }
+    }
   }
 
   if (industryScore >= 90) {
@@ -289,6 +345,20 @@ function generateReasons(a: any, b: any, intentScore: number, industryScore: num
   );
   if (aExpertiseMatchesBInterests.length > 0) {
     reasons.push(`${a.profiles.full_name} has expertise ${b.profiles.full_name} is interested in`);
+  }
+
+  // Looking for / offering match
+  if (a.looking_for && b.offering) {
+    const overlap = a.looking_for.toLowerCase().split(" ").some(
+      (w: string) => w.length > 3 && b.offering.toLowerCase().includes(w)
+    );
+    if (overlap) reasons.push(`${a.profiles.full_name}'s needs align with ${b.profiles.full_name}'s offerings`);
+  }
+  if (b.looking_for && a.offering) {
+    const overlap = b.looking_for.toLowerCase().split(" ").some(
+      (w: string) => w.length > 3 && a.offering.toLowerCase().includes(w)
+    );
+    if (overlap) reasons.push(`${b.profiles.full_name}'s needs align with ${a.profiles.full_name}'s offerings`);
   }
 
   if (hasEmbeddings && embeddingScore >= 75) {

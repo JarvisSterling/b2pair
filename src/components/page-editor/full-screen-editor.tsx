@@ -160,7 +160,7 @@ export function FullScreenEditor({
         };
         break;
       case "rich-text":
-        newBlock = { id, type: "rich-text", content: "" };
+        newBlock = { id, type: "rich-text", content: "", background: "accent" };
         break;
       case "image":
         newBlock = { id, type: "image", url: "", alt: "" };

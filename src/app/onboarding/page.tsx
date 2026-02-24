@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [isParticipantMode, setIsParticipantMode] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     platformRole: "organizer",
     title: "",
@@ -101,6 +102,26 @@ export default function OnboardingPage() {
     interests: [],
     linkedinUrl: "",
   });
+
+  // Detect if user came through sponsor/exhibitor flow (has company membership)
+  useEffect(() => {
+    async function checkCompanyMembership() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: memberships } = await supabase
+        .from("company_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("invite_status", "accepted")
+        .limit(1);
+      if (memberships && memberships.length > 0) {
+        setIsParticipantMode(true);
+        setData((prev) => ({ ...prev, platformRole: "participant" }));
+      }
+    }
+    checkCompanyMembership();
+  }, []);
 
   function updateData(updates: Partial<OnboardingData>) {
     setData((prev) => ({ ...prev, ...updates }));
@@ -233,7 +254,7 @@ export default function OnboardingPage() {
           <CardContent className="pt-6">
             <div className="animate-fade-in" key={currentStep}>
               {STEPS[currentStep].id === "role" && (
-                <RoleStep data={data} updateData={updateData} />
+                <RoleStep data={data} updateData={updateData} isParticipant={isParticipantMode} />
               )}
               {STEPS[currentStep].id === "company" && (
                 <CompanyStep data={data} updateData={updateData} />
@@ -287,16 +308,20 @@ export default function OnboardingPage() {
 function RoleStep({
   data,
   updateData,
+  isParticipant,
 }: {
   data: OnboardingData;
   updateData: (u: Partial<OnboardingData>) => void;
+  isParticipant?: boolean;
 }) {
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-h2 font-semibold">Welcome to B2Pair</h2>
         <p className="mt-1 text-body text-muted-foreground">
-          Let's set up your organizer profile so you can start creating events.
+          {isParticipant
+            ? "Complete your participant profile to start networking and connecting with others."
+            : "Let's set up your organizer profile so you can start creating events."}
         </p>
       </div>
 
@@ -547,8 +572,7 @@ function AvailabilityStep({
         </div>
         <h3 className="text-h3 font-semibold">Your profile is ready</h3>
         <p className="mt-2 text-body text-muted-foreground">
-          Click "Complete setup" to create your first workspace
-          and start building events.
+          Click &ldquo;Complete setup&rdquo; to finish and start exploring.
         </p>
       </div>
     </div>

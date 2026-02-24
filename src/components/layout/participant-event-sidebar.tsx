@@ -236,30 +236,37 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           /* Company navigation */
           <>
             {companyMembership && [
-              { id: "company-overview", label: "Overview", icon: LayoutDashboard, href: `/dashboard/company/${companyMembership.company_id}`, show: true },
-              { id: "company-analytics", label: "Analytics", icon: BarChart3, href: `/dashboard/company/${companyMembership.company_id}#analytics`, show: true },
-              { id: "company-leads", label: "Leads", icon: Target, href: `/dashboard/company/${companyMembership.company_id}#leads`, show: true },
-              { id: "company-team", label: "Team", icon: Users, href: `/dashboard/company/${companyMembership.company_id}#team`, show: true },
-            ]
-              .filter((item) => item.show)
-              .map((item) => {
+              { id: "company-overview", label: "Overview", icon: LayoutDashboard, section: "overview" },
+              { id: "company-analytics", label: "Analytics", icon: BarChart3, section: "analytics" },
+              { id: "company-leads", label: "Leads", icon: Target, section: "leads" },
+              { id: "company-team", label: "Team", icon: Users, section: "team" },
+            ].map((item) => {
                 const Icon = item.icon;
-                const active = pathname === item.href || pathname.startsWith(item.href.split("#")[0]);
+                const companyPath = `/dashboard/company/${companyMembership.company_id}`;
+                const isOnCompanyDashboard = pathname === companyPath || pathname.startsWith(companyPath);
                 return (
-                  <Link
+                  <button
                     key={item.id}
-                    href={item.href}
+                    onClick={() => {
+                      if (!isOnCompanyDashboard) {
+                        router.push(companyPath);
+                      }
+                      // Scroll to section
+                      setTimeout(() => {
+                        document.getElementById(item.section)?.scrollIntoView({ behavior: "smooth" });
+                      }, isOnCompanyDashboard ? 0 : 300);
+                    }}
                     className={cn(
-                      "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                      "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body w-full text-left",
                       "transition-all duration-150 ease-out",
-                      active
-                        ? "bg-primary/5 text-primary font-medium"
+                      isOnCompanyDashboard
+                        ? "text-muted-foreground hover:bg-secondary hover:text-foreground"
                         : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )}
                   >
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
                     {item.label}
-                  </Link>
+                  </button>
                 );
               })}
 
@@ -267,6 +274,10 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
             <div className="pt-4 mt-4 border-t border-border">
               <button
                 onClick={() => {
+                  if (!profile.onboarding_completed) {
+                    router.push("/onboarding");
+                    return;
+                  }
                   setMode("participant");
                   router.push(basePath);
                 }}

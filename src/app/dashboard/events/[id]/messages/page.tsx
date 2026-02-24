@@ -61,58 +61,51 @@ export default function EventMessagesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Ref to track if ?to= has been handled (prevents double-firing)
+  const toHandledRef = useRef(false);
+
   useEffect(() => {
+    toHandledRef.current = false; // reset when param changes
     loadConversations();
-  }, [eventId]);
+  }, [eventId, toParticipantId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handle ?to= param — only after conversations have fully loaded
-  useEffect(() => {
-    if (!toParticipantId || !myParticipantId || loading) return;
+  async function openOrCreateConversation(
+    participantId: string,
+    myPid: string,
+    loadedConversations: Conversation[]
+  ) {
+    const supabase = createClient();
 
-    const existing = conversations.find(
-      (c) => c.other_person.participant_id === toParticipantId
+    // First check loaded conversations in memory
+    const existing = loadedConversations.find(
+      (c) => c.other_person.participant_id === participantId
     );
-
     if (existing) {
       setSelectedConvo(existing.id);
       loadMessages(existing.id);
-    } else {
-      createConversationWith(toParticipantId);
+      return;
     }
-  }, [toParticipantId, myParticipantId, loading]);
 
-  async function createConversationWith(participantId: string) {
-    if (!myParticipantId) return;
-    const supabase = createClient();
-
-    const { data: targetParticipant } = await supabase
-      .from("participants")
-      .select("id, profiles!inner(full_name, avatar_url, title, company_name)")
-      .eq("id", participantId)
-      .single();
-
-    if (!targetParticipant) return;
-
-    // Check if conversation already exists (might have been created from the other side)
+    // Query DB directly for existing conversation (either direction)
     const { data: existingA } = await supabase
       .from("conversations")
       .select("id")
       .eq("event_id", eventId)
-      .eq("participant_a_id", myParticipantId)
+      .eq("participant_a_id", myPid)
       .eq("participant_b_id", participantId)
-      .single();
+      .maybeSingle();
 
     const { data: existingB } = await supabase
       .from("conversations")
       .select("id")
       .eq("event_id", eventId)
       .eq("participant_a_id", participantId)
-      .eq("participant_b_id", myParticipantId)
-      .single();
+      .eq("participant_b_id", myPid)
+      .maybeSingle();
 
     const existingConvoId = existingA?.id || existingB?.id;
 
@@ -122,35 +115,51 @@ export default function EventMessagesPage() {
       return;
     }
 
-    const { data: newConvo } = await supabase
+    // Fetch target participant info for the conversation UI
+    const { data: targetParticipant, error: targetError } = await supabase
+      .from("participants")
+      .select("id, profiles!inner(full_name, avatar_url, title, company_name)")
+      .eq("id", participantId)
+      .single();
+
+    if (!targetParticipant || targetError) {
+      console.error("Could not find target participant:", targetError);
+      return;
+    }
+
+    // Create new conversation
+    const { data: newConvo, error: insertError } = await supabase
       .from("conversations")
       .insert({
         event_id: eventId,
-        participant_a_id: myParticipantId,
+        participant_a_id: myPid,
         participant_b_id: participantId,
       })
       .select("id")
       .single();
 
-    if (newConvo) {
-      const profile = (targetParticipant as any).profiles;
-      const newConversation: Conversation = {
-        id: newConvo.id,
-        event_id: eventId,
-        last_message_at: null,
-        unread_count: 0,
-        other_person: {
-          participant_id: participantId,
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url,
-          title: profile.title,
-          company_name: profile.company_name,
-        },
-      };
-      setConversations((prev) => [newConversation, ...prev]);
-      setSelectedConvo(newConvo.id);
-      setMessages([]);
+    if (insertError || !newConvo) {
+      console.error("Failed to create conversation:", insertError);
+      return;
     }
+
+    const profile = (targetParticipant as any).profiles;
+    const newConversation: Conversation = {
+      id: newConvo.id,
+      event_id: eventId,
+      last_message_at: null,
+      unread_count: 0,
+      other_person: {
+        participant_id: participantId,
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
+        title: profile.title,
+        company_name: profile.company_name,
+      },
+    };
+    setConversations((prev) => [newConversation, ...prev]);
+    setSelectedConvo(newConvo.id);
+    setMessages([]);
   }
 
   async function loadConversations() {
@@ -240,6 +249,12 @@ export default function EventMessagesPage() {
 
     setConversations(withUnread);
     setLoading(false);
+
+    // Handle ?to= param right here, after everything is loaded
+    if (toParticipantId && !toHandledRef.current) {
+      toHandledRef.current = true;
+      await openOrCreateConversation(toParticipantId, myParticipant.id, withUnread);
+    }
   }
 
   async function markAsRead(convoId: string) {

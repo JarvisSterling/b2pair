@@ -48,6 +48,7 @@ export default function PartnersPage() {
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [tiers, setTiers] = useState<SponsorTier[]>([]);
+  const [eventSlug, setEventSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>("sponsors");
   const [saving, setSaving] = useState(false);
@@ -74,10 +75,9 @@ export default function PartnersPage() {
   const exhibitors = companies.filter((c) => c.capabilities.includes("exhibitor"));
 
   const loadData = useCallback(async () => {
-    const [companiesRes, tiersRes, eventRes] = await Promise.all([
+    const [companiesRes, tiersRes] = await Promise.all([
       fetch(`/api/events/${eventId}/companies`),
       fetch(`/api/events/${eventId}/sponsor-tiers`),
-      fetch(`/api/events/${eventId}/companies?_event_settings=1`),
     ]);
 
     const companiesData = await companiesRes.json();
@@ -88,16 +88,15 @@ export default function PartnersPage() {
     setLoading(false);
   }, [eventId]);
 
-  // Load event settings separately
+  // Load event slug for invite links
   useEffect(() => {
-    async function loadSettings() {
-      const res = await fetch(`/api/events/${eventId}/companies`);
-      if (res.ok) {
-        // Settings are loaded from the event itself, not this endpoint
-        // We'll use a lightweight approach
-      }
+    async function loadEventSlug() {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data } = await supabase.from("events").select("slug").eq("id", eventId).single();
+      if (data) setEventSlug(data.slug);
     }
-    loadSettings();
+    loadEventSlug();
   }, [eventId]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -187,7 +186,8 @@ export default function PartnersPage() {
   }
 
   function copyInviteLink(inviteCode: string, companyId: string) {
-    const url = `${window.location.origin}/events/${eventId}/partners/onboard/${inviteCode}`;
+    const slug = eventSlug || eventId;
+    const url = `${window.location.origin}/events/${slug}/partners/onboard/${inviteCode}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(companyId);
     setTimeout(() => setCopiedLink(null), 2000);
@@ -705,16 +705,12 @@ function CompanyList({
                     <Globe className="mr-1 h-3 w-3" /> Publish
                   </Button>
                 )}
-                {company.status === "invited" && (
+                {company.status === "invited" && (company as any).invite_code && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="text-xs h-8"
-                    onClick={() => {
-                      // We need the invite code from company_members
-                      // For now, show copy feedback
-                      // TODO: fetch invite code
-                    }}
+                    onClick={() => copyInviteLink((company as any).invite_code, company.id)}
                   >
                     <Link2 className="mr-1 h-3 w-3" />
                     {copiedLink === company.id ? "Copied!" : "Copy Invite"}

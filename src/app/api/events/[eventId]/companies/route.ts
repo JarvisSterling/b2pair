@@ -29,7 +29,7 @@ export async function GET(
       *,
       sponsor_profiles(*),
       exhibitor_profiles(*),
-      company_members(id)
+      company_members(id, email, role, invite_code, invite_status)
     `)
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
@@ -40,12 +40,17 @@ export async function GET(
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Add member count
-  const companies = (data || []).map((c: Record<string, unknown>) => ({
-    ...c,
-    members_count: Array.isArray(c.company_members) ? c.company_members.length : 0,
-    company_members: undefined,
-  }));
+  // Add member count and extract admin invite code
+  const companies = (data || []).map((c: Record<string, unknown>) => {
+    const members = Array.isArray(c.company_members) ? c.company_members : [];
+    const adminMember = members.find((m: any) => m.role === "admin" && m.invite_status === "pending");
+    return {
+      ...c,
+      members_count: members.length,
+      invite_code: (adminMember as any)?.invite_code || null,
+      company_members: undefined,
+    };
+  });
 
   return NextResponse.json({ companies });
 }

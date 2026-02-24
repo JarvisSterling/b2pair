@@ -97,28 +97,12 @@ export default function OnboardWizardPage() {
   // Team invites
   const [teamInvites, setTeamInvites] = useState<{ email: string; name: string; role: string }[]>([]);
 
-  // Resolve event ID from slug
+  // Event ID resolved from invite data
   const [eventId, setEventId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function resolveEvent() {
-      const supabase = createClient();
-      const { data: event } = await supabase
-        .from("events")
-        .select("id")
-        .eq("slug", slug)
-        .single();
-      if (event) setEventId(event.id);
-      else setError("Event not found");
-      setLoading(false);
-    }
-    resolveEvent();
-  }, [slug]);
-
   const loadInvite = useCallback(async () => {
-    if (!eventId) return;
     try {
-      const res = await fetch(`/api/events/${eventId}/partners/onboard/${code}`);
+      const res = await fetch(`/api/partners/onboard/${code}`);
       const json = await res.json();
       if (!res.ok) {
         if (json.alreadyAccepted) {
@@ -129,6 +113,7 @@ export default function OnboardWizardPage() {
         return;
       }
       setData(json);
+      if (json.event?.id) setEventId(json.event.id);
       setAuthForm((f) => ({ ...f, email: json.member.email, full_name: json.member.name || "" }));
 
       // Pre-fill form from existing data
@@ -159,11 +144,12 @@ export default function OnboardWizardPage() {
     } catch {
       setError("Failed to load invite");
     }
-  }, [eventId, code]);
+    setLoading(false);
+  }, [code]);
 
   useEffect(() => {
-    if (eventId) loadInvite();
-  }, [eventId, loadInvite]);
+    loadInvite();
+  }, [loadInvite]);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -202,19 +188,16 @@ export default function OnboardWizardPage() {
     }
 
     // Accept invite and start onboarding
-    if (eventId) {
-      await fetch(`/api/events/${eventId}/partners/onboard/${code}`, { method: "POST" });
-    }
+    await fetch(`/api/partners/onboard/${code}`, { method: "POST" });
 
     setStep("brand");
     setAuthLoading(false);
   }
 
   async function saveProgress() {
-    if (!eventId) return;
     setSaving(true);
 
-    await fetch(`/api/events/${eventId}/partners/onboard/${code}`, {
+    await fetch(`/api/partners/onboard/${code}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -247,7 +230,6 @@ export default function OnboardWizardPage() {
   }
 
   async function handleSubmit() {
-    if (!eventId) return;
     setSaving(true);
     setSubmitError(null);
     setMissingFields([]);
@@ -256,7 +238,7 @@ export default function OnboardWizardPage() {
     await saveProgress();
 
     // Then submit
-    const res = await fetch(`/api/events/${eventId}/partners/onboard/${code}/submit`, {
+    const res = await fetch(`/api/partners/onboard/${code}/submit`, {
       method: "POST",
     });
     const json = await res.json();

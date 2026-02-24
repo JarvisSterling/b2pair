@@ -30,16 +30,23 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
   const workspaceMatch = pathname.match(/\/dashboard\/w\/([^/]+)/);
   const eventMatch = pathname.match(/\/dashboard\/w\/([^/]+)\/events\/([^/]+)/);
   const participantEventMatch = pathname.match(/\/dashboard\/events\/([^/]+)/);
+  const companyDashboardMatch = pathname.match(/\/dashboard\/company\/([^/]+)/);
   const isNewWorkspace = pathname === "/dashboard/w/new";
   const isEventView = eventMatch && eventMatch[2] !== "new";
   const isWorkspaceRoot = workspaceMatch && !isEventView && !pathname.endsWith("/events/new");
   const isNewEvent = pathname.endsWith("/events/new") && workspaceMatch;
   const isParticipantHome = pathname === "/dashboard/home";
   const isParticipantInEvent = !isOrganizer && participantEventMatch && participantEventMatch[1] !== "new";
+  const isCompanyDashboard = !!companyDashboardMatch;
 
   const currentWorkspaceId = workspaceMatch?.[1];
   const currentEventId = eventMatch?.[2];
   const participantEventId = participantEventMatch?.[1];
+
+  // Company dashboard: rendered by its own layout, just pass children through
+  if (isCompanyDashboard) {
+    return <>{children}</>;
+  }
 
   // No sidebar for workspace creation
   if (isNewWorkspace) {

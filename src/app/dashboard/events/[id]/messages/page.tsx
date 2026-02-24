@@ -122,12 +122,17 @@ export default function EventMessagesPage() {
       return;
     }
 
+    // DB has CHECK (participant_a_id < participant_b_id) for canonical ordering
+    const [pA, pB] = myParticipantId < participantId
+      ? [myParticipantId, participantId]
+      : [participantId, myParticipantId];
+
     const { data: newConvo } = await supabase
       .from("conversations")
       .insert({
         event_id: eventId,
-        participant_a_id: myParticipantId,
-        participant_b_id: participantId,
+        participant_a_id: pA,
+        participant_b_id: pB,
       })
       .select("id")
       .single();

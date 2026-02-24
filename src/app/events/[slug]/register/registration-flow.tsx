@@ -73,6 +73,9 @@ export function RegistrationFlow({
   const [selectedType, setSelectedType] = useState<string>("");
   const [title, setTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [selectedIntents, setSelectedIntents] = useState<string[]>([]);
+  const [lookingFor, setLookingFor] = useState("");
+  const [offering, setOffering] = useState("");
 
   const dateRange = `${formatDate(event.start_date)} – ${formatDate(event.end_date)}`;
 
@@ -212,17 +215,20 @@ export function RegistrationFlow({
           company_name: companyName.trim() || undefined,
         }).eq("id", user.id);
 
-        // Update participant type
-        if (selectedType) {
-          const res = await fetch("/api/events/update-participant-type", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              eventId: event.id,
-              participantTypeId: selectedType,
-            }),
-          });
-        }
+        // Update participant: type + intents + looking_for + offering
+        await fetch("/api/events/update-participant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId: event.id,
+            participantTypeId: selectedType || null,
+            title: title.trim(),
+            companyName: companyName.trim(),
+            intents: selectedIntents,
+            lookingFor: lookingFor.trim(),
+            offering: offering.trim(),
+          }),
+        });
       }
 
       router.push(`/events/${event.slug}/registered`);
@@ -492,6 +498,78 @@ export function RegistrationFlow({
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="e.g. Acme Inc."
+                  />
+                </div>
+
+                {/* Intent multi-select */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    What are you looking to do at this event?
+                  </label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select all that apply. This helps us find better matches for you.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: "buying", label: "Buy / Source", emoji: "🛒", desc: "Find products or services" },
+                      { key: "selling", label: "Sell / Promote", emoji: "💼", desc: "Showcase your offerings" },
+                      { key: "investing", label: "Invest", emoji: "📈", desc: "Discover opportunities" },
+                      { key: "partnering", label: "Partner", emoji: "🤝", desc: "Find strategic partners" },
+                      { key: "learning", label: "Learn", emoji: "🎓", desc: "Gain knowledge & insights" },
+                      { key: "networking", label: "Network", emoji: "🌐", desc: "Expand your connections" },
+                    ].map((intent) => {
+                      const selected = selectedIntents.includes(intent.key);
+                      return (
+                        <button
+                          key={intent.key}
+                          type="button"
+                          onClick={() => {
+                            setSelectedIntents((prev) =>
+                              selected
+                                ? prev.filter((i) => i !== intent.key)
+                                : prev.length < 3
+                                ? [...prev, intent.key]
+                                : prev
+                            );
+                          }}
+                          className={cn(
+                            "rounded-lg border p-3 text-left transition-all",
+                            selected
+                              ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                              : "border-border hover:border-primary/30",
+                            !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{intent.emoji}</span>
+                            <span className="font-medium text-sm">{intent.label}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 ml-7">{intent.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedIntents.length >= 3 && (
+                    <p className="text-xs text-muted-foreground mt-2">Maximum 3 selections.</p>
+                  )}
+                </div>
+
+                {/* Looking for / Offering */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">What are you looking for?</label>
+                  <Input
+                    value={lookingFor}
+                    onChange={(e) => setLookingFor(e.target.value)}
+                    placeholder="e.g. Packaging suppliers in Europe, AI solutions for HR..."
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">What do you offer?</label>
+                  <Input
+                    value={offering}
+                    onChange={(e) => setOffering(e.target.value)}
+                    placeholder="e.g. Cloud-based logistics platform, B2B consulting..."
                   />
                 </div>
 

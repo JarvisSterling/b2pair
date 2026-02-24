@@ -44,7 +44,23 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
     .eq("user_id", user.id)
     .single();
 
-  if (!myParticipant) notFound();
+  if (!myParticipant) {
+    // Check if user has a company membership for this event (sponsor/exhibitor)
+    // If so, redirect to participant onboarding instead of 404
+    const { data: companyMember } = await supabase
+      .from("company_members")
+      .select("company_id, companies!inner(event_id)")
+      .eq("user_id", user.id)
+      .eq("invite_status", "accepted")
+      .single();
+
+    if (companyMember && (companyMember as any).companies?.event_id === id) {
+      const { redirect } = await import("next/navigation");
+      redirect("/onboarding/participant");
+    }
+
+    notFound();
+  }
 
   // Get my participant type name and permissions
   let typeName: string | null = null;

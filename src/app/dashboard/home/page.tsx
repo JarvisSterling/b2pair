@@ -35,7 +35,30 @@ export default async function ParticipantHome() {
     participantStatus: p.status,
     participantRole: p.role,
     joinedAt: p.created_at,
+    source: "participant" as const,
   }));
+
+  // Also get events where user is a company member (sponsor/exhibitor)
+  const { data: companyMemberships } = await supabase
+    .from("company_members")
+    .select(
+      `company_id, role, created_at,
+       companies!inner(id, name, event_id, status, events!inner(id, name, slug, description, start_date, end_date, status, city, country, format, venue_name, page_hero_url))`
+    )
+    .eq("user_id", user!.id)
+    .eq("invite_status", "accepted");
+
+  const companyEvents = (companyMemberships || [])
+    .map((m: any) => ({
+      ...m.companies.events,
+      companyId: m.companies.id,
+      companyName: m.companies.name,
+      companyStatus: m.companies.status,
+      companyRole: m.role,
+      joinedAt: m.created_at,
+      source: "company" as const,
+    }))
+    .filter((ce: any) => !events.some((e: any) => e.id === ce.id)); // avoid duplicates
 
   // Get per-event stats for the latest event
   const latestEvent = events[0];
@@ -87,7 +110,7 @@ export default async function ParticipantHome() {
         </p>
       </div>
 
-      {events.length === 0 ? (
+      {events.length === 0 && companyEvents.length === 0 ? (
         <Card>
           <CardContent className="py-20 text-center">
             <CalendarDays className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" />
@@ -221,6 +244,55 @@ export default async function ParticipantHome() {
                                 className="shrink-0"
                               >
                                 {event.participantStatus}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-caption text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <CalendarDays className="h-3 w-3" />
+                                {dateFormatter.format(new Date(event.start_date))}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {event.format === "virtual"
+                                  ? "Virtual"
+                                  : [event.city, event.country]
+                                      .filter(Boolean)
+                                      .join(", ") || "TBD"}
+                              </span>
+                            </div>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Company events (sponsor/exhibitor) */}
+          {companyEvents.length > 0 && (
+            <>
+              <div className="flex items-center justify-between mb-4 mt-8">
+                <h2 className="text-h3 font-semibold">Your Company Events</h2>
+              </div>
+              <div className="space-y-3">
+                {companyEvents.map((event: any) => (
+                  <Link key={event.id} href={`/dashboard/company/${event.companyId}`}>
+                    <Card className="group cursor-pointer hover:shadow-md hover:border-border-strong transition-all duration-150">
+                      <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-body font-semibold truncate group-hover:text-primary transition-colors">
+                                {event.name}
+                              </h3>
+                              <Badge variant="outline" className="shrink-0 capitalize">
+                                {event.companyStatus}
+                              </Badge>
+                              <Badge variant="secondary" className="shrink-0 text-[10px]">
+                                {event.companyName}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-3 text-caption text-muted-foreground">

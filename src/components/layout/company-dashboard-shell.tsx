@@ -9,6 +9,7 @@ interface Profile {
   avatar_url: string | null;
   title: string | null;
   platform_role: string | null;
+  onboarding_completed?: boolean;
 }
 
 interface Props {

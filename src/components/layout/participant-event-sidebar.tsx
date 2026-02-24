@@ -36,6 +36,7 @@ interface Props {
     email: string;
     avatar_url: string | null;
     platform_role: string | null;
+    onboarding_completed?: boolean;
   };
 }
 
@@ -133,6 +134,10 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           <div className="flex items-center rounded-lg bg-muted/50 p-1">
             <button
               onClick={() => {
+                if (!profile.onboarding_completed) {
+                  router.push("/onboarding");
+                  return;
+                }
                 setMode("participant");
                 router.push(basePath);
               }}

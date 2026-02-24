@@ -18,7 +18,19 @@ export default async function DashboardLayout({
     .eq("id", user.id)
     .single();
 
-  if (!profile?.onboarding_completed) redirect("/onboarding");
+  if (!profile?.onboarding_completed) {
+    // Check if user has any company memberships — if so, they came through
+    // sponsor/exhibitor onboarding and should skip platform onboarding for now
+    const { data: companyMemberships } = await supabase
+      .from("company_members")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("invite_status", "accepted")
+      .limit(1);
+
+    const hasCompanyAccess = companyMemberships && companyMemberships.length > 0;
+    if (!hasCompanyAccess) redirect("/onboarding");
+  }
 
   // Get workspaces for organizers
   let workspaces: { id: string; name: string }[] = [];

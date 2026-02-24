@@ -859,7 +859,7 @@ export default function OnboardWizardPage() {
               <a href={`/events/${slug}`}>
                 <Button className="w-full">View Event Page</Button>
               </a>
-              <a href="/dashboard">
+              <a href={`/dashboard/company/${data?.company.id}`}>
                 <Button variant="outline" className="w-full">Go to Dashboard</Button>
               </a>
             </div>

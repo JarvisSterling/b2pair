@@ -69,7 +69,7 @@ export default function PartnersPage() {
   const [sponsorsEnabled, setSponsorsEnabled] = useState(false);
   const [exhibitorsEnabled, setExhibitorsEnabled] = useState(false);
 
-  const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", tier_id: "" });
+  const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", tier_id: "", team_limit: "" });
   const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", booth_type: "", booth_number: "" });
   const [tierForm, setTierForm] = useState({ name: "", color: "#6366f1", rank: 1, seat_limit: 5, perks: {} as Record<string, boolean | number> });
 
@@ -114,11 +114,12 @@ export default function PartnersPage() {
         contact_email: sponsorForm.contact_email,
         capabilities: ["sponsor"],
         tier_id: sponsorForm.tier_id || undefined,
+        team_limit: sponsorForm.team_limit ? parseInt(sponsorForm.team_limit) : undefined,
       }),
     });
     if (res.ok) {
       await loadData();
-      setSponsorForm({ name: "", contact_email: "", tier_id: "" });
+      setSponsorForm({ name: "", contact_email: "", tier_id: "", team_limit: "" });
       setShowAddSponsor(false);
     }
     setSaving(false);
@@ -289,8 +290,19 @@ export default function PartnersPage() {
                       className="flex h-10 w-full rounded bg-input px-3 text-body border border-border focus-visible:outline-none focus-visible:border-primary/50"
                     >
                       <option value="">Select tier...</option>
-                      {tiers.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                      {tiers.map((t) => (<option key={t.id} value={t.id}>{t.name} ({t.seat_limit} seats)</option>))}
                     </select>
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium mb-1.5 block">Team member limit</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={sponsorForm.team_limit}
+                      onChange={(e) => setSponsorForm((f) => ({ ...f, team_limit: e.target.value }))}
+                      placeholder={sponsorForm.tier_id ? `Tier default: ${tiers.find((t) => t.id === sponsorForm.tier_id)?.seat_limit || 5}` : "Default: 5"}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Leave empty to use tier default</p>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-5">

@@ -236,37 +236,32 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           /* Company navigation */
           <>
             {companyMembership && [
-              { id: "company-overview", label: "Overview", icon: LayoutDashboard, section: "overview" },
-              { id: "company-analytics", label: "Analytics", icon: BarChart3, section: "analytics" },
-              { id: "company-leads", label: "Leads", icon: Target, section: "leads" },
-              { id: "company-team", label: "Team", icon: Users, section: "team" },
+              { id: "company-overview", label: "Overview", icon: LayoutDashboard, path: "" },
+              { id: "company-analytics", label: "Analytics", icon: BarChart3, path: "/analytics" },
+              { id: "company-leads", label: "Leads", icon: Target, path: "/leads" },
+              { id: "company-team", label: "Team", icon: Users, path: "/team" },
             ].map((item) => {
                 const Icon = item.icon;
-                const companyPath = `/dashboard/company/${companyMembership.company_id}`;
-                const isOnCompanyDashboard = pathname === companyPath || pathname.startsWith(companyPath);
+                const companyBase = `/dashboard/company/${companyMembership.company_id}`;
+                const href = companyBase + item.path;
+                const active = item.path === ""
+                  ? pathname === companyBase
+                  : pathname.startsWith(href);
                 return (
-                  <button
+                  <Link
                     key={item.id}
-                    onClick={() => {
-                      if (!isOnCompanyDashboard) {
-                        router.push(companyPath);
-                      }
-                      // Scroll to section
-                      setTimeout(() => {
-                        document.getElementById(item.section)?.scrollIntoView({ behavior: "smooth" });
-                      }, isOnCompanyDashboard ? 0 : 300);
-                    }}
+                    href={href}
                     className={cn(
-                      "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body w-full text-left",
+                      "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
                       "transition-all duration-150 ease-out",
-                      isOnCompanyDashboard
-                        ? "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      active
+                        ? "bg-primary/5 text-primary font-medium"
                         : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )}
                   >
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
                     {item.label}
-                  </button>
+                  </Link>
                 );
               })}
 

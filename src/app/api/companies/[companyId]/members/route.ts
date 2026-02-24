@@ -1,12 +1,40 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-import { canAccessCompany } from "@/lib/sponsors-helpers";
 
 type Params = { params: Promise<{ companyId: string }> };
 
+async function getSeatLimit(admin: any, companyId: string): Promise<number> {
+  // Check company-level override first
+  const { data: company } = await admin
+    .from("companies")
+    .select("team_limit")
+    .eq("id", companyId)
+    .single();
+
+  if (company?.team_limit) return company.team_limit;
+
+  // Fall back to tier seat_limit
+  const { data: sp } = await admin
+    .from("sponsor_profiles")
+    .select("tier_id")
+    .eq("company_id", companyId)
+    .single();
+
+  if (sp?.tier_id) {
+    const { data: tier } = await admin
+      .from("sponsor_tiers")
+      .select("seat_limit")
+      .eq("id", sp.tier_id)
+      .single();
+    if (tier?.seat_limit) return tier.seat_limit;
+  }
+
+  return 5; // default
+}
+
 /**
  * GET /api/companies/[companyId]/members
- * List company members
  */
 export async function GET(request: Request, { params }: Params) {
   const { companyId } = await params;
@@ -14,23 +42,35 @@ export async function GET(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const canAccess = await canAccessCompany(supabase, companyId, user.id, "view_leads");
-  if (!canAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = createAdminClient();
 
-  const { data, error } = await supabase
+  // Verify membership
+  const { data: membership } = await admin
+    .from("company_members")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("user_id", user.id)
+    .eq("invite_status", "accepted")
+    .single();
+
+  if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { data: members, error } = await admin
     .from("company_members")
     .select("*")
     .eq("company_id", companyId)
     .order("created_at");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ members: data });
+
+  const seatLimit = await getSeatLimit(admin, companyId);
+
+  return NextResponse.json({ members: members || [], seat_limit: seatLimit });
 }
 
 /**
  * POST /api/companies/[companyId]/members
  * Invite a new team member
- * Body: { email, name, role }
  */
 export async function POST(request: Request, { params }: Params) {
   const { companyId } = await params;
@@ -38,8 +78,20 @@ export async function POST(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const canAccess = await canAccessCompany(supabase, companyId, user.id, "invite_members");
-  if (!canAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = createAdminClient();
+
+  // Verify admin/manager role
+  const { data: membership } = await admin
+    .from("company_members")
+    .select("role")
+    .eq("company_id", companyId)
+    .eq("user_id", user.id)
+    .eq("invite_status", "accepted")
+    .single();
+
+  if (!membership || !["admin", "manager"].includes(membership.role)) {
+    return NextResponse.json({ error: "Only admins and managers can invite members" }, { status: 403 });
+  }
 
   const body = await request.json();
   const { email, name, role } = body;
@@ -49,47 +101,32 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   // Check seat limit
-  const { data: company } = await supabase
-    .from("companies")
-    .select("capabilities, sponsor_profiles(tier_id)")
-    .eq("id", companyId)
-    .single();
+  const seatLimit = await getSeatLimit(admin, companyId);
 
-  const { count: currentMembers } = await supabase
+  const { count: currentMembers } = await admin
     .from("company_members")
     .select("id", { count: "exact", head: true })
     .eq("company_id", companyId);
 
-  // Get seat limit from tier or default to 10
-  let seatLimit = 10;
-  if (company?.sponsor_profiles) {
-    const sp = Array.isArray(company.sponsor_profiles)
-      ? company.sponsor_profiles[0]
-      : company.sponsor_profiles;
-    if (sp?.tier_id) {
-      const { data: tier } = await supabase
-        .from("sponsor_tiers")
-        .select("seat_limit")
-        .eq("id", sp.tier_id as string)
-        .single();
-      if (tier?.seat_limit) seatLimit = tier.seat_limit;
-    }
-  }
-
   if ((currentMembers || 0) >= seatLimit) {
     return NextResponse.json(
-      { error: `Seat limit reached (${seatLimit}). Upgrade your package for more seats.` },
+      { error: `Seat limit reached (${seatLimit}). Contact the event organizer to increase your limit.` },
       { status: 400 }
     );
   }
 
-  const { data: member, error } = await supabase
+  // Generate invite code
+  const inviteCode = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+
+  const { data: member, error } = await admin
     .from("company_members")
     .insert({
       company_id: companyId,
       email,
       name: name || null,
       role,
+      invite_code: inviteCode,
+      invite_status: "pending",
     })
     .select()
     .single();
@@ -106,7 +143,7 @@ export async function POST(request: Request, { params }: Params) {
 
 /**
  * PATCH /api/companies/[companyId]/members
- * Update member role. Body: { id, role }
+ * Update member role
  */
 export async function PATCH(request: Request, { params }: Params) {
   const { companyId } = await params;
@@ -114,15 +151,26 @@ export async function PATCH(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const canAccess = await canAccessCompany(supabase, companyId, user.id, "invite_members");
-  if (!canAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = createAdminClient();
+
+  const { data: membership } = await admin
+    .from("company_members")
+    .select("role")
+    .eq("company_id", companyId)
+    .eq("user_id", user.id)
+    .eq("invite_status", "accepted")
+    .single();
+
+  if (!membership || !["admin", "manager"].includes(membership.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await request.json();
   const { id, role } = body;
 
   if (!id || !role) return NextResponse.json({ error: "id and role required" }, { status: 400 });
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("company_members")
     .update({ role })
     .eq("id", id)
@@ -134,7 +182,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
 /**
  * DELETE /api/companies/[companyId]/members
- * Remove a member. Query: ?id=xxx
+ * Remove a member
  */
 export async function DELETE(request: Request, { params }: Params) {
   const { companyId } = await params;
@@ -142,22 +190,33 @@ export async function DELETE(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const canAccess = await canAccessCompany(supabase, companyId, user.id, "invite_members");
-  if (!canAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = createAdminClient();
+
+  const { data: membership } = await admin
+    .from("company_members")
+    .select("role")
+    .eq("company_id", companyId)
+    .eq("user_id", user.id)
+    .eq("invite_status", "accepted")
+    .single();
+
+  if (!membership || !["admin", "manager"].includes(membership.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
   // Don't allow removing the last admin
-  const { data: member } = await supabase
+  const { data: targetMember } = await admin
     .from("company_members")
     .select("role")
     .eq("id", id)
     .single();
 
-  if (member?.role === "admin") {
-    const { count } = await supabase
+  if (targetMember?.role === "admin") {
+    const { count } = await admin
       .from("company_members")
       .select("id", { count: "exact", head: true })
       .eq("company_id", companyId)
@@ -167,7 +226,7 @@ export async function DELETE(request: Request, { params }: Params) {
     }
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("company_members")
     .delete()
     .eq("id", id)

@@ -1,185 +1,133 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useEventId } from "@/hooks/use-event-id";
+import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Building2,
   Globe,
   Loader2,
-  FileText,
-  Download,
   ExternalLink,
-  ShoppingBag,
-  Crown,
+  Search,
+  ArrowLeft,
+  MapPin,
+  Tag,
 } from "lucide-react";
 
-interface Tier {
+interface Exhibitor {
   id: string;
   name: string;
-  color: string;
-}
-
-interface Sponsor {
-  id: string;
-  tier_id: string | null;
-  company_name: string;
-  logo_url: string | null;
-}
-
-interface Booth {
-  id: string;
-  sponsor_id: string | null;
-  company_name: string;
-  tagline: string | null;
-  description: string | null;
+  slug: string;
+  website: string | null;
+  industry: string | null;
+  description_short: string | null;
+  description_long: string | null;
   logo_url: string | null;
   banner_url: string | null;
-  website_url: string | null;
-  cta_label: string | null;
-  cta_url: string | null;
-  is_published: boolean;
-  booth_products: {
-    id: string;
-    name: string;
-    description: string | null;
-    image_url: string | null;
-    price: string | null;
-    category: string | null;
-  }[];
-  booth_documents: {
-    id: string;
-    name: string;
-    file_url: string;
-    file_type: string | null;
-    file_size: number | null;
-  }[];
+  exhibitor_profiles: {
+    booth_number: string | null;
+    booth_type: string | null;
+    product_categories: string[];
+    products: { name: string; description: string | null; image_url: string | null; price_info: string | null }[];
+    resources: { name: string; url: string; type: string }[];
+  } | null;
 }
 
-export default function ExhibitorsPage() {
-  const eventId = useEventId();
-  const [tiers, setTiers] = useState<Tier[]>([]);
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [booths, setBooths] = useState<Booth[]>([]);
+export default function ParticipantExhibitorsPage() {
+  const params = useParams();
+  const eventId = params.id as string;
+
+  const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [selected, setSelected] = useState<Exhibitor | null>(null);
 
   const loadData = useCallback(async () => {
-    const res = await fetch(`/api/sponsors?eventId=${eventId}`);
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.set("search", search);
+    if (category) queryParams.set("category", category);
+    const res = await fetch(`/api/events/${eventId}/exhibitors?${queryParams}`);
     const data = await res.json();
-    setTiers(data.tiers || []);
-    setSponsors(data.sponsors || []);
-    setBooths((data.booths || []).filter((b: Booth) => b.is_published));
+    setExhibitors(data.exhibitors || []);
+    setCategories(data.categories || []);
     setLoading(false);
-  }, [eventId]);
+  }, [eventId, search, category]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  async function logVisit(boothId: string) {
-    await fetch("/api/sponsors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "visit", booth_id: boothId }),
-    });
-  }
-
-  function openBooth(booth: Booth) {
-    setSelectedBooth(booth);
-    logVisit(booth.id);
-  }
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  // Show booth detail
-  if (selectedBooth) {
-    const sponsor = sponsors.find((s) => s.id === selectedBooth.sponsor_id);
-    const tier = sponsor ? tiers.find((t) => t.id === sponsor.tier_id) : null;
-
+  // Detail view
+  if (selected) {
+    const ep = Array.isArray(selected.exhibitor_profiles) ? (selected.exhibitor_profiles as any)[0] : selected.exhibitor_profiles;
     return (
       <div className="mx-auto max-w-4xl animate-fade-in">
-        <button
-          onClick={() => setSelectedBooth(null)}
-          className="text-caption text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1"
-        >
-          ← Back to exhibitors
+        <button onClick={() => setSelected(null)} className="text-caption text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to exhibitors
         </button>
 
-        {selectedBooth.banner_url && (
+        {selected.banner_url && (
           <div className="rounded-xl overflow-hidden mb-6 h-48">
-            <img src={selectedBooth.banner_url} alt="" className="w-full h-full object-cover" />
+            <img src={selected.banner_url} alt="" className="w-full h-full object-cover" />
           </div>
         )}
 
         <div className="flex items-start gap-4 mb-6">
-          {selectedBooth.logo_url ? (
-            <img src={selectedBooth.logo_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+          {selected.logo_url ? (
+            <img src={selected.logo_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0 border" />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10 text-primary text-h2 font-bold shrink-0">
-              {selectedBooth.company_name[0]}
+              {selected.name[0]}
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-h1 font-semibold">{selectedBooth.company_name}</h1>
-              {tier && (
-                <Badge variant="outline" style={{ borderColor: tier.color, color: tier.color }}>
-                  <Crown className="mr-1 h-3 w-3" />
-                  {tier.name}
-                </Badge>
-              )}
-            </div>
-            {selectedBooth.tagline && (
-              <p className="text-body text-muted-foreground mt-1">{selectedBooth.tagline}</p>
+          <div className="flex-1">
+            <h1 className="text-h1 font-semibold">{selected.name}</h1>
+            {selected.description_short && (
+              <p className="text-body text-muted-foreground mt-1">{selected.description_short}</p>
             )}
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
+              {selected.industry && <Badge variant="outline" className="text-[10px]">{selected.industry}</Badge>}
+              {ep?.booth_number && (
+                <span className="text-caption text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Booth {ep.booth_number}
+                </span>
+              )}
+              {ep?.booth_type && <Badge variant="secondary" className="text-[10px]">{ep.booth_type}</Badge>}
+            </div>
           </div>
         </div>
 
         <div className="flex gap-3 mb-8">
-          {selectedBooth.website_url && (
-            <a href={selectedBooth.website_url} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm">
-                <Globe className="mr-2 h-4 w-4" />
-                Website
-              </Button>
-            </a>
-          )}
-          {selectedBooth.cta_url && (
-            <a href={selectedBooth.cta_url} target="_blank" rel="noopener noreferrer">
-              <Button size="sm">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                {selectedBooth.cta_label || "Contact Us"}
-              </Button>
+          {selected.website && (
+            <a href={selected.website} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm"><Globe className="mr-2 h-4 w-4" /> Website</Button>
             </a>
           )}
         </div>
 
-        {selectedBooth.description && (
+        {selected.description_long && (
           <Card className="mb-6">
             <CardContent className="pt-6">
               <h2 className="text-body font-semibold mb-2">About</h2>
-              <p className="text-body text-muted-foreground whitespace-pre-wrap">{selectedBooth.description}</p>
+              <div className="text-body text-muted-foreground prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selected.description_long }} />
             </CardContent>
           </Card>
         )}
 
         {/* Products */}
-        {selectedBooth.booth_products.length > 0 && (
+        {ep?.products && ep.products.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-body font-semibold mb-3 flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-              Products & Services
-            </h2>
+            <h2 className="text-body font-semibold mb-3">Products & Services</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {selectedBooth.booth_products.map((product) => (
-                <Card key={product.id}>
+              {ep.products.map((product: any, i: number) => (
+                <Card key={i}>
                   <CardContent className="pt-5">
                     <div className="flex gap-3">
                       {product.image_url && (
@@ -187,13 +135,8 @@ export default function ExhibitorsPage() {
                       )}
                       <div>
                         <p className="text-body font-medium">{product.name}</p>
-                        {product.description && (
-                          <p className="text-caption text-muted-foreground mt-0.5">{product.description}</p>
-                        )}
-                        <div className="flex gap-2 mt-1">
-                          {product.price && <Badge variant="secondary" className="text-[10px]">{product.price}</Badge>}
-                          {product.category && <Badge variant="outline" className="text-[10px]">{product.category}</Badge>}
-                        </div>
+                        {product.description && <p className="text-caption text-muted-foreground mt-0.5">{product.description}</p>}
+                        {product.price_info && <Badge variant="secondary" className="text-[10px] mt-1">{product.price_info}</Badge>}
                       </div>
                     </div>
                   </CardContent>
@@ -203,128 +146,103 @@ export default function ExhibitorsPage() {
           </div>
         )}
 
-        {/* Documents */}
-        {selectedBooth.booth_documents.length > 0 && (
+        {/* Resources */}
+        {ep?.resources && ep.resources.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-body font-semibold mb-3 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              Documents
-            </h2>
+            <h2 className="text-body font-semibold mb-3">Resources</h2>
             <div className="space-y-2">
-              {selectedBooth.booth_documents.map((doc) => (
-                <a
-                  key={doc.id}
-                  href={doc.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-secondary/50 transition-colors"
-                >
-                  <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+              {ep.resources.map((res: any, i: number) => (
+                <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-lg border hover:bg-secondary/50 transition-colors">
+                  <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-body font-medium truncate">{doc.name}</p>
-                    {doc.file_size && (
-                      <p className="text-caption text-muted-foreground">
-                        {(doc.file_size / 1024).toFixed(0)}KB
-                      </p>
-                    )}
+                    <p className="text-body font-medium truncate">{res.name}</p>
+                    <p className="text-caption text-muted-foreground">{res.type}</p>
                   </div>
-                  <Download className="h-4 w-4 text-muted-foreground shrink-0" />
                 </a>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Product categories */}
+        {ep?.product_categories && ep.product_categories.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap">
+            {ep.product_categories.map((cat: string) => (
+              <Badge key={cat} variant="outline" className="text-[10px]"><Tag className="mr-1 h-2.5 w-2.5" />{cat}</Badge>
+            ))}
           </div>
         )}
       </div>
     );
   }
 
-  // Booth directory
+  // Directory
   return (
     <div className="mx-auto max-w-4xl animate-fade-in">
       <div className="mb-6">
         <h1 className="text-h1 font-semibold tracking-tight">Exhibitors</h1>
         <p className="mt-1 text-body text-muted-foreground">
-          {booths.length} exhibitor{booths.length !== 1 ? "s" : ""} at this event
+          {exhibitors.length} exhibitor{exhibitors.length !== 1 ? "s" : ""} at this event
         </p>
       </div>
 
-      {/* Sponsor logos by tier */}
-      {tiers.length > 0 && sponsors.length > 0 && (
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <h2 className="text-body font-semibold mb-4">Sponsors</h2>
-            {tiers.map((tier) => {
-              const tierSponsors = sponsors.filter((s) => s.tier_id === tier.id);
-              if (tierSponsors.length === 0) return null;
-              return (
-                <div key={tier.id} className="mb-4 last:mb-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tier.color }} />
-                    <span className="text-caption font-medium text-muted-foreground">{tier.name}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-4">
-                    {tierSponsors.map((sponsor) => (
-                      <div key={sponsor.id} className="flex items-center gap-2">
-                        {sponsor.logo_url ? (
-                          <img src={sponsor.logo_url} alt={sponsor.company_name} className="h-8 rounded object-contain" />
-                        ) : (
-                          <span className="text-caption font-medium">{sponsor.company_name}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+      {/* Search and filter */}
+      <div className="flex gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search exhibitors..."
+            className="pl-10"
+          />
+        </div>
+        {categories.length > 0 && (
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="flex h-10 rounded bg-input px-3 text-body border border-border focus-visible:outline-none focus-visible:border-primary/50"
+          >
+            <option value="">All categories</option>
+            {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        )}
+      </div>
 
-      {booths.length === 0 ? (
+      {exhibitors.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <Building2 className="mx-auto mb-4 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-body text-muted-foreground">No exhibitors yet.</p>
+            <p className="text-body text-muted-foreground">No exhibitors found.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {booths.map((booth) => {
-            const sponsor = sponsors.find((s) => s.id === booth.sponsor_id);
-            const tier = sponsor ? tiers.find((t) => t.id === sponsor.tier_id) : null;
-
+          {exhibitors.map((exhibitor) => {
+            const ep = Array.isArray(exhibitor.exhibitor_profiles) ? exhibitor.exhibitor_profiles[0] : exhibitor.exhibitor_profiles;
             return (
               <Card
-                key={booth.id}
+                key={exhibitor.id}
                 className="group cursor-pointer hover:shadow-md hover:border-border-strong transition-all"
-                onClick={() => openBooth(booth)}
+                onClick={() => setSelected(exhibitor)}
               >
                 <CardContent className="pt-5">
                   <div className="flex items-start gap-3">
-                    {booth.logo_url ? (
-                      <img src={booth.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                    {exhibitor.logo_url ? (
+                      <img src={exhibitor.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0 border" />
                     ) : (
                       <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary text-body font-bold shrink-0">
-                        {booth.company_name[0]}
+                        {exhibitor.name[0]}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-body font-semibold truncate">{booth.company_name}</p>
-                        {tier && (
-                          <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tier.color }} />
-                        )}
-                      </div>
-                      {booth.tagline && (
-                        <p className="text-caption text-muted-foreground mt-0.5 line-clamp-2">{booth.tagline}</p>
+                      <p className="text-body font-semibold truncate group-hover:text-primary transition-colors">{exhibitor.name}</p>
+                      {exhibitor.description_short && (
+                        <p className="text-caption text-muted-foreground mt-0.5 line-clamp-2">{exhibitor.description_short}</p>
                       )}
-                      <div className="flex gap-2 mt-2">
-                        {booth.booth_products.length > 0 && (
-                          <span className="text-small text-muted-foreground">{booth.booth_products.length} products</span>
-                        )}
-                        {booth.booth_documents.length > 0 && (
-                          <span className="text-small text-muted-foreground">{booth.booth_documents.length} docs</span>
-                        )}
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        {exhibitor.industry && <Badge variant="outline" className="text-[9px]">{exhibitor.industry}</Badge>}
+                        {ep?.booth_number && <Badge variant="secondary" className="text-[9px]">Booth {ep.booth_number}</Badge>}
                       </div>
                     </div>
                   </div>

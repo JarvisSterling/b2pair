@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -13,9 +13,9 @@ export async function GET(request: Request, { params }: Params) {
   const category = searchParams.get("category");
   const search = searchParams.get("search");
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  let query = supabase
+  let query = admin
     .from("companies")
     .select(`
       id, name, slug, website, industry, description_short, description_long,

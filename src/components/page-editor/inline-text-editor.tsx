@@ -44,7 +44,7 @@ export function InlineTextEditor({
     content,
     editorProps: {
       attributes: {
-        class: `prose max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed prose-p:my-4 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em] focus:outline-none min-h-[2rem] ${className || ""}`,
+        class: `prose max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed prose-p:my-4 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em] focus:outline-none min-h-[4rem] ${className || ""}`,
       },
     },
     onUpdate: ({ editor }) => {
@@ -62,7 +62,10 @@ export function InlineTextEditor({
   if (!editor) return null;
 
   return (
-    <div className="relative group/editor">
+    <div
+      className="relative group/editor cursor-text"
+      onClick={() => { if (!editor.isFocused) editor.chain().focus().run(); }}
+    >
       {/* Floating toolbar on focus */}
       {editor.isFocused && (
         <div className="absolute -top-10 left-0 z-20 flex items-center gap-0.5 bg-background border border-border rounded-lg shadow-md px-1 py-0.5 animate-scale-in">

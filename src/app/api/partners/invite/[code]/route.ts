@@ -147,7 +147,7 @@ export async function POST(request: Request, { params }: Params) {
         status: "approved", // Auto-approve company team members
         company_id: company.id,
         company_role: companyRole,
-        intent: interests || null,
+        intent: interests || "networking",
       })
       .select("id")
       .single();

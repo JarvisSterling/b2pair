@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,6 @@ type WizardStep = "auth" | "brand" | "profile" | "sponsor" | "exhibitor" | "team
 
 export default function OnboardWizardPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
   const code = params.code as string;
 
@@ -262,8 +261,7 @@ export default function OnboardWizardPage() {
     }
 
     setSaving(false);
-    // Redirect to success
-    router.push(`/events/${slug}?onboarded=1`);
+    setStep("done" as WizardStep);
   }
 
   // Build steps array based on capabilities
@@ -838,6 +836,30 @@ export default function OnboardWizardPage() {
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                 Submit for Review
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* DONE STEP */}
+        {step === ("done" as WizardStep) && (
+          <div className="max-w-md mx-auto text-center py-8">
+            <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+              <Check className="h-8 w-8 text-green-500" />
+            </div>
+            <h2 className="text-h2 font-semibold mb-2">Submitted for Review!</h2>
+            <p className="text-body text-muted-foreground mb-1">
+              <span className="font-medium text-foreground">{data?.company.name}</span> has been submitted to the event organizer for review.
+            </p>
+            <p className="text-caption text-muted-foreground mb-6">
+              You'll be notified once your profile is approved and goes live. In the meantime, your team members can accept their invites and complete their profiles.
+            </p>
+            <div className="space-y-2">
+              <a href={`/events/${slug}`}>
+                <Button className="w-full">View Event Page</Button>
+              </a>
+              <a href="/dashboard">
+                <Button variant="outline" className="w-full">Go to Dashboard</Button>
+              </a>
             </div>
           </div>
         )}

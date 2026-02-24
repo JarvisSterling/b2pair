@@ -888,31 +888,7 @@ function CompanyDetailPanel({
         )}
 
         {/* Team members */}
-        {members.length > 0 && (
-          <section>
-            <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              <Users className="inline h-3.5 w-3.5 mr-1" />
-              Team ({members.length})
-            </h3>
-            <div className="space-y-2">
-              {members.map((m: any) => (
-                <div key={m.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">
-                    {(m.name || m.email)[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-caption font-medium truncate">{m.name || m.email}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{m.email}</p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
-                  <span className={`text-[10px] ${m.invite_status === "accepted" ? "text-green-500" : "text-muted-foreground"}`}>
-                    {m.invite_status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <TeamSection companyId={company.id} members={members} />
 
         {/* Timestamps */}
         <section className="pt-4 border-t border-border">
@@ -939,6 +915,149 @@ function DetailField({ label, value, link }: { label: string; value: string; lin
         <p className="text-caption font-medium truncate">{value}</p>
       )}
     </div>
+  );
+}
+
+/** Team section with invite functionality */
+function TeamSection({ companyId, members: initialMembers }: { companyId: string; members: any[] }) {
+  const [members, setMembers] = useState(initialMembers);
+  const [copiedMemberId, setCopiedMemberId] = useState<string | null>(null);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: "", name: "", role: "representative" });
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [newInviteLink, setNewInviteLink] = useState<string | null>(null);
+
+  function copyMemberInvite(member: any) {
+    const url = `${window.location.origin}/partners/invite/${member.invite_code}`;
+    navigator.clipboard.writeText(url);
+    setCopiedMemberId(member.id);
+    setTimeout(() => setCopiedMemberId(null), 2000);
+  }
+
+  async function inviteMember() {
+    if (!inviteForm.email) return;
+    setInviting(true);
+    setInviteError(null);
+    setNewInviteLink(null);
+
+    const res = await fetch(`/api/companies/${companyId}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(inviteForm),
+    });
+    const json = await res.json();
+
+    if (!res.ok) {
+      setInviteError(json.error || "Failed to invite");
+      setInviting(false);
+      return;
+    }
+
+    // Add new member to list
+    setMembers((prev) => [...prev, json.member]);
+    const link = `${window.location.origin}/partners/invite/${json.invite_code}`;
+    setNewInviteLink(link);
+    navigator.clipboard.writeText(link);
+    setInviteForm({ email: "", name: "", role: "representative" });
+    setInviting(false);
+  }
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider">
+          <Users className="inline h-3.5 w-3.5 mr-1" />
+          Team ({members.length})
+        </h3>
+        <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => { setShowInvite(!showInvite); setNewInviteLink(null); setInviteError(null); }}>
+          <Plus className="mr-1 h-3 w-3" /> Invite
+        </Button>
+      </div>
+
+      {/* Invite form */}
+      {showInvite && (
+        <div className="mb-4 p-3 rounded-lg border border-border bg-muted/20 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              value={inviteForm.name}
+              onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Name"
+              className="text-caption h-8"
+            />
+            <Input
+              value={inviteForm.email}
+              onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="Email *"
+              type="email"
+              className="text-caption h-8"
+            />
+          </div>
+          <div className="flex gap-2 items-center">
+            <select
+              value={inviteForm.role}
+              onChange={(e) => setInviteForm((f) => ({ ...f, role: e.target.value }))}
+              className="h-8 rounded bg-input px-2 text-caption border border-border flex-1"
+            >
+              <option value="manager">Manager</option>
+              <option value="representative">Representative</option>
+              <option value="scanner">Scanner</option>
+              <option value="speaker">Speaker</option>
+            </select>
+            <Button size="sm" className="text-xs h-8" onClick={inviteMember} disabled={inviting || !inviteForm.email}>
+              {inviting ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Send className="mr-1 h-3 w-3" />}
+              Invite
+            </Button>
+          </div>
+          {inviteError && (
+            <p className="text-[11px] text-destructive">{inviteError}</p>
+          )}
+          {newInviteLink && (
+            <div className="flex items-center gap-2 p-2 rounded bg-green-500/5 border border-green-500/20">
+              <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+              <p className="text-[11px] text-green-600 flex-1">Invited! Link copied to clipboard.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Member list */}
+      <div className="space-y-2">
+        {members.map((m: any) => (
+          <div key={m.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">
+              {(m.name || m.email)[0].toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-caption font-medium truncate">{m.name || m.email}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{m.email}</p>
+            </div>
+            <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
+            {m.invite_status === "accepted" ? (
+              <span className="text-[10px] text-green-500">accepted</span>
+            ) : m.invite_code ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-[10px] h-6 px-2"
+                onClick={() => copyMemberInvite(m)}
+              >
+                {copiedMemberId === m.id ? (
+                  <><Check className="mr-1 h-3 w-3 text-green-500" /> Copied!</>
+                ) : (
+                  <><Copy className="mr-1 h-3 w-3" /> Copy Link</>
+                )}
+              </Button>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">{m.invite_status}</span>
+            )}
+          </div>
+        ))}
+        {members.length === 0 && (
+          <p className="text-caption text-muted-foreground text-center py-4">No team members yet.</p>
+        )}
+      </div>
+    </section>
   );
 }
 

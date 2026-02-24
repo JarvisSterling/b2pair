@@ -28,8 +28,10 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
 
   if (!user) notFound();
 
-  // Get event details
-  const { data: event } = await supabase
+  const admin = createAdminClient();
+
+  // Get event details (use admin to bypass RLS)
+  const { data: event } = await admin
     .from("events")
     .select("*")
     .eq("id", id)
@@ -37,8 +39,8 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
 
   if (!event) notFound();
 
-  // Get my participant record
-  const { data: myParticipant } = await supabase
+  // Get my participant record (use admin to bypass RLS)
+  const { data: myParticipant } = await admin
     .from("participants")
     .select("id, status, role, participant_type_id")
     .eq("event_id", id)
@@ -48,7 +50,6 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
   if (!myParticipant) {
     // Check if user has a company membership for this event (sponsor/exhibitor)
     // If so, redirect to participant onboarding instead of 404
-    const admin = createAdminClient();
     const { data: companyMembers } = await admin
       .from("company_members")
       .select("company_id, companies!inner(event_id)")

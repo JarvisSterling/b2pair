@@ -143,8 +143,8 @@ export async function POST(request: Request, { params }: Params) {
       .insert({
         event_id: company.event_id,
         user_id: user.id,
-        role: "participant",
-        status: "approved", // Auto-approve company team members
+        role: company.capabilities.includes("sponsor") ? "sponsor" : company.capabilities.includes("exhibitor") ? "exhibitor" : "attendee",
+        status: "approved",
         company_id: company.id,
         company_role: companyRole,
         intent: interests || "networking",

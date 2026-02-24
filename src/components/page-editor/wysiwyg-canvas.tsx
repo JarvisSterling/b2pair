@@ -340,6 +340,7 @@ function RichTextLiveBlock({
           <div className="rounded-lg border border-dashed border-border/60 p-4 min-h-[120px] hover:border-primary/30 transition-colors">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-2 font-medium">Left column</p>
             <InlineTextEditor
+              key={`${block.id}-left`}
               content={block.content}
               onChange={(html) => onUpdate({ content: html })}
               alignment={block.alignment}
@@ -349,6 +350,7 @@ function RichTextLiveBlock({
           <div className="rounded-lg border border-dashed border-border/60 p-4 min-h-[120px] hover:border-primary/30 transition-colors">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-2 font-medium">Right column</p>
             <InlineTextEditor
+              key={`${block.id}-right`}
               content={block.contentRight || ""}
               onChange={(html) => onUpdate({ contentRight: html })}
               alignment={block.alignment}

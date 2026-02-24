@@ -23,6 +23,7 @@ export function InlineTextEditor({
   className,
 }: InlineTextEditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -41,7 +42,7 @@ export function InlineTextEditor({
         placeholder,
       }),
     ],
-    content,
+    content: content || "<p></p>",
     editorProps: {
       attributes: {
         class: `prose max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed prose-p:my-4 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em] focus:outline-none min-h-[4rem] ${className || ""}`,

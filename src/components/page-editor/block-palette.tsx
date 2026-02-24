@@ -12,6 +12,9 @@ import {
   Sparkles,
   Award,
   Layout,
+  Building2,
+  Star,
+  Columns,
 } from "lucide-react";
 import type { BlockType } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
@@ -75,6 +78,24 @@ const BLOCK_ITEMS: {
     label: "Sponsors",
     icon: <Award className="h-4 w-4" />,
     description: "Sponsor logo grid",
+  },
+  {
+    type: "exhibitor-directory",
+    label: "Exhibitors",
+    icon: <Building2 className="h-4 w-4" />,
+    description: "Exhibitor directory with search",
+  },
+  {
+    type: "featured-sponsor",
+    label: "Featured",
+    icon: <Star className="h-4 w-4" />,
+    description: "Highlight a sponsor",
+  },
+  {
+    type: "sponsor-banner",
+    label: "Banners",
+    icon: <Columns className="h-4 w-4" />,
+    description: "Rotating sponsor banners",
   },
   {
     type: "divider",

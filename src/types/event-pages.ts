@@ -15,7 +15,10 @@ export type BlockType =
   | "faq"
   | "cta"
   | "divider"
-  | "sponsor";
+  | "sponsor"
+  | "exhibitor-directory"
+  | "featured-sponsor"
+  | "sponsor-banner";
 
 // Content blocks stored in event_pages.content JSONB
 export interface BaseBlock {
@@ -94,7 +97,27 @@ export interface DividerBlock extends BaseBlock {
 export interface SponsorBlock extends BaseBlock {
   type: "sponsor";
   title?: string;
-  // Auto-populated from sponsors table when available
+  tierFilter?: string[]; // Show only specific tier IDs, empty = all
+  logoSize?: "sm" | "md" | "lg";
+  layout?: "grid" | "row" | "carousel";
+}
+
+export interface ExhibitorDirectoryBlock extends BaseBlock {
+  type: "exhibitor-directory";
+  title?: string;
+  showSearch?: boolean;
+  showCategoryFilter?: boolean;
+  columns?: 2 | 3 | 4;
+}
+
+export interface FeaturedSponsorBlock extends BaseBlock {
+  type: "featured-sponsor";
+  companyId?: string; // Specific company to feature
+}
+
+export interface SponsorBannerBlock extends BaseBlock {
+  type: "sponsor-banner";
+  tierFilter?: string[]; // Tiers to rotate banners from
 }
 
 export type ContentBlock =
@@ -107,7 +130,10 @@ export type ContentBlock =
   | FaqBlock
   | CtaBlock
   | DividerBlock
-  | SponsorBlock;
+  | SponsorBlock
+  | ExhibitorDirectoryBlock
+  | FeaturedSponsorBlock
+  | SponsorBannerBlock;
 
 // Database row types
 export interface EventPage {

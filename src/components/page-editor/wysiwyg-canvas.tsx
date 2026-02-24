@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -31,6 +31,7 @@ import {
   BarChart3,
   Layout,
   Award,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -173,6 +174,7 @@ export function WysiwygCanvas({
                         );
                         onChange(updated);
                       }}
+                      eventId={event.id}
                     />
                   ))}
                 </div>
@@ -192,6 +194,7 @@ function SortableLiveBlock({
   onRemove,
   onInsertAfter,
   onUpdateBlock,
+  eventId,
 }: {
   block: ContentBlock;
   isSelected: boolean;
@@ -199,6 +202,7 @@ function SortableLiveBlock({
   onRemove: () => void;
   onInsertAfter: (type: BlockType) => void;
   onUpdateBlock: (updates: Partial<ContentBlock>) => void;
+  eventId: string;
 }) {
   const {
     attributes,
@@ -253,11 +257,23 @@ function SortableLiveBlock({
           </button>
         </div>
 
-        {/* Render the actual block — inline editable for text blocks */}
+        {/* Render the actual block — inline editable for text/image/gallery blocks */}
         {block.type === "rich-text" ? (
           <RichTextLiveBlock
             block={block as RichTextBlock}
             onUpdate={onUpdateBlock}
+          />
+        ) : block.type === "image" ? (
+          <ImageLiveBlock
+            block={block as import("@/types/event-pages").ImageBlock}
+            onUpdate={onUpdateBlock}
+            eventId={eventId}
+          />
+        ) : block.type === "gallery" ? (
+          <GalleryLiveBlock
+            block={block as import("@/types/event-pages").GalleryBlock}
+            onUpdate={onUpdateBlock}
+            eventId={eventId}
           />
         ) : (
           <div className="pointer-events-none">
@@ -383,6 +399,205 @@ function RichTextLiveBlock({
           </a>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Image Live Block with inline upload ─── */
+function ImageLiveBlock({
+  block,
+  onUpdate,
+  eventId,
+}: {
+  block: import("@/types/event-pages").ImageBlock;
+  onUpdate: (updates: Partial<import("@/types/event-pages").ImageBlock>) => void;
+  eventId: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("eventId", eventId);
+      fd.append("type", "content");
+      const res = await fetch("/api/events/upload-image", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.url) {
+        onUpdate({ url: data.url, alt: file.name.replace(/\.[^.]+$/, "") });
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file?.type.startsWith("image/")) handleUpload(file);
+  }
+
+  if (block.url) {
+    return (
+      <figure className="relative group/img">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={block.url} alt={block.alt} className="w-full rounded-xl object-cover" />
+        <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors rounded-xl flex items-center justify-center">
+          <div className="opacity-0 group-hover/img:opacity-100 transition-opacity flex gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+              className="bg-white/90 text-zinc-800 rounded-lg px-3 py-1.5 text-xs font-medium shadow hover:bg-white"
+            >
+              Replace
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onUpdate({ url: "", alt: "" }); }}
+              className="bg-red-500/90 text-white rounded-lg px-3 py-1.5 text-xs font-medium shadow hover:bg-red-500"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+        {block.caption && (
+          <figcaption className="mt-2 text-center text-sm" style={{ color: "var(--page-text-secondary)" }}>
+            {block.caption}
+          </figcaption>
+        )}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleUpload(file);
+        }} />
+      </figure>
+    );
+  }
+
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+      onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+      className={cn(
+        "rounded-xl border-2 border-dashed p-12 flex flex-col items-center justify-center cursor-pointer transition-colors",
+        dragOver ? "border-primary bg-primary/5" : "border-border/40 hover:border-primary/30"
+      )}
+    >
+      {uploading ? (
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <ImageIcon className="h-10 w-10 text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">Click or drag an image here</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">JPEG, PNG, WebP, GIF — max 5MB</p>
+        </>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (file) handleUpload(file);
+      }} />
+    </div>
+  );
+}
+
+/* ─── Gallery Live Block with inline upload ─── */
+function GalleryLiveBlock({
+  block,
+  onUpdate,
+  eventId,
+}: {
+  block: import("@/types/event-pages").GalleryBlock;
+  onUpdate: (updates: Partial<import("@/types/event-pages").GalleryBlock>) => void;
+  eventId: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("eventId", eventId);
+      fd.append("type", "gallery");
+      const res = await fetch("/api/events/upload-image", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.url) {
+        onUpdate({ images: [...block.images, { url: data.url, alt: file.name.replace(/\.[^.]+$/, "") }] });
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file?.type.startsWith("image/")) handleUpload(file);
+  }
+
+  const cols = block.columns || 3;
+
+  return (
+    <div className="space-y-3">
+      {block.images.length > 0 && (
+        <div className={cn(
+          "grid gap-3",
+          cols === 2 && "grid-cols-2",
+          cols === 4 && "grid-cols-2 sm:grid-cols-4",
+          cols === 3 && "grid-cols-2 sm:grid-cols-3"
+        )}>
+          {block.images.map((img, i) => (
+            <figure key={i} className="relative group/img overflow-hidden rounded-xl">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.url} alt={img.alt} className="w-full aspect-[4/3] object-cover" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdate({ images: block.images.filter((_, idx) => idx !== i) });
+                }}
+                className="absolute top-1.5 right-1.5 bg-red-500/90 text-white rounded-lg p-1.5 opacity-0 group-hover/img:opacity-100 transition-opacity shadow"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </figure>
+          ))}
+        </div>
+      )}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+        className={cn(
+          "rounded-xl border-2 border-dashed p-8 flex flex-col items-center justify-center cursor-pointer transition-colors",
+          dragOver ? "border-primary bg-primary/5" : "border-border/40 hover:border-primary/30"
+        )}
+      >
+        {uploading ? (
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        ) : (
+          <>
+            <Plus className="h-6 w-6 text-muted-foreground/40 mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">
+              {block.images.length === 0 ? "Click or drag images here" : "Add more images"}
+            </p>
+          </>
+        )}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleUpload(file);
+        }} />
+      </div>
     </div>
   );
 }

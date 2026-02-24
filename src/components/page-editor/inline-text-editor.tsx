@@ -60,15 +60,13 @@ export function InlineTextEditor({
     }
   }, [alignment, editor]);
 
-  if (!editor) return null;
-
   return (
     <div
-      className="relative group/editor cursor-text"
-      onClick={() => { if (!editor.isFocused) editor.chain().focus().run(); }}
+      className="relative group/editor cursor-text min-h-[4rem]"
+      onClick={() => { if (editor && !editor.isFocused) editor.chain().focus().run(); }}
     >
       {/* Floating toolbar on focus */}
-      {editor.isFocused && (
+      {editor?.isFocused && (
         <div className="absolute -top-10 left-0 z-20 flex items-center gap-0.5 bg-background border border-border rounded-lg shadow-md px-1 py-0.5 animate-scale-in">
           <ToolbarButton
             active={editor.isActive("bold")}

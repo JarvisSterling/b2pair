@@ -27,6 +27,7 @@ import { ThemePicker } from "@/components/page-editor/theme-picker";
 import { WysiwygCanvas } from "@/components/page-editor/wysiwyg-canvas";
 import type { BannerLayout } from "@/components/page-editor/banner-editor";
 import { BlockRenderer } from "@/components/events/block-renderer";
+import { BannerDisplay } from "@/components/events/banner-display";
 import { EventThemeProvider } from "@/components/events/theme-provider";
 import type {
   EventPage,
@@ -228,8 +229,9 @@ export function FullScreenEditor({
     setSaving(true);
     try {
       // Save all pages
+      const errors: string[] = [];
       for (const page of pages) {
-        await supabase
+        const { error } = await supabase
           .from("event_pages")
           .update({
             content: page.content,
@@ -240,16 +242,29 @@ export function FullScreenEditor({
             seo_description: page.seo_description,
           })
           .eq("id", page.id);
+        if (error) errors.push(`Page "${page.title}": ${error.message}`);
       }
 
       // Save banner/logo
-      await supabase
+      const { error: eventError } = await supabase
         .from("events")
         .update({ banner_url: bannerUrl, banner_layout: bannerLayout, banner_settings: bannerSettings, logo_url: logoUrl })
         .eq("id", event.id);
+      if (eventError) errors.push(`Banner: ${eventError.message}`);
 
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      if (errors.length > 0) {
+        console.error("Save errors:", errors);
+        alert(`Some changes failed to save:\n${errors.join("\n")}`);
+      } else {
+        // Revalidate the live page so changes appear immediately
+        try {
+          await fetch(`/api/revalidate?path=/events/${event.slug}`, { method: "POST" });
+        } catch {
+          // Revalidation is best-effort
+        }
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
     } finally {
       setSaving(false);
     }
@@ -367,6 +382,19 @@ export function FullScreenEditor({
               themeKey={(theme?.theme_key as ThemeKey) || "light-classic"}
               accentColor={theme?.accent_color}
             >
+              {/* Banner */}
+              <BannerDisplay
+                eventName={event.name}
+                startDate={event.start_date}
+                endDate={event.end_date}
+                bannerUrl={bannerUrl}
+                bannerLayout={(bannerLayout as "split" | "image-below" | "centered" | "full-bleed") || "split"}
+                bannerSettings={bannerSettings}
+                eventSlug={event.slug || "preview"}
+                isRegistered={false}
+                isLoggedIn={false}
+                eventId={event.id}
+              />
               {/* Tab nav */}
               <div
                 className="flex gap-1 px-4 pt-4 pb-2 overflow-x-auto"

@@ -69,9 +69,9 @@ export default function EventMessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handle ?to= param
+  // Handle ?to= param — only after conversations have fully loaded
   useEffect(() => {
-    if (!toParticipantId || !myParticipantId) return;
+    if (!toParticipantId || !myParticipantId || loading) return;
 
     const existing = conversations.find(
       (c) => c.other_person.participant_id === toParticipantId
@@ -83,7 +83,7 @@ export default function EventMessagesPage() {
     } else {
       createConversationWith(toParticipantId);
     }
-  }, [toParticipantId, myParticipantId, conversations.length]);
+  }, [toParticipantId, myParticipantId, loading]);
 
   async function createConversationWith(participantId: string) {
     if (!myParticipantId) return;

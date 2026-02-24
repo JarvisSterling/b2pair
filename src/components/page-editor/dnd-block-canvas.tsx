@@ -54,6 +54,9 @@ const BLOCK_LABELS: Record<BlockType, { label: string; icon: React.ReactNode }> 
   cta: { label: "Button", icon: <MousePointerClick className="h-3.5 w-3.5" /> },
   divider: { label: "Divider", icon: <Minus className="h-3.5 w-3.5" /> },
   sponsor: { label: "Sponsors", icon: <Award className="h-3.5 w-3.5" /> },
+  "exhibitor-directory": { label: "Exhibitors", icon: <Award className="h-3.5 w-3.5" /> },
+  "featured-sponsor": { label: "Featured", icon: <Award className="h-3.5 w-3.5" /> },
+  "sponsor-banner": { label: "Banners", icon: <Award className="h-3.5 w-3.5" /> },
 };
 
 interface DndBlockCanvasProps {

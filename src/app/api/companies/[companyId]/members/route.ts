@@ -51,7 +51,7 @@ export async function POST(request: Request, { params }: Params) {
   // Check seat limit
   const { data: company } = await supabase
     .from("companies")
-    .select("capabilities, sponsor_profiles(tier:sponsor_tiers(seat_limit))")
+    .select("capabilities, sponsor_profiles(tier_id)")
     .eq("id", companyId)
     .single();
 
@@ -66,7 +66,14 @@ export async function POST(request: Request, { params }: Params) {
     const sp = Array.isArray(company.sponsor_profiles)
       ? company.sponsor_profiles[0]
       : company.sponsor_profiles;
-    if (sp?.tier?.seat_limit) seatLimit = sp.tier.seat_limit;
+    if (sp?.tier_id) {
+      const { data: tier } = await supabase
+        .from("sponsor_tiers")
+        .select("seat_limit")
+        .eq("id", sp.tier_id as string)
+        .single();
+      if (tier?.seat_limit) seatLimit = tier.seat_limit;
+    }
   }
 
   if ((currentMembers || 0) >= seatLimit) {

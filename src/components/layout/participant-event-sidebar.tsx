@@ -135,7 +135,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
             <button
               onClick={() => {
                 if (!profile.onboarding_completed) {
-                  router.push("/onboarding");
+                  router.push("/onboarding/participant");
                   return;
                 }
                 setMode("participant");
@@ -275,7 +275,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
               <button
                 onClick={() => {
                   if (!profile.onboarding_completed) {
-                    router.push("/onboarding");
+                    router.push("/onboarding/participant");
                     return;
                   }
                   setMode("participant");

@@ -70,7 +70,7 @@ export default function PartnersPage() {
   const [exhibitorsEnabled, setExhibitorsEnabled] = useState(false);
 
   const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", tier_id: "", team_limit: "" });
-  const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", booth_type: "", booth_number: "" });
+  const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "" });
   const [tierForm, setTierForm] = useState({ name: "", color: "#6366f1", rank: 1, seat_limit: 5, perks: {} as Record<string, boolean | number> });
 
   const sponsors = companies.filter((c) => c.capabilities.includes("sponsor"));
@@ -137,11 +137,12 @@ export default function PartnersPage() {
         capabilities: ["exhibitor"],
         booth_type: exhibitorForm.booth_type || undefined,
         booth_number: exhibitorForm.booth_number || undefined,
+        team_limit: exhibitorForm.team_limit ? parseInt(exhibitorForm.team_limit) : undefined,
       }),
     });
     if (res.ok) {
       await loadData();
-      setExhibitorForm({ name: "", contact_email: "", booth_type: "", booth_number: "" });
+      setExhibitorForm({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "" });
       setShowAddExhibitor(false);
     }
     setSaving(false);
@@ -377,6 +378,11 @@ export default function PartnersPage() {
                   <div>
                     <label className="text-caption font-medium mb-1.5 block">Booth number</label>
                     <Input value={exhibitorForm.booth_number} onChange={(e) => setExhibitorForm((f) => ({ ...f, booth_number: e.target.value }))} placeholder="e.g. A12" />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium mb-1.5 block">Team member limit</label>
+                    <Input type="number" min="1" value={exhibitorForm.team_limit} onChange={(e) => setExhibitorForm((f) => ({ ...f, team_limit: e.target.value }))} placeholder="Default: 5" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Leave empty for default (5)</p>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-5">

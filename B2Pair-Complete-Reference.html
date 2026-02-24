@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>B2Pair — Complete Product Reference</title>
+<style>
+  @page { margin: 1.2cm 1.5cm; size: A4; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 9.5pt; line-height: 1.45; color: #1a1a1a; max-width: 210mm; margin: 0 auto; padding: 1.5cm; }
+  h1 { font-size: 20pt; font-weight: 700; margin-bottom: 4pt; color: #0a0a0a; }
+  h2 { font-size: 13pt; font-weight: 700; margin-top: 22pt; margin-bottom: 8pt; color: #0a0a0a; border-bottom: 2px solid #e5e5e5; padding-bottom: 4pt; page-break-after: avoid; }
+  h3 { font-size: 10.5pt; font-weight: 600; margin-top: 14pt; margin-bottom: 5pt; color: #1a1a1a; page-break-after: avoid; }
+  h4 { font-size: 9.5pt; font-weight: 600; margin-top: 10pt; margin-bottom: 3pt; color: #333; }
+  p { margin-bottom: 5pt; }
+  ul, ol { margin-left: 16pt; margin-bottom: 5pt; }
+  li { margin-bottom: 2pt; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8pt; font-size: 8.5pt; page-break-inside: avoid; }
+  th { background: #f5f5f5; font-weight: 600; text-align: left; padding: 4pt 6pt; border: 1px solid #ddd; }
+  td { padding: 3pt 6pt; border: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .badge { display: inline-block; padding: 1pt 5pt; border-radius: 3pt; font-size: 7.5pt; font-weight: 600; }
+  .b-blue { background: #dbeafe; color: #1e40af; }
+  .b-green { background: #dcfce7; color: #166534; }
+  .b-amber { background: #fef3c7; color: #92400e; }
+  .b-red { background: #fee2e2; color: #991b1b; }
+  .b-gray { background: #f3f4f6; color: #374151; }
+  .box { background: #f8f9fa; border: 1px solid #e5e5e5; border-radius: 4pt; padding: 8pt 12pt; margin-bottom: 8pt; }
+  .card { background: #f8f9fa; border-left: 3px solid #0071E3; padding: 8pt 12pt; margin-bottom: 8pt; border-radius: 0 4pt 4pt 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; margin-bottom: 8pt; }
+  code { font-family: Consolas, monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1pt 3pt; border-radius: 2pt; }
+  .field-table td:first-child { font-weight: 600; white-space: nowrap; width: 30%; }
+  .btn { display: inline-block; padding: 2pt 8pt; border: 1px solid #ddd; border-radius: 3pt; font-size: 8pt; font-weight: 600; background: #fff; margin: 1pt 2pt; }
+  .btn-primary { background: #0071E3; color: #fff; border-color: #0071E3; }
+  .btn-outline { background: #fff; color: #333; }
+  .btn-ghost { background: transparent; border-color: transparent; color: #666; }
+  .btn-danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+  .cover { text-align: center; padding: 60pt 0 40pt; page-break-after: always; }
+  .cover h1 { font-size: 28pt; }
+  .toc { page-break-after: always; }
+  .toc ol { font-size: 10pt; line-height: 2; }
+  .toc li { border-bottom: 1px dotted #ddd; }
+  .page-ref { color: #0071E3; font-weight: 600; }
+  .screen { border: 1px solid #e5e5e5; border-radius: 4pt; padding: 6pt 10pt; margin-bottom: 6pt; background: #fefefe; }
+  .screen-title { font-weight: 600; font-size: 9pt; color: #0071E3; margin-bottom: 3pt; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div style="font-size: 42pt; font-weight: 700; color: #0071E3;">B2Pair</div>
+  <p style="font-size: 13pt; color: #666; margin: 8pt 0 30pt;">AI-Powered B2B Event Matchmaking Platform</p>
+  <h1 style="font-size: 22pt;">Complete Product Reference</h1>
+  <p style="font-size: 10pt; color: #888; margin-top: 6pt;">Every page, every field, every button, every stat, every flow.</p>
+  <div style="margin-top: 50pt; font-size: 9pt; color: #999;">
+    <p>Version 1.0 · Phase 3 · February 2026</p>
+    <p>Live at: b2pair.com</p>
+    <p>Classification: Confidential</p>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+<h2 style="border:none;">Table of Contents</h2>
+<ol>
+<li>Platform Overview &amp; User Roles</li>
+<li>Landing Page (Public)</li>
+<li>Authentication</li>
+<li>Event Registration (Participant)</li>
+<li>Organizer Onboarding</li>
+<li>Organizer Dashboard — Workspace</li>
+<li>Organizer Dashboard — Event Control Panel</li>
+<li>Organizer — Event Configuration</li>
+<li>Organizer — Page Editor</li>
+<li>Organizer — Participants Management</li>
+<li>Organizer — Participant Types</li>
+<li>Organizer — AI Matching Rules</li>
+<li>Organizer — Partners Management</li>
+<li>Organizer — Agenda</li>
+<li>Organizer — Analytics</li>
+<li>Organizer — Check-in</li>
+<li>Partner Onboarding Wizard (Sponsor/Exhibitor)</li>
+<li>Sponsor/Exhibitor Dashboard</li>
+<li>Participant Dashboard — Home</li>
+<li>Participant — Event Dashboard</li>
+<li>Participant — AI Matches</li>
+<li>Participant — Meetings</li>
+<li>Participant — Messages</li>
+<li>Participant — Directory</li>
+<li>Participant — Exhibitors</li>
+<li>Participant — Availability</li>
+<li>Participant — QR Code &amp; Contact Exchange</li>
+<li>Participant — Profile &amp; Settings</li>
+<li>Notification System</li>
+<li>AI &amp; Matching Engine (Technical)</li>
+<li>Data Collection by Role</li>
+<li>Complete Data Model</li>
+<li>Full API Reference</li>
+<li>Security &amp; Access Control</li>
+<li>Event Lifecycle</li>
+<li>Technical Stack</li>
+</ol>
+</div>
+
+<!-- ==================== SECTIONS ==================== -->
+
+<h2>1. Platform Overview &amp; User Roles</h2>
+<p>B2Pair is an AI-powered B2B event matchmaking platform enabling organizers to create events, manage participants/sponsors/exhibitors, and provide AI-driven matchmaking, meeting scheduling, and real-time messaging.</p>
+
+<table>
+<tr><th>Role</th><th>Description</th><th>Entry Point</th><th>Dashboard</th></tr>
+<tr><td><strong>Organizer</strong></td><td>Creates/manages events, configures AI matching, manages participants &amp; partners</td><td>Sign up → /onboarding</td><td>/dashboard/w/[workspaceId]</td></tr>
+<tr><td><strong>Participant</strong></td><td>Attends events, gets AI matches, books meetings, messages</td><td>/events/[slug]/register</td><td>/dashboard/events/[id]</td></tr>
+<tr><td><strong>Sponsor</strong></td><td>Company funding/brand visibility with tiered packages</td><td>Invite link → /events/[slug]/partners/onboard/[code]</td><td>/dashboard/company/[id]</td></tr>
+<tr><td><strong>Exhibitor</strong></td><td>Company with booth for product showcase &amp; lead capture</td><td>Invite link → /events/[slug]/partners/onboard/[code]</td><td>/dashboard/company/[id]</td></tr>
+</table>
+<p>A company can be both Sponsor and Exhibitor simultaneously.</p>
+
+<!-- 2. LANDING PAGE -->
+<h2>2. Landing Page (Public)</h2>
+<p><strong>URL:</strong> <code>/</code> (b2pair.com)</p>
+
+<h4>Navigation Bar (fixed top)</h4>
+<table class="field-table">
+<tr><td>Logo</td><td>"B2" icon + "B2Pair" text → links to /</td></tr>
+<tr><td><span class="btn btn-ghost">Sign in</span></td><td>→ /auth/sign-in</td></tr>
+<tr><td><span class="btn btn-primary">Create your event →</span></td><td>→ /auth/sign-up</td></tr>
+</table>
+
+<h4>Hero Section</h4>
+<ul>
+<li>Badge: "Now in beta" with animated green dot</li>
+<li>Headline: "Turn your events into high-value connections"</li>
+<li>Subtext: "The AI-powered matchmaking platform for event organizers..."</li>
+<li><span class="btn btn-primary">Create your first event →</span> → /auth/sign-up</li>
+<li><span class="btn btn-outline">See how it works</span> → scrolls to #how-it-works</li>
+<li>Note: "Free to start. No credit card required."</li>
+</ul>
+
+<h4>Social Proof Strip</h4>
+<table class="field-table">
+<tr><td>10x</td><td>More relevant meetings</td></tr>
+<tr><td>85%</td><td>Match satisfaction rate</td></tr>
+<tr><td>2min</td><td>Event setup time</td></tr>
+</table>
+
+<h4>How It Works (3 steps)</h4>
+<ol>
+<li><strong>Create your event</strong> — Set up event page, define participant types, configure matching rules</li>
+<li><strong>Share the link</strong> — Participants register, pick role, create profile</li>
+<li><strong>AI does the matching</strong> — Algorithm scores pairs, recommends connections, one-click meetings</li>
+</ol>
+
+<h4>For Organizers (6 feature cards)</h4>
+<table>
+<tr><th>Card</th><th>Description</th></tr>
+<tr><td>Custom Event Pages</td><td>Beautiful registration pages with details, participant types, custom sections</td></tr>
+<tr><td>Flexible Participant Types</td><td>Custom roles (Buyer, Seller, Speaker, Sponsor) with permissions</td></tr>
+<tr><td>AI Matchmaking Engine</td><td>Multi-factor scoring: intent, industry, expertise, complementarity</td></tr>
+<tr><td>Meeting Scheduling</td><td>Availability, one-click booking, auto-scheduling, reminders, conflict detection</td></tr>
+<tr><td>Participant Management</td><td>Approve registrations, view profiles, track engagement</td></tr>
+<tr><td>Event Analytics</td><td>Registrations, match rates, meetings, satisfaction, ROI</td></tr>
+</table>
+
+<h4>For Participants (3 feature cards)</h4>
+<table>
+<tr><th>Card</th><th>Description</th></tr>
+<tr><td>Smart Recommendations</td><td>AI match suggestions with explanations, swipe/browse</td></tr>
+<tr><td>In-app Messaging</td><td>Chat with matches, share files, exchange contacts</td></tr>
+<tr><td>Privacy Controls</td><td>Control visible profile information</td></tr>
+</table>
+
+<h4>CTA Section</h4>
+<ul>
+<li>Headline: "Ready to run smarter events?"</li>
+<li><span class="btn btn-primary">Create your first event →</span> → /auth/sign-up</li>
+</ul>
+
+<h4>Footer</h4>
+<p>Logo + "© 2026 B2Pair. All rights reserved."</p>
+
+<!-- 3. AUTHENTICATION -->
+<h2>3. Authentication</h2>
+
+<h3>3.1 Sign Up — <code>/auth/sign-up</code></h3>
+<table class="field-table">
+<tr><td>Email *</td><td>Text input, placeholder: "name@example.com"</td></tr>
+<tr><td>Password *</td><td>Text input with show/hide toggle, min 8 chars</td></tr>
+<tr><td>Full Name *</td><td>Text input</td></tr>
+<tr><td><span class="btn btn-primary">Sign up</span></td><td>Creates account → /onboarding</td></tr>
+<tr><td>"Already have an account?"</td><td>Link → /auth/sign-in</td></tr>
+</table>
+
+<h3>3.2 Sign In — <code>/auth/sign-in</code></h3>
+<table class="field-table">
+<tr><td>Email *</td><td>Text input</td></tr>
+<tr><td>Password *</td><td>Text input with show/hide toggle</td></tr>
+<tr><td><span class="btn btn-primary">Sign in</span></td><td>→ /dashboard</td></tr>
+<tr><td>"Forgot password?"</td><td>Link → /auth/forgot-password</td></tr>
+<tr><td>"Don't have an account?"</td><td>Link → /auth/sign-up</td></tr>
+</table>
+
+<h3>3.3 Forgot Password — <code>/auth/forgot-password</code></h3>
+<table class="field-table">
+<tr><td>Email *</td><td>Text input</td></tr>
+<tr><td><span class="btn btn-primary">Send reset link</span></td><td>Sends password reset email</td></tr>
+</table>
+
+<!-- 4. EVENT REGISTRATION -->
+<h2>4. Event Registration (Participant)</h2>
+<p><strong>URL:</strong> <code>/events/[slug]/register</code></p>
+<p>Split-screen layout: left sidebar with event info + step indicators, right side with form.</p>
+
+<h4>Left Sidebar</h4>
+<ul>
+<li>Event banner image (or gradient placeholder)</li>
+<li>Event name (links to /events/[slug]) with →</li>
+<li>Date range (e.g., "February 15, 2026 – February 17, 2026")</li>
+<li>Step indicators: ① Create an account, ② Complete your profile</li>
+<li>"Cancel registration" link at bottom → /events/[slug]</li>
+</ul>
+
+<h3>Step 1: Create Account</h3>
+<table class="field-table">
+<tr><td>Email *</td><td>Text input, placeholder: "name@example.com"</td></tr>
+<tr><td>Password *</td><td>Text input, show/hide eye toggle, placeholder: "At least 8 characters"</td></tr>
+<tr><td>First name *</td><td>Text input (only in signup mode)</td></tr>
+<tr><td>Last name *</td><td>Text input (only in signup mode)</td></tr>
+</table>
+<p><strong>Social auth buttons:</strong></p>
+<ul>
+<li><span class="btn btn-outline">Continue with LinkedIn</span> — OAuth via Supabase (linkedin_oidc provider)</li>
+<li><span class="btn btn-outline">Continue with Google</span> — OAuth via Supabase (google provider)</li>
+</ul>
+<p><strong>Checkboxes (signup only):</strong></p>
+<ul>
+<li>☐ "I want to receive email recommendations for similar events" (unchecked by default)</li>
+<li>☑ "By signing up, I agree to B2Pair's terms of service and privacy policy" (checked by default, links to /terms and /privacy)</li>
+</ul>
+<p><strong>Toggle:</strong> "Don't have an account? Create one" / "or log in with your existing B2Pair account"</p>
+<p><span class="btn btn-primary">Continue →</span> — Creates account or signs in → proceeds to Step 2</p>
+
+<h3>Step 2: Complete Your Profile</h3>
+<table class="field-table">
+<tr><td>Participant Type</td><td>If event has custom types: Radio-button cards with colored dot, name, and description. Click to select.</td></tr>
+<tr><td>Job title</td><td>Text input, placeholder: "e.g. Product Manager"</td></tr>
+<tr><td>Company</td><td>Text input, placeholder: "e.g. Acme Inc."</td></tr>
+<tr><td>Intent selection</td><td>Grid of 6 cards (2 columns), select up to 3. Shows "Maximum 3 selections." when limit reached.</td></tr>
+<tr><td>What are you looking for?</td><td>Text input, placeholder: "e.g. Packaging suppliers in Europe, AI solutions for HR..."</td></tr>
+<tr><td>What do you offer?</td><td>Text input, placeholder: "e.g. Cloud-based logistics platform, B2B consulting..."</td></tr>
+</table>
+
+<h4>Intent Cards (6 options, max 3)</h4>
+<table>
+<tr><th>Key</th><th>Emoji</th><th>Label</th><th>Description</th></tr>
+<tr><td>buying</td><td>🛒</td><td>Buy / Source</td><td>Find products or services</td></tr>
+<tr><td>selling</td><td>💼</td><td>Sell / Promote</td><td>Showcase your offerings</td></tr>
+<tr><td>investing</td><td>📈</td><td>Invest</td><td>Discover opportunities</td></tr>
+<tr><td>partnering</td><td>🤝</td><td>Partner</td><td>Find strategic partners</td></tr>
+<tr><td>learning</td><td>🎓</td><td>Learn</td><td>Gain knowledge &amp; insights</td></tr>
+<tr><td>networking</td><td>🌐</td><td>Network</td><td>Expand your connections</td></tr>
+</table>
+<p>Card styling: Selected = blue border + ring + light blue background. Disabled when 3 selected = 40% opacity + not-allowed cursor.</p>
+<p><span class="btn btn-primary">Continue →</span> — Saves profile, registers for event → /events/[slug]/registered</p>
+
+<h3>Post-Registration — <code>/events/[slug]/registered</code></h3>
+<p>Shows status based on event settings:</p>
+<ul>
+<li>If requires_approval = false: Green checkmark + "You're In!" + event details card</li>
+<li>If requires_approval = true: Clock icon + "Registration Pending" + "awaiting organizer approval"</li>
+</ul>
+<p><strong>Event Details Card:</strong> Date, Location, Format, Participant Count</p>
+<p><strong>What's Next cards (3):</strong></p>
+<ol>
+<li>"Complete your profile" — Add more details for better matches → /dashboard/profile</li>
+<li>"Discover matches" — AI-powered suggestions → /dashboard/events/[id]/matches</li>
+<li>"Schedule meetings" — Book 1:1 meetings → /dashboard/events/[id]/meetings</li>
+</ol>
+<p><span class="btn btn-primary">Go to Event Dashboard →</span> → /dashboard/events/[id]</p>
+
+<!-- 5. ORGANIZER ONBOARDING -->
+<h2>5. Organizer Onboarding</h2>
+<p><strong>URL:</strong> <code>/onboarding</code></p>
+<p>4-step wizard with progress dots. "B2" logo at top.</p>
+
+<h3>Step 1: Role — "Welcome to B2Pair"</h3>
+<p>Subtitle: "Let's set up your organizer profile so you can start creating events." (or participant copy if sponsor/exhibitor user)</p>
+<table class="field-table">
+<tr><td>Job title *</td><td>Text input, placeholder: "e.g. Product Manager, VP of Sales"</td></tr>
+<tr><td>Short bio</td><td>Textarea, placeholder: "Tell others about yourself and what you do..." (max ~500 chars)</td></tr>
+<tr><td>LinkedIn URL</td><td>Text input, placeholder: "https://linkedin.com/in/..."</td></tr>
+</table>
+<p>Validation: title must be non-empty to proceed.</p>
+
+<h3>Step 2: Company</h3>
+<table class="field-table">
+<tr><td>Company name *</td><td>Text input, placeholder: "Your company or organization"</td></tr>
+<tr><td>Industry *</td><td>Select dropdown with 15 options: Technology, Healthcare, Finance, Manufacturing, Retail, Education, Real Estate, Energy, Consulting, Media, Logistics, Agriculture, Legal, Hospitality, Non-profit, Other</td></tr>
+<tr><td>Company size</td><td>Radio buttons: 1-10, 11-50, 51-200, 201-1,000, 1,000+ employees</td></tr>
+<tr><td>Website</td><td>Text input, placeholder: "https://..."</td></tr>
+</table>
+<p>Validation: company name and industry must be filled.</p>
+
+<h3>Step 3: Interests</h3>
+<table class="field-table">
+<tr><td>Expertise Areas *</td><td>Multi-select tag chips (click to toggle). 16 options: Software Development, Product Management, Sales &amp; BD, Marketing, Design &amp; UX, Data &amp; Analytics, Operations, Finance &amp; Accounting, Human Resources, Strategy, Supply Chain, Customer Success, Engineering, Research, Legal &amp; Compliance, AI &amp; Machine Learning</td></tr>
+<tr><td>Interests</td><td>Same 16 options as above, independent selection</td></tr>
+</table>
+<p>Validation: at least 1 expertise area selected.</p>
+
+<h3>Step 4: Complete — "Your profile is ready"</h3>
+<p>Subtitle: "Click 'Complete setup' to finish and start exploring."</p>
+<p><span class="btn btn-primary">Complete setup</span> — Saves profile with onboarding_completed=true, platform_role="organizer" → /dashboard</p>
+
+<h4>Navigation</h4>
+<ul>
+<li><span class="btn btn-ghost">← Back</span> — Previous step (hidden on step 1)</li>
+<li><span class="btn btn-primary">Continue →</span> / <span class="btn btn-primary">Complete setup</span></li>
+</ul>
+
+<!-- 6. ORGANIZER WORKSPACE -->
+<h2>6. Organizer Dashboard — Workspace</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[workspaceId]</code></p>
+
+<h4>Sidebar</h4>
+<table class="field-table">
+<tr><td>Workspace switcher</td><td>Dropdown showing all workspaces, click to switch</td></tr>
+<tr><td>Dashboard</td><td>Overview (current page)</td></tr>
+<tr><td>Analytics</td><td>/dashboard/w/[id]/analytics (placeholder)</td></tr>
+<tr><td>Agenda</td><td>/dashboard/w/[id]/agenda</td></tr>
+<tr><td>Configure</td><td>/dashboard/w/[id]/configure</td></tr>
+<tr><td>Page Editor</td><td>/editor/[eventId] (full-screen)</td></tr>
+<tr><td>Participants</td><td>/dashboard/w/[id]/events/[eid]/participants</td></tr>
+<tr><td>Participant Types</td><td>/dashboard/w/[id]/events/[eid]/participant-types</td></tr>
+<tr><td>Matching Rules</td><td>/dashboard/w/[id]/events/[eid]/matching</td></tr>
+<tr><td>Partners</td><td>/dashboard/w/[id]/events/[eid]/partners</td></tr>
+<tr><td>Check-in</td><td>/dashboard/w/[id]/events/[eid]/check-in</td></tr>
+</table>
+<p>Profile section at bottom: avatar/initials, name, email, Sign out button.</p>
+
+<h4>Create Workspace — <code>/dashboard/w/new</code></h4>
+<table class="field-table">
+<tr><td>Workspace name *</td><td>Text input</td></tr>
+<tr><td>Description</td><td>Textarea</td></tr>
+<tr><td><span class="btn btn-primary">Create workspace</span></td><td>Creates organization → /dashboard/w/[newId]</td></tr>
+</table>
+
+<!-- 7. EVENT CONTROL PANEL -->
+<h2>7. Organizer — Event Control Panel</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[workspaceId]/events/[eventId]</code></p>
+
+<h4>Breadcrumb</h4>
+<p>"Workspace / Event Name"</p>
+
+<h4>Header</h4>
+<ul>
+<li>Event name (large display text)</li>
+<li>Status badge: <span class="badge b-gray">draft</span> / <span class="badge b-blue">published</span> / <span class="badge b-green">active</span> / <span class="badge b-gray">completed</span> / <span class="badge b-red">cancelled</span></li>
+<li>Date: "Sat, Feb 15, 2026" format with calendar icon</li>
+<li>Location: "Venue, City, Country" or "Virtual" with map pin icon</li>
+</ul>
+
+<h4>Action Buttons (top right)</h4>
+<table class="field-table">
+<tr><td><span class="btn btn-outline">👁 View page</span></td><td>Opens /events/[slug] in new tab (hidden if draft)</td></tr>
+<tr><td><span class="btn btn-outline">Duplicate</span></td><td>Creates a copy of this event</td></tr>
+<tr><td><span class="btn btn-primary">Publish</span></td><td>Changes event status to "published" (or "Unpublish" if already published)</td></tr>
+</table>
+
+<h4>Stats Cards (5 columns)</h4>
+<table>
+<tr><th>Stat</th><th>Description</th><th>Highlight</th></tr>
+<tr><td>Participants</td><td>Count of approved participants</td><td>—</td></tr>
+<tr><td>Pending</td><td>Count of pending participants</td><td>Amber text if &gt; 0</td></tr>
+<tr><td>Types</td><td>Count of participant types defined</td><td>—</td></tr>
+<tr><td>Matches</td><td>Count of generated matches</td><td>—</td></tr>
+<tr><td>Meetings</td><td>Count of meetings scheduled</td><td>—</td></tr>
+</table>
+
+<h4>Registration Breakdown Card</h4>
+<p>Shows each participant type with colored dot + name + count. Includes "Unassigned" for participants without a type.</p>
+
+<h4>Registration Link Card</h4>
+<p>Shows the public event URL (e.g., /events/tech-conference-2026-xyz). Displayed only when event is not draft.</p>
+
+<h4>Management Cards (5 clickable cards in 3-column grid)</h4>
+<table>
+<tr><th>Card</th><th>Description</th><th>Badge</th><th>Links to</th></tr>
+<tr><td>Participants</td><td>"View, approve, and manage registered participants."</td><td>"X pending" if any</td><td>.../participants</td></tr>
+<tr><td>Participant Types</td><td>"Define roles like Buyer, Seller, Speaker for registration."</td><td>"X types"</td><td>.../participant-types</td></tr>
+<tr><td>Matching Rules</td><td>"Configure the AI matching algorithm weights and filters."</td><td>—</td><td>.../matching</td></tr>
+<tr><td>Configuration</td><td>"Event details, registration settings, meeting defaults."</td><td>—</td><td>.../configure</td></tr>
+<tr><td>Page Editor</td><td>"Customize your event's public registration page."</td><td>—</td><td>/editor/[eventId]</td></tr>
+</table>
+
+<!-- 8. EVENT CONFIGURATION -->
+<h2>8. Organizer — Event Configuration</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/configure</code></p>
+
+<h4>Event Creation Fields (also used in configuration)</h4>
+<table class="field-table">
+<tr><td>Event name *</td><td>Text input</td></tr>
+<tr><td>Event type *</td><td>Select: Conference, Tradeshow, Summit, Networking, Workshop, Hybrid</td></tr>
+<tr><td>Format *</td><td>Select: In-person, Virtual, Hybrid</td></tr>
+<tr><td>Start date *</td><td>Date/time picker</td></tr>
+<tr><td>End date *</td><td>Date/time picker</td></tr>
+<tr><td>Timezone *</td><td>Timezone selector (default: UTC)</td></tr>
+<tr><td>Venue name</td><td>Text input</td></tr>
+<tr><td>Venue address</td><td>Text input</td></tr>
+<tr><td>City</td><td>Text input</td></tr>
+<tr><td>Country</td><td>Text input</td></tr>
+<tr><td>Virtual URL</td><td>Text input (for virtual/hybrid events)</td></tr>
+<tr><td>Max participants</td><td>Number input</td></tr>
+<tr><td>Registration open</td><td>Toggle (default: on)</td></tr>
+<tr><td>Requires approval</td><td>Toggle (default: off)</td></tr>
+<tr><td>Meeting duration</td><td>Number input, minutes (default: 30)</td></tr>
+<tr><td>Max meetings per participant</td><td>Number input (default: 20)</td></tr>
+<tr><td>Break between meetings</td><td>Number input, minutes (default: 5)</td></tr>
+</table>
+
+<!-- 9. PAGE EDITOR -->
+<h2>9. Organizer — Page Editor</h2>
+<p><strong>URL:</strong> <code>/editor/[eventId]</code> (full-screen)</p>
+<p>Drag-and-drop page builder for the public event page. Left panel: block palette + properties. Center: WYSIWYG canvas. Top: theme picker + save/publish.</p>
+
+<h4>Available Block Types (13)</h4>
+<table>
+<tr><th>Block</th><th>Fields</th><th>Description</th></tr>
+<tr><td><strong>Hero</strong></td><td>Title, subtitle, CTA label, CTA URL, background image URL, overlay (none/light/dark/gradient), alignment (left/center)</td><td>Full-width hero banner</td></tr>
+<tr><td><strong>Rich Text</strong></td><td>HTML content (Tiptap WYSIWYG), optional right column content, alignment, layout (single/two-column), background (none/surface/accent), optional CTA (label, URL, style: primary/secondary/outline)</td><td>Formatted text with optional CTA</td></tr>
+<tr><td><strong>Image</strong></td><td>Image URL, alt text, caption</td><td>Single image</td></tr>
+<tr><td><strong>Gallery</strong></td><td>Array of image URLs, columns count</td><td>Multi-image grid</td></tr>
+<tr><td><strong>Video</strong></td><td>Video URL (YouTube/Vimeo embed)</td><td>Embedded video player</td></tr>
+<tr><td><strong>Stats</strong></td><td>Title, toggle: show participants/meetings/countries/messages</td><td>Live event statistics</td></tr>
+<tr><td><strong>FAQ</strong></td><td>Array of {question, answer} pairs</td><td>Accordion Q&amp;A</td></tr>
+<tr><td><strong>CTA</strong></td><td>Title, subtitle, button label, button URL, style</td><td>Call-to-action section</td></tr>
+<tr><td><strong>Divider</strong></td><td>Style (line/space/dots)</td><td>Visual separator</td></tr>
+<tr><td><strong>Sponsor</strong></td><td>Auto-populated from sponsor tiers</td><td>Sponsor logos by tier</td></tr>
+<tr><td><strong>Exhibitor Directory</strong></td><td>Auto-populated from live exhibitors</td><td>Exhibitor grid with search</td></tr>
+<tr><td><strong>Featured Sponsor</strong></td><td>Company selection, display style</td><td>Highlighted sponsor card</td></tr>
+<tr><td><strong>Sponsor Banner</strong></td><td>Layout options, tier selection</td><td>Banner-style sponsor display</td></tr>
+</table>
+
+<h4>Theme Picker (3 themes)</h4>
+<table>
+<tr><th>Theme</th><th>Description</th></tr>
+<tr><td>Light Classic</td><td>Clean white background, standard typography</td></tr>
+<tr><td>Dark Modern</td><td>Dark background, modern feel</td></tr>
+<tr><td>Warm Elegant</td><td>Warm tones, elegant typography</td></tr>
+</table>
+
+<h4>Editor Actions</h4>
+<ul>
+<li><span class="btn btn-outline">Save draft</span> — Saves without publishing</li>
+<li><span class="btn btn-primary">Publish</span> — Makes changes live on public page</li>
+<li>Drag blocks to reorder</li>
+<li>Click block to edit properties in side panel</li>
+<li>Delete block button on each block</li>
+</ul>
+
+<!-- 10. PARTICIPANTS MANAGEMENT -->
+<h2>10. Organizer — Participants Management</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/participants</code></p>
+
+<h4>Features</h4>
+<ul>
+<li>Full participant list with avatar, name, company, title, intent, type, status</li>
+<li>Search by name/email/company</li>
+<li>Filter by: status (all/pending/approved/rejected), participant type</li>
+<li>Status actions per participant: Approve (green), Reject (red), with optional rejection reason</li>
+<li>Bulk approve/reject selected participants</li>
+<li>Click participant → expanded profile view with all details</li>
+<li>Export participants (CSV)</li>
+</ul>
+
+<h4>Participant List Columns</h4>
+<table>
+<tr><th>Column</th><th>Data</th></tr>
+<tr><td>Avatar</td><td>Photo or initials circle</td></tr>
+<tr><td>Name</td><td>Full name</td></tr>
+<tr><td>Company</td><td>Company name</td></tr>
+<tr><td>Title</td><td>Job title</td></tr>
+<tr><td>Type</td><td>Participant type badge (colored)</td></tr>
+<tr><td>Intent</td><td>Intent badges (buying, selling, etc.)</td></tr>
+<tr><td>Status</td><td><span class="badge b-amber">pending</span> / <span class="badge b-green">approved</span> / <span class="badge b-red">rejected</span></td></tr>
+<tr><td>Registered</td><td>Date</td></tr>
+<tr><td>Actions</td><td>Approve / Reject buttons</td></tr>
+</table>
+
+<!-- 11. PARTICIPANT TYPES -->
+<h2>11. Organizer — Participant Types</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/participant-types</code></p>
+
+<h4>Create/Edit Participant Type Fields</h4>
+<table class="field-table">
+<tr><td>Name *</td><td>Text input (e.g., "Buyer", "Speaker", "VIP")</td></tr>
+<tr><td>Description</td><td>Text input (shown during registration)</td></tr>
+<tr><td>Color *</td><td>Color picker (used for badges/dots)</td></tr>
+<tr><td>Sort order</td><td>Number (display order during registration)</td></tr>
+</table>
+
+<h4>Permission Toggles per Type</h4>
+<table>
+<tr><th>Permission</th><th>Default</th><th>What it controls</th></tr>
+<tr><td>Requires approval</td><td>false</td><td>Registrations need organizer approval before access</td></tr>
+<tr><td>Can view directory</td><td>true</td><td>See participant directory page</td></tr>
+<tr><td>Can message</td><td>true</td><td>Send messages to other participants</td></tr>
+<tr><td>Can book meetings</td><td>true</td><td>Request and schedule meetings</td></tr>
+<tr><td>Can view matches</td><td>true</td><td>See AI match recommendations</td></tr>
+<tr><td>Meeting priority weight</td><td>1.0</td><td>Higher = preferred in auto-scheduling</td></tr>
+<tr><td>Max meetings</td><td>null</td><td>Cap on meetings (null = event default)</td></tr>
+</table>
+
+<!-- 12. MATCHING RULES -->
+<h2>12. Organizer — AI Matching Rules</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/matching</code></p>
+
+<h4>Weight Sliders (must normalize to ~1.0)</h4>
+<table class="field-table">
+<tr><td>Intent weight</td><td>Slider 0.0–1.0 (default: 0.35) — Buyer↔seller, investor↔startup alignment</td></tr>
+<tr><td>Industry weight</td><td>Slider 0.0–1.0 (default: 0.25) — Same/related industries</td></tr>
+<tr><td>Interest weight</td><td>Slider 0.0–1.0 (default: 0.25) — Shared expertise &amp; interests</td></tr>
+<tr><td>Complementarity weight</td><td>Slider 0.0–1.0 (default: 0.15) — Semantic profile similarity via AI embeddings</td></tr>
+</table>
+
+<h4>Thresholds</h4>
+<table class="field-table">
+<tr><td>Minimum score</td><td>Number 0–100 (default: 40) — Matches below this are discarded</td></tr>
+<tr><td>Max recommendations</td><td>Number (default: 50) — Max matches per participant</td></tr>
+</table>
+
+<h4>Exclusion Rules</h4>
+<table class="field-table">
+<tr><td>Exclude same company</td><td>Toggle (default: on) — Don't match people from same company</td></tr>
+<tr><td>Exclude same role</td><td>Toggle (default: off) — Don't match people with same participant type</td></tr>
+</table>
+
+<h4>Priority Settings</h4>
+<table class="field-table">
+<tr><td>Prioritize sponsors</td><td>Toggle (default: on) — Boost sponsor match scores</td></tr>
+<tr><td>Prioritize VIP</td><td>Toggle (default: on) — Boost VIP participant scores</td></tr>
+</table>
+
+<h4>Actions</h4>
+<ul>
+<li><span class="btn btn-primary">Save Rules</span> — Saves configuration</li>
+<li><span class="btn btn-primary">Generate Matches</span> — Runs AI matching algorithm for all participants. Shows progress. Generates embeddings if missing, then computes multi-factor scores.</li>
+</ul>
+
+<!-- 13. PARTNERS MANAGEMENT -->
+<h2>13. Organizer — Partners Management</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/partners</code></p>
+
+<h4>Tab Bar (4 tabs)</h4>
+<table>
+<tr><th>Tab</th><th>Icon</th><th>Badge</th></tr>
+<tr><td>Sponsors</td><td>Crown</td><td>Count of sponsors</td></tr>
+<tr><td>Exhibitors</td><td>Building</td><td>Count of exhibitors</td></tr>
+<tr><td>Tiers</td><td>Chart</td><td>Count of tiers</td></tr>
+<tr><td>Settings</td><td>Gear</td><td>—</td></tr>
+</table>
+
+<h3>Sponsors Tab</h3>
+<h4>Pipeline View</h4>
+<p>Horizontal status pipeline showing count per status: Invited → Onboarding → Submitted → Approved → Live → Rejected</p>
+
+<h4>Add Sponsor Form</h4>
+<p><span class="btn btn-primary">+ Add Sponsor</span> opens inline form:</p>
+<table class="field-table">
+<tr><td>Company name *</td><td>Text input</td></tr>
+<tr><td>Contact email *</td><td>Email input, placeholder: "contact@company.com"</td></tr>
+<tr><td>Tier</td><td>Select dropdown showing all tiers with seat count: "Gold (10 seats)"</td></tr>
+<tr><td>Team member limit</td><td>Number input, placeholder shows tier default. "Leave empty to use tier default"</td></tr>
+</table>
+<p><span class="btn btn-primary">📤 Create &amp; Send Invite</span> — Creates company with status "invited", generates invite code, creates admin member record</p>
+
+<h4>Company List</h4>
+<p>Each company card shows: Logo/initial, name, status badge, tier badge, member count, invite code copy button.</p>
+<p><strong>Actions per company:</strong></p>
+<ul>
+<li><span class="btn btn-outline">📋 Copy invite link</span> — Copies /events/[slug]/partners/onboard/[code] to clipboard</li>
+<li>Click company → opens detail panel with sponsor profile, exhibitor profile, team members</li>
+<li><span class="btn btn-primary">✓ Approve</span> — Changes status to "approved"</li>
+<li><span class="btn btn-outline">Publish</span> — Changes status to "live"</li>
+<li><span class="btn btn-danger">✗ Reject</span> — Opens modal for rejection reason, then changes status to "rejected"</li>
+<li><span class="btn btn-danger">🗑 Delete</span> — Deletes company and all related data</li>
+</ul>
+
+<h3>Exhibitors Tab</h3>
+<p>Same pipeline view and company list as Sponsors tab.</p>
+
+<h4>Add Exhibitor Form</h4>
+<table class="field-table">
+<tr><td>Company name *</td><td>Text input</td></tr>
+<tr><td>Contact email *</td><td>Email input</td></tr>
+<tr><td>Booth type</td><td>Select: Standard, Premium, Island</td></tr>
+<tr><td>Booth number</td><td>Text input, placeholder: "e.g. A12"</td></tr>
+<tr><td>Team member limit</td><td>Number input, placeholder: "Default: 5"</td></tr>
+</table>
+
+<h3>Tiers Tab</h3>
+<h4>Add Tier Form</h4>
+<table class="field-table">
+<tr><td>Tier name *</td><td>Text input (e.g., "Gold", "Silver", "Platinum")</td></tr>
+<tr><td>Color</td><td>Color picker (default: #6366f1)</td></tr>
+<tr><td>Rank</td><td>Number (display order, default: next available)</td></tr>
+<tr><td>Seat limit</td><td>Number (default: 5) — Max team members per company on this tier</td></tr>
+</table>
+<h4>Tier Perks (toggles)</h4>
+<table>
+<tr><th>Perk</th><th>Description</th></tr>
+<tr><td>Logo on event page</td><td>Company logo displayed on public event page</td></tr>
+<tr><td>Banner placement</td><td>Banner ad on event page</td></tr>
+<tr><td>Extra meeting slots</td><td>Additional meeting capacity</td></tr>
+<tr><td>Featured listing</td><td>Highlighted in directories</td></tr>
+<tr><td>Sessions included</td><td>Can have speaking sessions</td></tr>
+<tr><td>Analytics access</td><td>View analytics dashboard</td></tr>
+</table>
+
+<!-- 14. AGENDA -->
+<h2>14. Organizer — Agenda</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/agenda</code></p>
+<p>Session management with schedule builder. Create sessions with: title, description, speaker(s), room, start/end time, session type. Drag to reorder or reschedule. Auto-schedule API available.</p>
+
+<!-- 15. ANALYTICS -->
+<h2>15. Organizer — Analytics</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/analytics</code></p>
+<p>Registration trends, participant demographics, match rates, meetings scheduled, engagement metrics, satisfaction ratings.</p>
+
+<!-- 16. CHECK-IN -->
+<h2>16. Organizer — Check-in</h2>
+<p><strong>URL:</strong> <code>/dashboard/w/[wid]/events/[eid]/check-in</code></p>
+<ul>
+<li>QR code scanner (camera-based)</li>
+<li>Manual search by name/email</li>
+<li>Check-in button per participant</li>
+<li>Real-time checked-in count display</li>
+<li>Timestamp recorded on participant.checked_in_at</li>
+</ul>
+
+<!-- 17. PARTNER ONBOARDING -->
+<h2>17. Partner Onboarding Wizard (Sponsor/Exhibitor)</h2>
+<p><strong>URL:</strong> <code>/events/[slug]/partners/onboard/[code]</code></p>
+<p>Multi-step wizard accessed via unique invite code. Progress bar at top.</p>
+
+<h3>Step 1: Account</h3>
+<table class="field-table">
+<tr><td>Email</td><td>Pre-filled from invite, editable</td></tr>
+<tr><td>Password</td><td>Text input with show/hide toggle</td></tr>
+<tr><td>Full name</td><td>Text input</td></tr>
+</table>
+<p>Or sign in with existing account. Creates user → creates auth session.</p>
+
+<h3>Step 2: Company Profile</h3>
+<table class="field-table">
+<tr><td>Company name *</td><td>Pre-filled from invite</td></tr>
+<tr><td>Website</td><td>Text input, placeholder: "https://..."</td></tr>
+<tr><td>Industry</td><td>Select dropdown (same 15 options as organizer)</td></tr>
+<tr><td>Headquarters</td><td>Text input</td></tr>
+<tr><td>Short description</td><td>Textarea, ~150 chars for directory listings</td></tr>
+<tr><td>Full description</td><td>Rich text editor (Tiptap WYSIWYG) for detailed company page</td></tr>
+</table>
+
+<h3>Step 3: Brand Assets</h3>
+<table class="field-table">
+<tr><td>Company logo</td><td>Image upload (drag &amp; drop or click, stored in Supabase Storage)</td></tr>
+<tr><td>Banner image</td><td>Image upload for company profile header</td></tr>
+<tr><td>Brand color</td><td>Color picker</td></tr>
+</table>
+
+<h3>Step 4: Sponsor Setup (if company has sponsor capability)</h3>
+<table class="field-table">
+<tr><td>Tagline</td><td>Text input — short promotional text</td></tr>
+<tr><td>CTA buttons (up to 3)</td><td>Each: Label + URL + Style (primary/outline). Add/remove buttons.</td></tr>
+<tr><td>Resources</td><td>File uploads (brochures, pitch decks). Each: name, file, type.</td></tr>
+<tr><td>Promo video</td><td>URL input (YouTube/Vimeo)</td></tr>
+<tr><td>Sessions</td><td>Add speaking sessions: title, description, speaker name</td></tr>
+</table>
+
+<h3>Step 5: Exhibitor Setup (if company has exhibitor capability)</h3>
+<table class="field-table">
+<tr><td>Booth number</td><td>Text input (may be pre-filled by organizer)</td></tr>
+<tr><td>Booth type</td><td>Display only (set by organizer): Standard/Premium/Island</td></tr>
+<tr><td>Product categories</td><td>Multi-select tags for filtering</td></tr>
+<tr><td>Products</td><td>Add products: name, description, image upload, price info. Can add multiple.</td></tr>
+<tr><td>Resources</td><td>File uploads: name, file URL, type</td></tr>
+</table>
+
+<h3>Step 6: Team</h3>
+<p>Invite team members:</p>
+<table class="field-table">
+<tr><td>Email *</td><td>Text input</td></tr>
+<tr><td>Name</td><td>Text input</td></tr>
+<tr><td>Role</td><td>Select: Admin, Manager, Representative, Scanner, Speaker</td></tr>
+<tr><td><span class="btn btn-outline">+ Add another</span></td><td>Add more team members</td></tr>
+</table>
+<p>Seat limit enforced (shows "X of Y seats available").</p>
+
+<h3>Step 7: Review &amp; Submit</h3>
+<p>Summary of all entered information organized by section. Edit buttons to go back to specific steps.</p>
+<p><span class="btn btn-primary">Submit for Review</span> — Changes company status to "submitted"</p>
+
+<h3>Done Screen</h3>
+<p>Checkmark animation + "You're all set!"</p>
+<ul>
+<li><span class="btn btn-primary">View Event Page</span> → /events/[slug]</li>
+<li><span class="btn btn-outline">Go to Dashboard</span> → /dashboard/company/[companyId]</li>
+</ul>
+
+<!-- 18. SPONSOR/EXHIBITOR DASHBOARD -->
+<h2>18. Sponsor/Exhibitor Dashboard</h2>
+
+<h3>18.1 Overview — <code>/dashboard/company/[companyId]</code></h3>
+
+<h4>Header</h4>
+<ul>
+<li>Company logo (or initial avatar)</li>
+<li>Company name (large heading)</li>
+<li>Event name (small text below)</li>
+<li>Capability badges: <span class="badge b-blue">sponsor</span> <span class="badge b-green">exhibitor</span></li>
+</ul>
+
+<h4>Status Banner</h4>
+<table>
+<tr><th>Status</th><th>Color</th><th>Icon</th><th>Description shown</th></tr>
+<tr><td>Invited</td><td>Blue</td><td>Send</td><td>"Your invite is pending. Complete onboarding to submit for review."</td></tr>
+<tr><td>Setting Up</td><td>Amber</td><td>Clock</td><td>"You're still setting up. Complete all steps and submit for review."</td></tr>
+<tr><td>Under Review</td><td>Amber</td><td>Clock</td><td>"Your profile has been submitted and is awaiting organizer review."</td></tr>
+<tr><td>Approved</td><td>Green</td><td>CheckCircle</td><td>"Your profile has been approved! It will be visible once published."</td></tr>
+<tr><td>Live</td><td>Green</td><td>CheckCircle</td><td>"Your profile is live and visible to all event attendees."</td></tr>
+<tr><td>Rejected</td><td>Red</td><td>XCircle</td><td>"Your profile was not approved. Contact the organizer for details."</td></tr>
+</table>
+<p>If status is live/approved: <span class="btn btn-outline">View public profile ↗</span> link shown.</p>
+
+<h4>Stats Cards (5 columns)</h4>
+<table>
+<tr><th>Stat</th><th>Icon</th><th>Source</th></tr>
+<tr><td>Profile Views</td><td>Eye</td><td>company_analytics.profile_views</td></tr>
+<tr><td>Unique Visitors</td><td>Users</td><td>company_analytics.unique_visitors</td></tr>
+<tr><td>Downloads</td><td>Download</td><td>company_analytics.resource_downloads</td></tr>
+<tr><td>Meeting Requests</td><td>Calendar</td><td>company_analytics.meeting_requests_received</td></tr>
+<tr><td>Leads</td><td>Target</td><td>company_analytics.leads_captured</td></tr>
+</table>
+
+<h4>Quick Links (3 cards)</h4>
+<table>
+<tr><th>Card</th><th>Icon/Color</th><th>Subtitle</th><th>Links to</th></tr>
+<tr><td>Analytics</td><td>BarChart3 / Blue</td><td>"Views, downloads, CTAs"</td><td>/dashboard/company/[id]/analytics</td></tr>
+<tr><td>Leads</td><td>Target / Amber</td><td>"X captured"</td><td>/dashboard/company/[id]/leads</td></tr>
+<tr><td>Team</td><td>Users / Green</td><td>"X member(s)"</td><td>/dashboard/company/[id]/team</td></tr>
+</table>
+
+<h3>18.2 Analytics — <code>/dashboard/company/[id]/analytics</code></h3>
+<p><span class="btn btn-ghost">← Back</span> to overview. Title: "Analytics", subtitle: "Last 30 days performance"</p>
+
+<h4>Stats Cards (5, with colored icons)</h4>
+<p>Same 5 stats as overview but with colored icon backgrounds (blue, violet, green, amber, red).</p>
+
+<h4>Charts</h4>
+<ul>
+<li><strong>Profile Views Over Time</strong> — Bar chart, 30 bars (one per day). Hover shows count. Bars scale relative to max.</li>
+<li><strong>Resource Downloads</strong> — Bar chart, green bars, same 30-day period.</li>
+<li><strong>CTA Performance</strong> — Horizontal progress bars per CTA button. Sorted by clicks descending. Shows label + click count.</li>
+</ul>
+<p>Empty state: Chart icon + "No analytics data yet. Data will appear once your profile is live and receiving views."</p>
+
+<h3>18.3 Leads — <code>/dashboard/company/[id]/leads</code></h3>
+<p>Title: "Leads" with total count.</p>
+
+<h4>Qualification Filter Cards (4, clickable to filter)</h4>
+<table>
+<tr><th>Filter</th><th>Color</th><th>Shows</th></tr>
+<tr><td>Hot</td><td>Red dot</td><td>Count of hot leads</td></tr>
+<tr><td>Warm</td><td>Amber dot</td><td>Count of warm leads</td></tr>
+<tr><td>Cold</td><td>Blue dot</td><td>Count of cold leads</td></tr>
+<tr><td>Unqualified</td><td>Gray dot</td><td>Count of leads without qualification</td></tr>
+</table>
+<p>Click card to filter list. Click again to clear filter. Active filter shows ring around card.</p>
+
+<h4>Search Bar</h4>
+<p>Search icon + text input, placeholder: "Search leads..." Filters by participant name.</p>
+
+<h4>Lead Card (for each lead)</h4>
+<ul>
+<li>Avatar (initials circle)</li>
+<li>Name, qualification badge (hot=destructive, warm=default, cold=secondary)</li>
+<li>Email (with mail icon), source (profile_view, booth_visit, resource_download, meeting_request, manual), resource accessed, date</li>
+<li>Notes (italic, quoted)</li>
+<li>Tags (outline badges)</li>
+<li>Qualification buttons: <span class="btn" style="background:#fee2e2;color:#991b1b;">hot</span> <span class="btn" style="background:#fef3c7;color:#92400e;">warm</span> <span class="btn" style="background:#dbeafe;color:#1e40af;">cold</span> — Click to set, click again to unset. Active button has colored background.</li>
+</ul>
+
+<h3>18.4 Team — <code>/dashboard/company/[id]/team</code></h3>
+<p>Title: "Team" with "Manage your team members and invitations".</p>
+
+<h4>Seat Usage Bar</h4>
+<p>Text: "X of Y used". Progress bar: Green (normal), Amber (&gt;80%), Red (at limit).</p>
+<p>At limit message: ⚠ "Seat limit reached. Contact the event organizer to increase your limit."</p>
+
+<h4>Invite Button &amp; Form</h4>
+<p><span class="btn btn-primary">👤+ Invite Member</span> (hidden when at limit) opens:</p>
+<table class="field-table">
+<tr><td>Name *</td><td>Text input, placeholder: "Full name"</td></tr>
+<tr><td>Email *</td><td>Email input, placeholder: "email@company.com"</td></tr>
+<tr><td>Role *</td><td>Select: Admin, Manager, Representative, Scanner, Speaker</td></tr>
+</table>
+<p><span class="btn btn-primary">📤 Send Invite</span> / <span class="btn btn-ghost">Cancel</span></p>
+
+<h4>Role Legend (5 cards in row)</h4>
+<table>
+<tr><th>Role</th><th>Icon</th><th>Description</th></tr>
+<tr><td>Admin</td><td>Crown</td><td>Full access to everything</td></tr>
+<tr><td>Manager</td><td>Shield</td><td>Edit profile, view leads &amp; analytics</td></tr>
+<tr><td>Representative</td><td>Users</td><td>View leads, capture leads, chat</td></tr>
+<tr><td>Scanner</td><td>Users</td><td>QR scanning and lead capture only</td></tr>
+<tr><td>Speaker</td><td>Users</td><td>View sessions and chat</td></tr>
+</table>
+
+<h4>Member List (per member)</h4>
+<ul>
+<li>Avatar (colored if active, muted if pending)</li>
+<li>Name, role badge (outline), status badge: <span class="badge b-green">Active</span> / <span class="badge b-gray">Pending</span></li>
+<li>Email</li>
+<li><span class="btn btn-outline">📋 Copy invite link</span> (pending only) — copies /partners/invite/[code]</li>
+<li><span class="btn btn-danger">🗑</span> Remove — deletes member (can't remove last admin)</li>
+</ul>
+
+<h4>Mode Switcher (in sidebar)</h4>
+<p>Toggle: <span class="btn btn-outline">👤 Participant</span> | <span class="btn btn-primary">🏢 Company</span></p>
+<p>Active mode is highlighted with shadow. If clicking Participant and onboarding_completed=false → redirects to /onboarding/participant.</p>
+<p>Company mode also shows: company logo/initial, company name, capability badges below the toggle.</p>
+<p>Company nav: Overview, Analytics, Leads, Team (with active state highlighting).</p>
+<p>Bottom: "↔ Switch to Participant" link.</p>
+
+<!-- 19. PARTICIPANT HOME -->
+<h2>19. Participant Dashboard — Home</h2>
+<p><strong>URL:</strong> <code>/dashboard/home</code></p>
+
+<h4>Your Events Section</h4>
+<p>Latest event shown prominently with stats. Other events in compact list.</p>
+<p><strong>Latest event card:</strong></p>
+<ul>
+<li>Event banner or gradient placeholder</li>
+<li>Event name (links to event dashboard)</li>
+<li>Date, location</li>
+<li>3 stat pills: "X matches", "X meetings", "X messages"</li>
+<li><span class="btn btn-primary">View Event →</span> → /dashboard/events/[id]</li>
+</ul>
+<p><strong>Other event cards:</strong> Compact rows with name, status badge, date, location, arrow.</p>
+
+<h4>Your Company Events Section</h4>
+<p>Shows events where user has company membership (sponsor/exhibitor). Each card shows: event name, company status badge, company name badge, date, location. Click → /dashboard/company/[companyId].</p>
+
+<h4>Empty State</h4>
+<p>Calendar icon + "No events yet" + "You haven't registered for any events. Look for an event invitation link from an organizer to get started."</p>
+
+<!-- 20. PARTICIPANT EVENT DASHBOARD -->
+<h2>20. Participant — Event Dashboard</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]</code></p>
+
+<h4>Sidebar Navigation</h4>
+<table>
+<tr><th>Item</th><th>Icon</th><th>Path</th><th>Visibility</th></tr>
+<tr><td>Dashboard</td><td>LayoutDashboard</td><td>/dashboard/events/[id]</td><td>Always</td></tr>
+<tr><td>Agenda</td><td>CalendarDays</td><td>.../agenda</td><td>Always</td></tr>
+<tr><td>Matches</td><td>Zap</td><td>.../matches</td><td>Always</td></tr>
+<tr><td>Meetings</td><td>Users</td><td>.../meetings</td><td>Only if can_book_meetings</td></tr>
+<tr><td>Messages</td><td>MessageSquare</td><td>.../messages</td><td>Only if can_message (+ unread badge)</td></tr>
+<tr><td>Directory</td><td>Search</td><td>.../directory</td><td>Only if can_view_directory</td></tr>
+<tr><td>Exhibitors</td><td>Building2</td><td>.../exhibitors</td><td>Always</td></tr>
+<tr><td>Availability</td><td>Clock</td><td>.../availability</td><td>Only if can_book_meetings</td></tr>
+<tr><td>My QR Code</td><td>QrCode</td><td>.../qr-code</td><td>Always</td></tr>
+</table>
+<p>Sidebar header: event icon + event name. "← Back to events" link → /dashboard/home.</p>
+<p>Profile at bottom: avatar, name, email, "Sign out" button.</p>
+
+<!-- 21. MATCHES -->
+<h2>21. Participant — AI Matches</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]/matches</code></p>
+
+<h4>Match Card (for each recommended match)</h4>
+<ul>
+<li><strong>Match score:</strong> Percentage badge (e.g., "87%")</li>
+<li><strong>Score breakdown:</strong> Intent score, Industry score, Interest score, Complementarity score — each as small bar</li>
+<li><strong>Match reasons:</strong> Array of text explanations (e.g., "Complementary buyer/seller intent", "Both in Technology industry")</li>
+<li><strong>Profile info:</strong> Avatar, full name, title, company, bio excerpt</li>
+<li><strong>Intent badges:</strong> Colored pills showing their intents</li>
+<li><strong>Looking for / Offering:</strong> Text displayed if present</li>
+</ul>
+
+<h4>Actions per match</h4>
+<ul>
+<li><span class="btn btn-primary">Request Meeting</span> — Opens meeting request flow</li>
+<li><span class="btn btn-outline">💬 Message</span> — Opens/creates conversation</li>
+<li><span class="btn btn-outline">⭐ Save</span> — Saves match (status → "saved")</li>
+<li><span class="btn btn-ghost">✗ Dismiss</span> — Hides match (status → "dismissed")</li>
+</ul>
+<p>Match status lifecycle: <code>suggested → viewed → saved → connected</code> or <code>dismissed</code></p>
+
+<h4>Match Discovery — <code>/dashboard/matches/discover</code></h4>
+<p>Swipe-style cards for quick accept/reject of match suggestions.</p>
+
+<!-- 22. MEETINGS -->
+<h2>22. Participant — Meetings</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]/meetings</code></p>
+
+<h4>Tabs: Upcoming | Pending | Past</h4>
+
+<h4>Meeting Card</h4>
+<ul>
+<li>Participant avatar + name + title + company</li>
+<li>Date/time, duration (e.g., "30 min")</li>
+<li>Location/room or virtual link</li>
+<li>Meeting type badge: "in-person" / "virtual"</li>
+<li>Status: <span class="badge b-amber">pending</span> / <span class="badge b-green">accepted</span> / <span class="badge b-red">declined</span> / <span class="badge b-gray">cancelled</span> / <span class="badge b-green">completed</span></li>
+<li>Agenda note (if present)</li>
+</ul>
+
+<h4>Actions</h4>
+<table>
+<tr><th>Status</th><th>Available actions</th></tr>
+<tr><td>Pending (received)</td><td><span class="btn btn-primary">Accept</span> <span class="btn btn-outline">Decline</span> (with optional reason)</td></tr>
+<tr><td>Pending (sent)</td><td><span class="btn btn-danger">Cancel</span></td></tr>
+<tr><td>Accepted</td><td><span class="btn btn-danger">Cancel</span>, view details</td></tr>
+<tr><td>Completed</td><td><span class="btn btn-outline">⭐ Rate</span> — 1-5 stars + text feedback</td></tr>
+</table>
+
+<h4>Calendar View — <code>.../meetings/calendar</code></h4>
+<p>Visual calendar with meeting time blocks. Click meeting for details.</p>
+
+<h4>Meeting Request Flow</h4>
+<ol>
+<li>Click "Request Meeting" on match/profile</li>
+<li>Optional: add agenda note text</li>
+<li>Submit → meeting status = pending</li>
+<li>Recipient gets notification</li>
+<li>Accept → auto-schedule finds mutual slot</li>
+<li>Both notified with time/location</li>
+</ol>
+
+<!-- 23. MESSAGES -->
+<h2>23. Participant — Messages</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]/messages</code></p>
+
+<h4>Left Panel: Conversation List</h4>
+<ul>
+<li>Avatar + name + last message preview + timestamp</li>
+<li>Unread indicator (blue dot / bold text)</li>
+<li>Sorted by last_message_at descending</li>
+</ul>
+
+<h4>Right Panel: Chat</h4>
+<ul>
+<li>Message bubbles (sender right, recipient left)</li>
+<li>Timestamps</li>
+<li>Read receipts (read_at)</li>
+<li>File attachments (uploaded via /api/messages/upload)</li>
+<li>System messages (meeting confirmations, etc.) in center</li>
+<li>Input bar: text field + send button + file attach button</li>
+</ul>
+
+<h4>Safety Features</h4>
+<ul>
+<li>Block user — /api/users/block</li>
+<li>Report user — /api/users/report</li>
+</ul>
+
+<!-- 24. DIRECTORY -->
+<h2>24. Participant — Directory</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]/directory</code></p>
+<ul>
+<li>Search bar (by name/company/title)</li>
+<li>Filter by: participant type, intent, industry, company</li>
+<li>Participant cards: avatar, name, title, company, intent badges</li>
+<li>Click → profile detail with all info</li>
+<li>Quick actions: <span class="btn btn-outline">💬 Message</span> <span class="btn btn-primary">Request Meeting</span></li>
+</ul>
+<p>Visibility controlled by participant type permission: <code>can_view_directory</code></p>
+
+<!-- 25. EXHIBITORS -->
+<h2>25. Participant — Exhibitors</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]/exhibitors</code></p>
+<p>Queries /api/events/[eventId]/exhibitors (companies with status="live" and exhibitor capability).</p>
+
+<h4>Directory View</h4>
+<ul>
+<li>Search input: "Search exhibitors..."</li>
+<li>Category filter dropdown (populated from exhibitor product_categories)</li>
+<li>Grid of cards: logo, name, short description, industry badge, booth number badge</li>
+</ul>
+
+<h4>Detail View (click exhibitor)</h4>
+<ul>
+<li>"← Back to exhibitors" button</li>
+<li>Banner image, logo, company name</li>
+<li>Short description, industry badge, booth number, booth type</li>
+<li><span class="btn btn-outline">🌐 Website</span> (if present)</li>
+<li>About section (long description, rendered HTML)</li>
+<li>Products &amp; Services: grid of cards with image, name, description, price</li>
+<li>Resources: downloadable files with name, type</li>
+<li>Product category tags</li>
+</ul>
+
+<!-- 26. AVAILABILITY -->
+<h2>26. Participant — Availability</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]/availability</code></p>
+<p>Time slot selector for the event duration. Pick available time blocks for meetings. Saved as JSON in participants.available_slots. Used by auto-scheduling algorithm.</p>
+
+<!-- 27. QR CODE -->
+<h2>27. Participant — QR Code &amp; Contact Exchange</h2>
+<p><strong>URL:</strong> <code>/dashboard/events/[id]/qr-code</code></p>
+<ul>
+<li>Personal QR code display (large, scannable)</li>
+<li>Encodes participant info for quick exchange</li>
+<li>Scan other participant's QR → /api/contacts/exchange</li>
+</ul>
+
+<!-- 28. PROFILE & SETTINGS -->
+<h2>28. Participant — Profile &amp; Settings</h2>
+
+<h3>Profile — <code>/dashboard/profile</code></h3>
+<table class="field-table">
+<tr><td>Full name</td><td>Text input</td></tr>
+<tr><td>Email</td><td>Display only (from auth)</td></tr>
+<tr><td>Avatar</td><td>Image upload</td></tr>
+<tr><td>Title</td><td>Text input</td></tr>
+<tr><td>Bio</td><td>Textarea</td></tr>
+<tr><td>Company name</td><td>Text input</td></tr>
+<tr><td>Company size</td><td>Select</td></tr>
+<tr><td>Company website</td><td>Text input</td></tr>
+<tr><td>Industry</td><td>Select</td></tr>
+<tr><td>Expertise areas</td><td>Multi-select tags</td></tr>
+<tr><td>Interests</td><td>Multi-select tags</td></tr>
+<tr><td>LinkedIn URL</td><td>Text input</td></tr>
+<tr><td>Twitter URL</td><td>Text input</td></tr>
+<tr><td>Website URL</td><td>Text input</td></tr>
+</table>
+
+<h3>Settings — <code>/dashboard/settings</code></h3>
+<p>Account settings, notification preferences, privacy settings.</p>
+
+<!-- 29. NOTIFICATIONS -->
+<h2>29. Notification System</h2>
+<p><strong>URL:</strong> <code>/dashboard/notifications</code></p>
+
+<table>
+<tr><th>Type</th><th>Title example</th><th>Trigger</th><th>Links to</th></tr>
+<tr><td>meeting_request</td><td>"New meeting request"</td><td>Someone requests a meeting</td><td>Meetings page</td></tr>
+<tr><td>meeting_accepted</td><td>"Meeting accepted"</td><td>Your request was accepted</td><td>Meetings page</td></tr>
+<tr><td>meeting_declined</td><td>"Meeting declined"</td><td>Your request was declined</td><td>Meetings page</td></tr>
+<tr><td>meeting_reminder</td><td>"Meeting in 30 minutes"</td><td>Upcoming meeting</td><td>Meeting detail</td></tr>
+<tr><td>meeting_cancelled</td><td>"Meeting cancelled"</td><td>Meeting was cancelled</td><td>Meetings page</td></tr>
+<tr><td>new_match</td><td>"New match suggestion"</td><td>AI generated new match</td><td>Matches page</td></tr>
+<tr><td>new_message</td><td>"New message from X"</td><td>Message received</td><td>Conversation</td></tr>
+<tr><td>event_update</td><td>"Event update"</td><td>Organizer posted update</td><td>Event page</td></tr>
+<tr><td>registration_approved</td><td>"Registration approved"</td><td>Approved for event</td><td>Event dashboard</td></tr>
+<tr><td>registration_rejected</td><td>"Registration rejected"</td><td>Rejected from event</td><td>—</td></tr>
+<tr><td>system</td><td>Varies</td><td>Platform notification</td><td>Varies</td></tr>
+</table>
+<p>Each notification: title, body, link, read status, timestamp. Mark as read on view.</p>
+
+<!-- 30. AI ENGINE -->
+<h2>30. AI &amp; Matching Engine (Technical)</h2>
+
+<h3>30.1 Intent Engine</h3>
+<p>6 intents: buying, selling, investing, partnering, learning, networking. Max 3 per participant.</p>
+<h4>Intent Compatibility Matrix</h4>
+<table>
+<tr><th></th><th>Buying</th><th>Selling</th><th>Investing</th><th>Partnering</th><th>Learning</th><th>Networking</th></tr>
+<tr><td>Buying</td><td>Low</td><td><strong>High</strong></td><td>Low</td><td>Medium</td><td>Low</td><td>Medium</td></tr>
+<tr><td>Selling</td><td><strong>High</strong></td><td>Low</td><td>Medium</td><td>Medium</td><td>Low</td><td>Medium</td></tr>
+<tr><td>Investing</td><td>Low</td><td>Medium</td><td>Low</td><td><strong>High</strong></td><td>Low</td><td>Medium</td></tr>
+<tr><td>Partnering</td><td>Medium</td><td>Medium</td><td><strong>High</strong></td><td>Medium</td><td>Medium</td><td><strong>High</strong></td></tr>
+<tr><td>Learning</td><td>Low</td><td>Low</td><td>Low</td><td>Medium</td><td>Low</td><td>Medium</td></tr>
+<tr><td>Networking</td><td>Medium</td><td>Medium</td><td>Medium</td><td><strong>High</strong></td><td>Medium</td><td>Medium</td></tr>
+</table>
+
+<h3>30.2 Embedding Generation</h3>
+<p>Model: OpenAI <code>text-embedding-3-small</code> (1536 dimensions). Input text constructed from: title, company, bio, intent, looking_for, offering, expertise areas, interests. Stored in <code>profile_embeddings</code> table using pgvector.</p>
+
+<h3>30.3 Match Scoring Algorithm</h3>
+<p>For each participant pair (A, B):</p>
+<ol>
+<li><strong>Intent Score</strong> — Computed from compatibility matrix between A's intents and B's intents</li>
+<li><strong>Industry Score</strong> — 100 if same industry, partial for related industries</li>
+<li><strong>Interest Score</strong> — Jaccard similarity of expertise areas + interests</li>
+<li><strong>Complementarity Score</strong> — Cosine similarity of embedding vectors</li>
+<li><strong>Final Score</strong> = (intent × weight) + (industry × weight) + (interest × weight) + (complementarity × weight), normalized to 0–100</li>
+</ol>
+<p>Pairs below minimum_score are discarded. Max recommendations per participant capped. Sponsor/VIP boost applied if enabled.</p>
+
+<!-- 31. DATA COLLECTION -->
+<h2>31. Data Collection by Role</h2>
+
+<h3>Organizer — Collected at onboarding</h3>
+<table class="field-table">
+<tr><td>Full name *</td><td>From signup</td></tr>
+<tr><td>Email *</td><td>From signup</td></tr>
+<tr><td>Password *</td><td>From signup (hashed by Supabase Auth)</td></tr>
+<tr><td>Job title *</td><td>Step 1 of onboarding</td></tr>
+<tr><td>Short bio</td><td>Step 1</td></tr>
+<tr><td>LinkedIn URL</td><td>Step 1</td></tr>
+<tr><td>Company name *</td><td>Step 2</td></tr>
+<tr><td>Industry *</td><td>Step 2 (select from 15 options)</td></tr>
+<tr><td>Company size</td><td>Step 2 (radio: 5 options)</td></tr>
+<tr><td>Website</td><td>Step 2</td></tr>
+<tr><td>Expertise areas *</td><td>Step 3 (multi-select from 16 tags)</td></tr>
+<tr><td>Interests</td><td>Step 3 (multi-select from 16 tags)</td></tr>
+</table>
+
+<h3>Participant — Collected at registration</h3>
+<table class="field-table">
+<tr><td>Email *</td><td>Step 1</td></tr>
+<tr><td>Password *</td><td>Step 1 (min 8 chars)</td></tr>
+<tr><td>First name *</td><td>Step 1</td></tr>
+<tr><td>Last name *</td><td>Step 1</td></tr>
+<tr><td>— OR —</td><td>OAuth via LinkedIn / Google</td></tr>
+<tr><td>Participant type</td><td>Step 2 (if event has custom types)</td></tr>
+<tr><td>Job title</td><td>Step 2</td></tr>
+<tr><td>Company</td><td>Step 2</td></tr>
+<tr><td>Intents (max 3)</td><td>Step 2 (6 options)</td></tr>
+<tr><td>What are you looking for?</td><td>Step 2</td></tr>
+<tr><td>What do you offer?</td><td>Step 2</td></tr>
+</table>
+
+<h3>Participant (from sponsor onboarding) — Collected at mode switch</h3>
+<table class="field-table">
+<tr><td>Job title</td><td>Pre-filled from profile</td></tr>
+<tr><td>Company</td><td>Auto-filled from sponsor company (disabled)</td></tr>
+<tr><td>Intents (max 3)</td><td>6 intent cards</td></tr>
+<tr><td>What are you looking for?</td><td>Text input</td></tr>
+<tr><td>What do you offer?</td><td>Text input</td></tr>
+</table>
+
+<h3>Sponsor/Exhibitor — Collected during partner onboarding</h3>
+<table class="field-table">
+<tr><td colspan="2"><strong>Account (Step 1)</strong></td></tr>
+<tr><td>Email</td><td>Pre-filled from invite</td></tr>
+<tr><td>Password</td><td>For new accounts</td></tr>
+<tr><td>Full name</td><td>Text input</td></tr>
+<tr><td colspan="2"><strong>Company Profile (Step 2)</strong></td></tr>
+<tr><td>Company name</td><td>Pre-filled from invite</td></tr>
+<tr><td>Website</td><td>URL</td></tr>
+<tr><td>Industry</td><td>Select (15 options)</td></tr>
+<tr><td>Headquarters</td><td>Text</td></tr>
+<tr><td>Short description</td><td>~150 chars for listings</td></tr>
+<tr><td>Full description</td><td>Rich text (Tiptap WYSIWYG)</td></tr>
+<tr><td colspan="2"><strong>Brand Assets (Step 3)</strong></td></tr>
+<tr><td>Logo</td><td>Image upload</td></tr>
+<tr><td>Banner</td><td>Image upload</td></tr>
+<tr><td>Brand color</td><td>Color picker</td></tr>
+<tr><td colspan="2"><strong>Sponsor Setup (Step 4, if sponsor)</strong></td></tr>
+<tr><td>Tagline</td><td>Text</td></tr>
+<tr><td>CTA buttons</td><td>Up to 3: label + URL + style</td></tr>
+<tr><td>Resources</td><td>File uploads: name + file + type</td></tr>
+<tr><td>Promo video</td><td>URL (YouTube/Vimeo)</td></tr>
+<tr><td>Sessions</td><td>Title + description + speaker name</td></tr>
+<tr><td colspan="2"><strong>Exhibitor Setup (Step 5, if exhibitor)</strong></td></tr>
+<tr><td>Booth number</td><td>Text (may be pre-filled)</td></tr>
+<tr><td>Product categories</td><td>Multi-select tags</td></tr>
+<tr><td>Products</td><td>Name + description + image + price info (multiple)</td></tr>
+<tr><td>Resources</td><td>Name + file URL + type (multiple)</td></tr>
+<tr><td colspan="2"><strong>Team (Step 6)</strong></td></tr>
+<tr><td>Per member: email, name, role</td><td>Admin/Manager/Representative/Scanner/Speaker</td></tr>
+</table>
+
+<!-- 32. DATA MODEL -->
+<h2>32. Complete Data Model</h2>
+<p>22 core tables (excluding indexes, triggers, and RLS policies):</p>
+
+<table>
+<tr><th>Table</th><th>Key Columns</th><th>Purpose</th></tr>
+<tr><td>profiles</td><td>id, full_name, email, avatar_url, title, bio, company_name, company_size, company_website, industry, expertise_areas[], interests[], linkedin_url, twitter_url, website_url, onboarding_completed, platform_role</td><td>User profiles</td></tr>
+<tr><td>organizations</td><td>id, name, slug, logo_url, website, description, created_by</td><td>Organizer workspaces</td></tr>
+<tr><td>organization_members</td><td>organization_id, user_id, role (owner/admin/manager/member)</td><td>Workspace teams</td></tr>
+<tr><td>events</td><td>id, organization_id, name, slug, description, event_type, format, status, start_date, end_date, timezone, venue_*, max_participants, registration_open, requires_approval, meeting_duration_minutes, max_meetings_per_participant, break_between_meetings, banner_url, logo_url, primary_color</td><td>Events</td></tr>
+<tr><td>participants</td><td>id, event_id, user_id, role, status, intent, intents[], looking_for, offering, tags[], available_slots (jsonb), max_meetings, checked_in, checked_in_at, participant_type_id</td><td>Event registrations</td></tr>
+<tr><td>event_participant_types</td><td>id, event_id, name, description, color, sort_order, requires_approval, can_view_directory, can_message, can_book_meetings, can_view_matches, meeting_priority_weight, max_meetings</td><td>Custom participant types</td></tr>
+<tr><td>profile_embeddings</td><td>participant_id, embedding (vector 1536), embedding_text, model</td><td>AI vectors</td></tr>
+<tr><td>matches</td><td>event_id, participant_a_id, participant_b_id, score, intent_score, industry_score, interest_score, complementarity_score, match_reasons (jsonb), status</td><td>AI match pairs</td></tr>
+<tr><td>meetings</td><td>event_id, requester_id, recipient_id, status, start_time, end_time, duration_minutes, meeting_type, location, room, virtual_link, agenda_note, decline_reason, requester_rating, recipient_rating, requester_feedback, recipient_feedback</td><td>Meetings</td></tr>
+<tr><td>conversations</td><td>event_id, participant_a_id, participant_b_id, last_message_at</td><td>Chat threads</td></tr>
+<tr><td>messages</td><td>conversation_id, sender_id, content, content_type (text/file/system), file_url, file_name, read_at</td><td>Messages</td></tr>
+<tr><td>notifications</td><td>user_id, event_id, type, title, body, link, read</td><td>Notifications</td></tr>
+<tr><td>matching_rules</td><td>event_id, intent_weight, industry_weight, interest_weight, complementarity_weight, minimum_score, max_recommendations, exclude_same_company, exclude_same_role, prioritize_sponsors, prioritize_vip</td><td>AI config</td></tr>
+<tr><td>event_pages</td><td>event_id, content (jsonb blocks), theme</td><td>Page builder</td></tr>
+<tr><td>event_page_assets</td><td>event_id, file_url, file_name</td><td>Page images</td></tr>
+<tr><td>companies</td><td>id, event_id, name, slug, capabilities[], status, website, industry, description_short, description_long, logo_url, banner_url, brand_color, team_limit</td><td>Partner companies</td></tr>
+<tr><td>sponsor_profiles</td><td>company_id, tier_id, tagline, cta_buttons (jsonb), resources (jsonb), video_url, sessions (jsonb)</td><td>Sponsor data</td></tr>
+<tr><td>exhibitor_profiles</td><td>company_id, booth_number, booth_type, product_categories[], products (jsonb), resources (jsonb), sort_order</td><td>Exhibitor data</td></tr>
+<tr><td>sponsor_tiers</td><td>event_id, name, color, rank, seat_limit, perks (jsonb)</td><td>Tier config</td></tr>
+<tr><td>company_members</td><td>company_id, user_id, email, name, role, invite_code, invite_status</td><td>Team members</td></tr>
+<tr><td>company_leads</td><td>company_id, participant_id, source, qualification, notes, tags[], resource_accessed</td><td>Lead capture</td></tr>
+<tr><td>company_analytics</td><td>company_id, date, profile_views, unique_visitors, resource_downloads, cta_clicks (jsonb), meeting_requests_received, leads_captured</td><td>Daily analytics</td></tr>
+</table>
+
+<!-- 33. API REFERENCE -->
+<h2>33. Full API Reference</h2>
+<table>
+<tr><th>Endpoint</th><th>Method</th><th>Auth</th><th>Description</th></tr>
+<tr><td><code>/api/events/register</code></td><td>POST</td><td>Public</td><td>Register for event (signup/signin mode)</td></tr>
+<tr><td><code>/api/events/register-participant</code></td><td>POST</td><td>Auth</td><td>Register authenticated user as participant</td></tr>
+<tr><td><code>/api/events/update-participant</code></td><td>POST</td><td>Auth</td><td>Update participant profile/intents</td></tr>
+<tr><td><code>/api/events/update-participant-type</code></td><td>POST</td><td>Auth</td><td>Change participant type</td></tr>
+<tr><td><code>/api/events/upload-image</code></td><td>POST</td><td>Auth</td><td>Upload event images to storage</td></tr>
+<tr><td><code>/api/events/duplicate</code></td><td>POST</td><td>Organizer</td><td>Duplicate an event</td></tr>
+<tr><td><code>/api/embeddings/generate</code></td><td>POST</td><td>Organizer</td><td>Generate OpenAI profile embeddings</td></tr>
+<tr><td><code>/api/intent/classify</code></td><td>POST</td><td>Auth</td><td>Classify participant intent</td></tr>
+<tr><td><code>/api/intent/compute</code></td><td>POST</td><td>Auth</td><td>Compute intent compatibility scores</td></tr>
+<tr><td><code>/api/matching/generate</code></td><td>POST</td><td>Organizer</td><td>Run full AI matching algorithm</td></tr>
+<tr><td><code>/api/meetings</code></td><td>GET</td><td>Auth</td><td>List meetings for user</td></tr>
+<tr><td><code>/api/meetings</code></td><td>POST</td><td>Auth</td><td>Create meeting request</td></tr>
+<tr><td><code>/api/meetings/auto-schedule</code></td><td>POST</td><td>Auth</td><td>Auto-schedule based on availability</td></tr>
+<tr><td><code>/api/meetings/reminders</code></td><td>POST</td><td>System</td><td>Send meeting reminders</td></tr>
+<tr><td><code>/api/messages/upload</code></td><td>POST</td><td>Auth</td><td>Upload message attachments</td></tr>
+<tr><td><code>/api/events/[eid]/companies</code></td><td>GET</td><td>Organizer</td><td>List partner companies</td></tr>
+<tr><td><code>/api/events/[eid]/companies</code></td><td>POST</td><td>Organizer</td><td>Create partner company</td></tr>
+<tr><td><code>/api/events/[eid]/companies/[cid]</code></td><td>GET</td><td>Organizer</td><td>Company detail</td></tr>
+<tr><td><code>/api/events/[eid]/companies/[cid]/status</code></td><td>PATCH</td><td>Organizer</td><td>Change company status</td></tr>
+<tr><td><code>/api/events/[eid]/sponsors</code></td><td>GET</td><td>Public</td><td>Public sponsor list</td></tr>
+<tr><td><code>/api/events/[eid]/exhibitors</code></td><td>GET</td><td>Public</td><td>Public exhibitor list</td></tr>
+<tr><td><code>/api/events/[eid]/sponsor-tiers</code></td><td>GET/POST</td><td>Organizer</td><td>Manage sponsor tiers</td></tr>
+<tr><td><code>/api/events/[eid]/partners/onboard/[code]</code></td><td>GET</td><td>Auth</td><td>Get onboarding data</td></tr>
+<tr><td><code>/api/events/[eid]/partners/onboard/[code]/submit</code></td><td>POST</td><td>Auth</td><td>Submit onboarding</td></tr>
+<tr><td><code>/api/partners/invite/[code]</code></td><td>GET</td><td>Public</td><td>Team invite data</td></tr>
+<tr><td><code>/api/companies/[cid]/members</code></td><td>GET</td><td>Company</td><td>List team members + seat limit</td></tr>
+<tr><td><code>/api/companies/[cid]/members</code></td><td>POST</td><td>Admin/Mgr</td><td>Invite member (seat limit enforced)</td></tr>
+<tr><td><code>/api/companies/[cid]/members</code></td><td>PATCH</td><td>Admin/Mgr</td><td>Update member role</td></tr>
+<tr><td><code>/api/companies/[cid]/members</code></td><td>DELETE</td><td>Admin/Mgr</td><td>Remove member (last-admin protected)</td></tr>
+<tr><td><code>/api/companies/[cid]/analytics</code></td><td>GET</td><td>Company</td><td>30-day analytics</td></tr>
+<tr><td><code>/api/companies/[cid]/leads</code></td><td>GET</td><td>Company</td><td>Lead list</td></tr>
+<tr><td><code>/api/companies/[cid]/leads</code></td><td>PATCH</td><td>Company</td><td>Update lead qualification</td></tr>
+<tr><td><code>/api/user/companies</code></td><td>GET</td><td>Auth</td><td>Current user's company memberships</td></tr>
+<tr><td><code>/api/agenda</code></td><td>GET/POST</td><td>Auth</td><td>Event agenda</td></tr>
+<tr><td><code>/api/agenda/schedule</code></td><td>POST</td><td>Organizer</td><td>Auto-schedule sessions</td></tr>
+<tr><td><code>/api/checkin</code></td><td>POST</td><td>Organizer</td><td>Check-in participant</td></tr>
+<tr><td><code>/api/contacts/exchange</code></td><td>POST</td><td>Auth</td><td>QR contact exchange</td></tr>
+<tr><td><code>/api/activity/track</code></td><td>POST</td><td>Auth</td><td>Track user activity</td></tr>
+<tr><td><code>/api/email</code></td><td>POST</td><td>System</td><td>Send emails</td></tr>
+<tr><td><code>/api/users/block</code></td><td>POST</td><td>Auth</td><td>Block user</td></tr>
+<tr><td><code>/api/users/report</code></td><td>POST</td><td>Auth</td><td>Report user</td></tr>
+</table>
+
+<!-- 34. SECURITY -->
+<h2>34. Security &amp; Access Control</h2>
+<table>
+<tr><th>Layer</th><th>Implementation</th></tr>
+<tr><td>Database RLS</td><td>Row Level Security on all 22+ tables. Users can only read/write authorized rows.</td></tr>
+<tr><td>Admin Client</td><td>Server-side admin client bypasses RLS for cross-user operations.</td></tr>
+<tr><td>Org Scope</td><td>Organizers can only access events in their organizations.</td></tr>
+<tr><td>Participant Permissions</td><td>Per-type control: directory, messaging, meetings, matches.</td></tr>
+<tr><td>Company Roles</td><td>5 roles (admin/manager/representative/scanner/speaker) with granular permissions: edit_company, edit_sponsor, edit_exhibitor, invite_members, view_leads, capture_leads, view_analytics, chat, manage_billing, edit_sessions.</td></tr>
+<tr><td>Middleware</td><td>Auth check on all /dashboard/* routes. Public paths: /, /auth/*, /events/*, /partners/*.</td></tr>
+<tr><td>Seat Limits</td><td>Enforced per company: team_limit column → tier seat_limit → default 5.</td></tr>
+<tr><td>Last Admin</td><td>Cannot remove the last admin from a company.</td></tr>
+<tr><td>Safety</td><td>Block &amp; report APIs for participant protection.</td></tr>
+<tr><td>Password</td><td>Min 8 chars, hashed by Supabase Auth (bcrypt).</td></tr>
+</table>
+
+<!-- 35. LIFECYCLE -->
+<h2>35. Event Lifecycle</h2>
+<div class="box">
+<ol>
+<li><strong>Organizer signs up</strong> → Account created → Platform onboarding (4 steps)</li>
+<li><strong>Creates workspace</strong> → Organization record created</li>
+<li><strong>Creates event</strong> → Event details, type, format, dates, venue, settings</li>
+<li><strong>Configures</strong> → Matching rules, participant types with permissions</li>
+<li><strong>Builds event page</strong> → Drag-and-drop editor with 13 block types, 3 themes</li>
+<li><strong>Adds partners</strong> → Creates sponsor/exhibitor companies with invite codes</li>
+<li><strong>Publishes event</strong> → Status: published, registration link active</li>
+<li><strong>Partners onboard</strong> → Complete 7-step wizard, submit for review</li>
+<li><strong>Organizer reviews</strong> → Approve/reject partners (with reason)</li>
+<li><strong>Participants register</strong> → 2-step flow via public event page</li>
+<li><strong>Organizer approves</strong> → If requires_approval, manually approve registrations</li>
+<li><strong>AI generates embeddings</strong> → OpenAI text-embedding-3-small vectors created</li>
+<li><strong>AI generates matches</strong> → 4-factor scoring algorithm runs on all pairs</li>
+<li><strong>Participants discover</strong> → View matches, save/dismiss, request meetings</li>
+<li><strong>Meetings scheduled</strong> → Auto-scheduling with mutual availability</li>
+<li><strong>Pre-event messaging</strong> → 1:1 chat with file sharing</li>
+<li><strong>Event day</strong> → QR check-in, meetings, live messaging, contact exchange</li>
+<li><strong>Post-event</strong> → Meeting ratings (1-5 stars + feedback), analytics review</li>
+<li><strong>ROI review</strong> → Sponsors/exhibitors check leads, analytics, team performance</li>
+</ol>
+</div>
+
+<!-- 36. TECH STACK -->
+<h2>36. Technical Stack</h2>
+<table>
+<tr><th>Component</th><th>Technology</th><th>Version/Detail</th></tr>
+<tr><td>Frontend Framework</td><td>Next.js (App Router)</td><td>15</td></tr>
+<tr><td>UI Library</td><td>React</td><td>19</td></tr>
+<tr><td>Language</td><td>TypeScript</td><td>Strict mode</td></tr>
+<tr><td>Styling</td><td>Tailwind CSS</td><td>Custom design system</td></tr>
+<tr><td>UI Components</td><td>shadcn/ui + Radix UI</td><td>Card, Button, Input, Badge, Select, etc.</td></tr>
+<tr><td>Database</td><td>PostgreSQL (Supabase)</td><td>+ pgvector extension</td></tr>
+<tr><td>Auth</td><td>Supabase Auth</td><td>Email/password + OAuth (Google, LinkedIn)</td></tr>
+<tr><td>Storage</td><td>Supabase Storage</td><td>Images, files, documents</td></tr>
+<tr><td>Real-time</td><td>Supabase Realtime</td><td>Messages, notifications</td></tr>
+<tr><td>AI Embeddings</td><td>OpenAI</td><td>text-embedding-3-small (1536 dimensions)</td></tr>
+<tr><td>Hosting</td><td>Vercel</td><td>Hobby plan</td></tr>
+<tr><td>Rich Text Editor</td><td>Tiptap</td><td>@tiptap/react + starter-kit + extensions</td></tr>
+<tr><td>Drag &amp; Drop</td><td>dnd-kit</td><td>Page editor, agenda</td></tr>
+<tr><td>Icons</td><td>Lucide React</td><td>Consistent icon set</td></tr>
+<tr><td>Vector Search</td><td>pgvector</td><td>Cosine similarity on 1536d embeddings</td></tr>
+</table>
+
+<div style="text-align: center; margin-top: 40pt; padding-top: 16pt; border-top: 2px solid #e5e5e5; color: #888; font-size: 8pt;">
+  <p><strong>B2Pair</strong> — AI-Powered B2B Event Matchmaking Platform</p>
+  <p>Complete Product Reference · February 2026 · Confidential</p>
+  <p>36 sections · 22+ database tables · 40+ API endpoints · 60+ pages</p>
+</div>
+
+</body>
+</html>

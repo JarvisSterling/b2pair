@@ -77,21 +77,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Process image with Sharp
+    // Upload original image without compression
     const buffer = Buffer.from(await file.arrayBuffer());
-    const config = IMAGE_CONFIGS[imageType] || IMAGE_CONFIGS.content;
-
-    const processed = await sharp(buffer)
-      .resize({ width: config.maxWidth, withoutEnlargement: true })
-      .webp({ quality: config.quality })
-      .toBuffer();
-
-    // Upload to Supabase Storage
-    const fileName = `${eventId}/${imageType}/${randomUUID()}.webp`;
+    const ext = file.type.split("/")[1] || "png";
+    const fileName = `${eventId}/${imageType}/${randomUUID()}.${ext === "jpeg" ? "jpg" : ext}`;
     const { error: uploadError } = await admin.storage
       .from("event-media")
-      .upload(fileName, processed, {
-        contentType: "image/webp",
+      .upload(fileName, buffer, {
+        contentType: file.type,
         upsert: false,
       });
 

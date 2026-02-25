@@ -13,6 +13,7 @@ import {
   Search,
 } from "lucide-react";
 import Link from "next/link";
+import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 
 export default async function ParticipantHome() {
   const supabase = await createClient();
@@ -96,6 +97,35 @@ export default async function ParticipantHome() {
     };
   }
 
+  // Check profile completion for nudge banner
+  let profileCompletion = {
+    hasLookingFor: true,
+    hasOffering: true,
+    hasCompanySize: true,
+    hasCompanyWebsite: true,
+  };
+
+  if (latestEvent) {
+    const { data: participant } = await admin
+      .from("participants")
+      .select("looking_for, offering")
+      .eq("id", latestEvent.participantId)
+      .single();
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("company_size, company_website")
+      .eq("id", user!.id)
+      .single();
+
+    profileCompletion = {
+      hasLookingFor: !!participant?.looking_for,
+      hasOffering: !!participant?.offering,
+      hasCompanySize: !!profile?.company_size,
+      hasCompanyWebsite: !!profile?.company_website,
+    };
+  }
+
   const otherEvents = events.slice(1);
   const dateFormatter = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -111,6 +141,18 @@ export default async function ParticipantHome() {
           Events you've registered for and your networking activity.
         </p>
       </div>
+
+      {/* Profile completion nudge */}
+      {latestEvent && (
+        <ProfileCompletionBanner
+          eventId={latestEvent.id}
+          participantId={latestEvent.participantId}
+          hasLookingFor={profileCompletion.hasLookingFor}
+          hasOffering={profileCompletion.hasOffering}
+          hasCompanySize={profileCompletion.hasCompanySize}
+          hasCompanyWebsite={profileCompletion.hasCompanyWebsite}
+        />
+      )}
 
       {events.length === 0 && companyEvents.length === 0 ? (
         <Card>

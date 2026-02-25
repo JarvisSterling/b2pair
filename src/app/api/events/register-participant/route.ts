@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { eventId, title, companyName, intents, lookingFor, offering } = body;
+    const { eventId, title, companyName, intents, lookingFor, offering, companySize, companyWebsite } = body;
 
     if (!eventId) {
       return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
@@ -78,10 +78,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Update profile
-    if (title || companyName) {
-      const profileUpdates: Record<string, any> = {};
-      if (title) profileUpdates.title = title;
-      if (companyName) profileUpdates.company_name = companyName;
+    const profileUpdates: Record<string, any> = {};
+    if (title) profileUpdates.title = title;
+    if (companyName) profileUpdates.company_name = companyName;
+    if (companySize) profileUpdates.company_size = companySize;
+    if (companyWebsite) profileUpdates.company_website = companyWebsite;
+    if (Object.keys(profileUpdates).length > 0) {
       await admin.from("profiles").update(profileUpdates).eq("id", user.id);
     }
 

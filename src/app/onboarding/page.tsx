@@ -141,16 +141,9 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Check if profile already says participant
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("platform_role")
-        .eq("id", user.id)
-        .single();
-      if (profile?.platform_role === "participant") {
-        router.push("/onboarding/participant");
-        return;
-      }
+      // NOTE: Don't check profile.platform_role here because the DB default
+      // is 'participant', which would redirect ALL new signups to participant
+      // onboarding before they've even chosen their role.
     }
     checkParticipantStatus();
   }, []);

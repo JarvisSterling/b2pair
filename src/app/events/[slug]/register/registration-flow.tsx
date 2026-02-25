@@ -528,7 +528,7 @@ export function RegistrationFlow({
 
             {/* ── STEP 2: Profile ── */}
             {currentStep === 2 && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">Complete your profile</h1>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -586,10 +586,10 @@ export function RegistrationFlow({
 
                 {/* Required fields */}
                 <div>
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-4">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
                     Required
                   </p>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium mb-1.5 block">
                         Job title <span className="text-destructive">*</span>
@@ -619,7 +619,7 @@ export function RegistrationFlow({
                       <p className="text-xs text-muted-foreground mb-3">
                         Select up to 3. This helps us find the right people for you.
                       </p>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {INTENTS.map((intent) => {
                           const selected = selectedIntents.includes(intent.key);
                           return (
@@ -636,35 +636,32 @@ export function RegistrationFlow({
                                 );
                               }}
                               className={cn(
-                                "rounded-lg border p-3 text-left transition-all",
+                                "rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
                                 selected
-                                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                                  : "border-border hover:border-primary/30",
+                                  ? "border-primary bg-primary/5 text-primary ring-1 ring-primary/20"
+                                  : "border-border text-foreground hover:border-primary/30",
                                 !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
                               )}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="text-base">{intent.emoji}</span>
-                                <span className="font-medium text-sm">{intent.label}</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5 ml-7">{intent.desc}</p>
+                              {selected && <Check className="mr-1 inline h-3 w-3" />}
+                              {intent.label}
                             </button>
                           );
                         })}
                       </div>
                       {selectedIntents.length >= 3 && (
-                        <p className="text-xs text-muted-foreground mt-2">Maximum 3 selections.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Maximum 3 selections.</p>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* Optional fields */}
-                <div className="border-t border-border pt-5">
+                <div className="border-t border-border pt-4">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                     Optional
                   </p>
-                  <p className="text-xs text-muted-foreground mb-4">
+                  <p className="text-xs text-muted-foreground mb-3">
                     These fields are optional but strongly improve your match quality.
                   </p>
 
@@ -675,7 +672,7 @@ export function RegistrationFlow({
                       size="sm"
                       onClick={handleSuggest}
                       disabled={suggesting}
-                      className="w-full text-xs mb-4"
+                      className="w-full text-xs mb-3"
                     >
                       {suggesting ? (
                         <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

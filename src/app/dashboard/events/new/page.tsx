@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_BANNER_URL, DEFAULT_BANNER_LAYOUT, DEFAULT_BANNER_SETTINGS } from "@/types/event-pages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -217,6 +218,9 @@ export default function NewEventPage() {
         meeting_duration_minutes: parseInt(data.meetingDuration),
         max_meetings_per_participant: parseInt(data.maxMeetingsPerParticipant),
         break_between_meetings: parseInt(data.breakBetweenMeetings),
+        banner_url: DEFAULT_BANNER_URL,
+        banner_layout: DEFAULT_BANNER_LAYOUT,
+        banner_settings: DEFAULT_BANNER_SETTINGS,
         created_by: user.id,
         status: "draft",
       })
@@ -243,9 +247,9 @@ export default function NewEventPage() {
     });
 
     // Seed default event pages and theme
-    const { DEFAULT_PAGES } = await import("@/types/event-pages");
+    const { getDefaultPages } = await import("@/types/event-pages");
     await supabase.from("event_pages").insert(
-      DEFAULT_PAGES.map((p) => ({ ...p, event_id: event.id }))
+      getDefaultPages(data.name).map((p) => ({ ...p, event_id: event.id }))
     );
     await supabase.from("event_themes").insert({
       event_id: event.id,

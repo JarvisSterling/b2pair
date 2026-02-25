@@ -232,85 +232,122 @@ export const THEMES: ThemeDefinition[] = [
 ];
 
 // Default pages seeded on event creation
-export const DEFAULT_PAGES: Omit<EventPage, "id" | "event_id" | "created_at" | "updated_at">[] = [
-  {
-    slug: "home",
-    title: "Home",
-    page_type: "home",
-    is_default: true,
-    is_visible: true,
-    sort_order: 0,
-    content: [],
-    seo_title: null,
-    seo_description: null,
-    og_image_url: null,
-  },
-  {
-    slug: "info",
-    title: "Info",
-    page_type: "info",
-    is_default: true,
-    is_visible: true,
-    sort_order: 1,
-    content: [
-      {
-        id: "info-default-1",
-        type: "rich-text",
-        content: "<p>Add details about your event here.</p>",
-      },
-    ],
-    seo_title: null,
-    seo_description: null,
-    og_image_url: null,
-  },
-  {
-    slug: "network-guide",
-    title: "Network Guide",
-    page_type: "network_guide",
-    is_default: true,
-    is_visible: true,
-    sort_order: 2,
-    content: [
-      {
-        id: "ng-default-1",
-        type: "rich-text",
-        content:
-          "<h2>How Matchmaking Works</h2><p>Our AI analyzes your profile, interests, and goals to recommend the most relevant connections.</p><h3>Tips for Better Matches</h3><ul><li>Complete your profile with detailed information</li><li>Set your intent clearly (buying, selling, partnering)</li><li>Add specific interest tags</li><li>Set your availability early</li></ul>",
-      },
-    ],
-    seo_title: null,
-    seo_description: null,
-    og_image_url: null,
-  },
-  {
-    slug: "faq",
-    title: "FAQ",
-    page_type: "faq",
-    is_default: true,
-    is_visible: true,
-    sort_order: 3,
-    content: [
-      {
-        id: "faq-default-1",
-        type: "faq",
-        items: [
-          {
-            question: "How do I register?",
-            answer: "Click the Register button on the Home page and fill in your details.",
-          },
-          {
-            question: "How does the matchmaking work?",
-            answer: "Our AI analyzes participant profiles and recommends connections based on shared interests, complementary goals, and industry alignment.",
-          },
-          {
-            question: "Can I schedule meetings?",
-            answer: "Yes! Once registered, you can request meetings with other participants through the platform.",
-          },
-        ],
-      },
-    ],
-    seo_title: null,
-    seo_description: null,
-    og_image_url: null,
-  },
-];
+export const DEFAULT_BANNER_URL = "https://eemeremqmqsqsxioycka.supabase.co/storage/v1/object/public/event-media/defaults/banner.jpg";
+export const DEFAULT_HERO_URL = "https://eemeremqmqsqsxioycka.supabase.co/storage/v1/object/public/event-media/defaults/hero.jpg";
+export const DEFAULT_BANNER_LAYOUT = "split";
+export const DEFAULT_BANNER_SETTINGS = { blur: 4, bgOpacity: 100 };
+
+/**
+ * Returns default pages with the event name injected into template content.
+ * Used when seeding pages for a new event.
+ */
+export function getDefaultPages(eventName: string): Omit<EventPage, "id" | "event_id" | "created_at" | "updated_at">[] {
+  return [
+    {
+      slug: "home",
+      title: "Home",
+      page_type: "home",
+      is_default: true,
+      is_visible: true,
+      sort_order: 0,
+      content: [
+        {
+          id: "home-welcome",
+          type: "rich-text",
+          content: `<h2 style="text-align: left;"><strong>Welcome to ${eventName}!</strong></h2><p style="text-align: left;"></p><p style="text-align: left;">We're excited to bring together thought leaders, innovators, and enthusiasts for days of inspiring keynote talks, panel discussions, and networking opportunities.</p><p style="text-align: left;"></p><p style="text-align: left;">This year's event will be packed with experts who will share their insights and knowledge on the latest trends and developments.</p><p style="text-align: left;"></p><p style="text-align: left;">Whether you're looking to find new partners, explore business opportunities, or expand your network, ${eventName} is the place to be.</p><p style="text-align: left;">Join us as we explore the latest trends, connect with like-minded individuals, and gain practical knowledge that you can apply to your work or personal life.</p><p style="text-align: left;"></p><p style="text-align: left;">Register now to secure your spot and join us for an unforgettable experience!</p>`,
+          background: "accent",
+        },
+        {
+          id: "home-highlights",
+          type: "rich-text",
+          content: `<p style="text-align: left;"><strong>HIGHLIGHTS OF THE EVENT</strong></p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Networking opportunities:</strong> Meet and connect with like-minded individuals, as well as experts in your field. Make valuable connections that can help you grow your career or business.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Knowledge sharing:</strong> Expert speakers share their insights and knowledge. Get new ideas, perspectives, and strategies that you can apply to your work or personal life.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Inspiration:</strong> Get inspired with new ideas and motivation to achieve your goals.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Stay up-to-date with industry trends:</strong> Discover the latest products, services, innovations and trends. Stay informed about what's new and what's on the horizon.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Build brand awareness:</strong> If you're a business owner or entrepreneur, this is a great way to build brand awareness and connect with potential customers or clients.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Access to experts and thought leaders:</strong> Gain access to experts and thought leaders at the forefront of their field and learn from their experiences and insights.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Collaborate with others:</strong> Meet potential partners, collaborators, and share ideas and insights.</p>`,
+          background: "accent",
+        },
+        {
+          id: "home-hero",
+          type: "hero",
+          title: eventName,
+          subtitle: "Welcome to our event",
+          ctaLabel: "Learn More",
+          ctaHref: "",
+          overlay: "dark",
+          alignment: "center",
+          backgroundUrl: DEFAULT_HERO_URL,
+        },
+      ],
+      seo_title: null,
+      seo_description: null,
+      og_image_url: null,
+    },
+    {
+      slug: "info",
+      title: "Info",
+      page_type: "info",
+      is_default: true,
+      is_visible: true,
+      sort_order: 1,
+      content: [
+        {
+          id: "info-default-1",
+          type: "rich-text",
+          content: `<p style="text-align: left;"><strong>1-on-1 Meetings: Turn Connections into Partnerships</strong></p><p style="text-align: left;">B2Pair matches you with the right people before, during, and after events. The better your profile, the better your matches. Here's how to get the most out of it.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Register for the Event</strong></p><p style="text-align: left;">Hit Register on the event page to join. It takes less than a minute.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Build a Profile That Works for You</strong></p><p style="text-align: left;">Your profile is how other participants find you. Fill in your job title, company, and what you're here for (buying, selling, partnering, investing, learning, or networking). Add what you're looking for and what you offer. Our AI matching engine uses all of this to connect you with the most relevant people, so the more you share, the sharper your matches.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Discover Who's Attending</strong></p><p style="text-align: left;">Browse the participant directory, filter by industry or intent, or check your AI-powered match recommendations. Every match comes with a compatibility score and clear reasons why you'd be a good fit, so you can focus your time on conversations that actually matter.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Showcase What You Bring to the Table</strong></p><p style="text-align: left;">Sponsors and exhibitors can set up full company profiles with products, services, resources, and CTAs. Even as a regular participant, a detailed profile with clear offerings makes you more visible and more likely to receive meeting requests from the right people.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Start Connecting Before the Event</strong></p><p style="text-align: left;">Don't wait for the day. Send a message or request a 1-on-1 meeting as soon as you see a promising match. When you send a request, include a short note about what you'd like to discuss. It makes a big difference in acceptance rates. The best outcomes come from people who start early and come prepared.</p>`,
+        },
+      ],
+      seo_title: null,
+      seo_description: null,
+      og_image_url: null,
+    },
+    {
+      slug: "network-guide",
+      title: "Network Guide",
+      page_type: "network_guide",
+      is_default: true,
+      is_visible: true,
+      sort_order: 2,
+      content: [
+        {
+          id: "ng-default-1",
+          type: "rich-text",
+          content: `<p style="text-align: left;"><strong>Networking Guide</strong></p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Before the Event</strong></p><p style="text-align: left;">Complete your profile. Your title, company, intents, and what you're looking for. Better profiles get better matches.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Check your AI matches.</strong></p><p style="text-align: left;">Browse your recommended matches, pick the most promising ones, and send meeting requests early. Include a short note about what you'd like to discuss. Slots fill up fast.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>During the Event</strong></p><p style="text-align: left;">Come prepared. Review each person's profile before you sit down. Know what they do, what they need, and where you might fit.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Listen more than you pitch.</strong></p><p style="text-align: left;">Ask what they're working on. Find the overlap. If there's a fit, agree on a concrete next step. If not, no problem.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>Take quick notes after each meeting.</strong></p><p style="text-align: left;">You'll forget details faster than you think.</p><p style="text-align: left;"></p><p style="text-align: left;"><strong>After the Event</strong></p><p style="text-align: left;">Follow up within 48 hours. Reference your conversation, confirm the next step you agreed on. Keep it short and specific.</p>`,
+        },
+      ],
+      seo_title: null,
+      seo_description: null,
+      og_image_url: null,
+    },
+    {
+      slug: "faq",
+      title: "FAQ",
+      page_type: "faq",
+      is_default: true,
+      is_visible: true,
+      sort_order: 3,
+      content: [
+        {
+          id: "faq-default-1",
+          type: "faq",
+          items: [
+            {
+              question: "How do I register?",
+              answer: "Click the Register button on the Home page and fill in your details.",
+            },
+            {
+              question: "How does the matchmaking work?",
+              answer: "Our AI analyzes participant profiles and recommends connections based on shared interests, complementary goals, and industry alignment.",
+            },
+            {
+              question: "Can I schedule meetings?",
+              answer: "Yes! Once registered, you can request meetings with other participants through the platform.",
+            },
+          ],
+        },
+      ],
+      seo_title: null,
+      seo_description: null,
+      og_image_url: null,
+    },
+  ];
+}
+
+/** @deprecated Use getDefaultPages(eventName) instead */
+export const DEFAULT_PAGES: Omit<EventPage, "id" | "event_id" | "created_at" | "updated_at">[] = getDefaultPages("Your Event");

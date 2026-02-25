@@ -37,7 +37,7 @@ import type {
   BlockType,
   PageType,
 } from "@/types/event-pages";
-import { DEFAULT_PAGES } from "@/types/event-pages";
+import { getDefaultPages } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
 import { randomId } from "@/lib/utils";
 
@@ -82,7 +82,7 @@ export function FullScreenEditor({
   useEffect(() => {
     async function seedPages() {
       if (pages.length > 0) return;
-      const toInsert = DEFAULT_PAGES.map((p) => ({
+      const toInsert = getDefaultPages(event.name).map((p) => ({
         ...p,
         event_id: event.id,
       }));

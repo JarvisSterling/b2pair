@@ -15,6 +15,7 @@ import {
   Settings2,
 } from "lucide-react";
 import Link from "next/link";
+import { DEFAULT_BANNER_URL, DEFAULT_BANNER_LAYOUT, DEFAULT_BANNER_SETTINGS } from "@/types/event-pages";
 
 const EVENT_TYPES = [
   { value: "conference", label: "Conference", desc: "Multi-session event with speakers and panels" },
@@ -122,6 +123,9 @@ export default function NewEventInWorkspace() {
         visibility: data.visibility,
         meeting_duration_minutes: parseInt(data.meetingDuration) || 30,
         break_between_meetings: parseInt(data.breakBetweenMeetings) || 5,
+        banner_url: DEFAULT_BANNER_URL,
+        banner_layout: DEFAULT_BANNER_LAYOUT,
+        banner_settings: DEFAULT_BANNER_SETTINGS,
         created_by: user.id,
       })
       .select("id")

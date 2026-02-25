@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,11 +77,14 @@ export default function AgendaBuilderPage() {
   const params = useParams();
   const eventId = params.eventId as string;
 
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [speakers, setSpeakers] = useState<Speaker[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: agendaData, isLoading: loading, mutate: mutateAgenda } = useSWRFetch<{
+    tracks: Track[]; sessions: Session[]; speakers: Speaker[]; rooms: Room[];
+  }>(`/api/agenda?eventId=${eventId}`);
+
+  const tracks = agendaData?.tracks || [];
+  const sessions = agendaData?.sessions || [];
+  const speakers = agendaData?.speakers || [];
+  const rooms = agendaData?.rooms || [];
 
   // UI state
   const [activeTab, setActiveTab] = useState<"sessions" | "speakers" | "tracks" | "rooms">("sessions");
@@ -115,20 +119,6 @@ export default function AgendaBuilderPage() {
 
   const [trackForm, setTrackForm] = useState({ name: "", color: "#0071E3", description: "" });
   const [roomForm, setRoomForm] = useState({ name: "", capacity: "", location_note: "" });
-
-  const loadAgenda = useCallback(async () => {
-    const res = await fetch(`/api/agenda?eventId=${eventId}`);
-    const data = await res.json();
-    setTracks(data.tracks || []);
-    setSessions(data.sessions || []);
-    setSpeakers(data.speakers || []);
-    setRooms(data.rooms || []);
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => {
-    loadAgenda();
-  }, [loadAgenda]);
 
   function resetSessionForm() {
     setSessionForm({
@@ -205,7 +195,7 @@ export default function AgendaBuilderPage() {
       });
     }
 
-    await loadAgenda();
+    mutateAgenda();
     resetSessionForm();
     setSaving(false);
   }
@@ -234,7 +224,7 @@ export default function AgendaBuilderPage() {
       });
     }
 
-    await loadAgenda();
+    mutateAgenda();
     resetSpeakerForm();
     setSaving(false);
   }
@@ -247,7 +237,7 @@ export default function AgendaBuilderPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "track", event_id: eventId, ...trackForm }),
     });
-    await loadAgenda();
+    mutateAgenda();
     setTrackForm({ name: "", color: "#0071E3", description: "" });
     setShowTrackForm(false);
     setSaving(false);
@@ -267,7 +257,7 @@ export default function AgendaBuilderPage() {
         location_note: roomForm.location_note || null,
       }),
     });
-    await loadAgenda();
+    mutateAgenda();
     setRoomForm({ name: "", capacity: "", location_note: "" });
     setShowRoomForm(false);
     setSaving(false);
@@ -276,7 +266,7 @@ export default function AgendaBuilderPage() {
   async function handleDelete(type: string, id: string) {
     setDeleting(id);
     await fetch(`/api/agenda?type=${type}&id=${id}`, { method: "DELETE" });
-    await loadAgenda();
+    mutateAgenda();
     setDeleting(null);
   }
 

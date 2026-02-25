@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import useSWR from "swr";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,10 +55,8 @@ function formatTime(t: string): string {
 }
 
 export default function AvailabilityPage() {
-  const [events, setEvents] = useState<EventOption[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [slots, setSlots] = useState<Slot[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [dragging, setDragging] = useState<{
@@ -68,10 +67,42 @@ export default function AvailabilityPage() {
 
   const supabase = createClient();
 
+  // SWR: load user's events with caching
+  const { data: events = [], isLoading: loading } = useSWR<EventOption[]>(
+    "availability-events",
+    async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: participants } = await supabase
+        .from("participants")
+        .select("id, event_id, events!inner(id, name, start_date, end_date)")
+        .eq("user_id", user.id)
+        .eq("status", "approved");
+
+      if (!participants?.length) return [];
+
+      return participants.map((p: any) => ({
+        id: p.events.id,
+        name: p.events.name,
+        start_date: p.events.start_date,
+        end_date: p.events.end_date,
+        participant_id: p.id,
+      }));
+    },
+    { revalidateOnFocus: false }
+  );
+
+  // Auto-select first event when loaded
   useEffect(() => {
-    loadEvents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (events.length && !selectedEvent) {
+      setSelectedEvent(events[0].id);
+      const startDate = events[0].start_date ? new Date(events[0].start_date) : new Date();
+      startDate.setHours(0, 0, 0, 0);
+      startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
+      setWeekStart(startDate);
+    }
+  }, [events, selectedEvent]);
 
   useEffect(() => {
     if (selectedEvent && weekStart) loadSlots();
@@ -90,37 +121,6 @@ export default function AvailabilityPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent]);
-
-  async function loadEvents() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: participants } = await supabase
-      .from("participants")
-      .select("id, event_id, events!inner(id, name, start_date, end_date)")
-      .eq("user_id", user.id)
-      .eq("status", "approved");
-
-    if (participants?.length) {
-      const evts = participants.map((p: any) => ({
-        id: p.events.id,
-        name: p.events.name,
-        start_date: p.events.start_date,
-        end_date: p.events.end_date,
-        participant_id: p.id,
-      }));
-      setEvents(evts);
-      setSelectedEvent(evts[0].id);
-      // Default to the event's start week
-      const startDate = evts[0].start_date ? new Date(evts[0].start_date) : new Date();
-      startDate.setHours(0, 0, 0, 0);
-      startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7)); // Monday of that week
-      setWeekStart(startDate);
-    }
-    setLoading(false);
-  }
 
   async function loadSlots() {
     if (!weekStart) return;

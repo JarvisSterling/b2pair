@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
+import { useRealtime } from "@/hooks/use-realtime";
 import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,10 +49,21 @@ export default function PartnersPage() {
   const params = useParams();
   const eventId = params.eventId as string;
 
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [tiers, setTiers] = useState<SponsorTier[]>([]);
+  const { data: companiesData, isLoading: companiesLoading, mutate: mutateCompanies } = useSWRFetch<{ companies: Company[] }>(`/api/events/${eventId}/companies`);
+  const { data: tiersData, isLoading: tiersLoading, mutate: mutateTiers } = useSWRFetch<{ tiers: SponsorTier[] }>(`/api/events/${eventId}/sponsor-tiers`);
+
+  const companies = companiesData?.companies || [];
+  const tiers = tiersData?.tiers || [];
+  const loading = companiesLoading || tiersLoading;
+
+  // Real-time: re-fetch when companies change for this event
+  useRealtime({
+    table: "companies",
+    filter: { event_id: eventId },
+    onChanged: () => mutateCompanies(),
+  });
+
   const [eventSlug, setEventSlug] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>("sponsors");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -77,20 +90,6 @@ export default function PartnersPage() {
   const sponsors = companies.filter((c) => c.capabilities.includes("sponsor"));
   const exhibitors = companies.filter((c) => c.capabilities.includes("exhibitor"));
 
-  const loadData = useCallback(async () => {
-    const [companiesRes, tiersRes] = await Promise.all([
-      fetch(`/api/events/${eventId}/companies`),
-      fetch(`/api/events/${eventId}/sponsor-tiers`),
-    ]);
-
-    const companiesData = await companiesRes.json();
-    const tiersData = await tiersRes.json();
-
-    setCompanies(companiesData.companies || []);
-    setTiers(tiersData.tiers || []);
-    setLoading(false);
-  }, [eventId]);
-
   // Load event slug for invite links
   useEffect(() => {
     async function loadEventSlug() {
@@ -101,8 +100,6 @@ export default function PartnersPage() {
     }
     loadEventSlug();
   }, [eventId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   async function addSponsor() {
     if (!sponsorForm.name || !sponsorForm.contact_email) return;
@@ -121,7 +118,7 @@ export default function PartnersPage() {
       }),
     });
     if (res.ok) {
-      await loadData();
+      mutateCompanies(); mutateTiers();
       setSponsorForm({ name: "", contact_email: "", tier_id: "", team_limit: "", company_size: "", website: "" });
       setShowAddSponsor(false);
     }
@@ -146,7 +143,7 @@ export default function PartnersPage() {
       }),
     });
     if (res.ok) {
-      await loadData();
+      mutateCompanies(); mutateTiers();
       setExhibitorForm({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
       setShowAddExhibitor(false);
     }
@@ -161,7 +158,7 @@ export default function PartnersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(tierForm),
     });
-    await loadData();
+    mutateCompanies(); mutateTiers();
     setTierForm({ name: "", color: "#6366f1", rank: tiers.length + 1, seat_limit: 5, perks: {} });
     setShowAddTier(false);
     setSaving(false);
@@ -174,7 +171,7 @@ export default function PartnersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, rejection_reason: reason }),
     });
-    await loadData();
+    mutateCompanies(); mutateTiers();
     setShowRejectModal(null);
     setRejectionReason("");
     setSaving(false);
@@ -183,14 +180,14 @@ export default function PartnersPage() {
   async function deleteCompany(id: string) {
     setDeleting(id);
     await fetch(`/api/events/${eventId}/companies/${id}`, { method: "DELETE" });
-    await loadData();
+    mutateCompanies(); mutateTiers();
     setDeleting(null);
   }
 
   async function deleteTier(id: string) {
     setDeleting(id);
     await fetch(`/api/events/${eventId}/sponsor-tiers?id=${id}`, { method: "DELETE" });
-    await loadData();
+    mutateCompanies(); mutateTiers();
     setDeleting(null);
   }
 

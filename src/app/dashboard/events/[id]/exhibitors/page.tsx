@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -41,25 +42,21 @@ export default function ParticipantExhibitorsPage() {
   const params = useParams();
   const eventId = params.id as string;
 
-  const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [selected, setSelected] = useState<Exhibitor | null>(null);
 
-  const loadData = useCallback(async () => {
-    const queryParams = new URLSearchParams();
-    if (search) queryParams.set("search", search);
-    if (category) queryParams.set("category", category);
-    const res = await fetch(`/api/events/${eventId}/exhibitors?${queryParams}`);
-    const data = await res.json();
-    setExhibitors(data.exhibitors || []);
-    setCategories(data.categories || []);
-    setLoading(false);
-  }, [eventId, search, category]);
+  const queryParams = new URLSearchParams();
+  if (search) queryParams.set("search", search);
+  if (category) queryParams.set("category", category);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const { data: exhibitorData, isLoading: loading } = useSWRFetch<{ exhibitors: Exhibitor[]; categories: string[] }>(
+    `/api/events/${eventId}/exhibitors?${queryParams}`,
+    { keepPreviousData: true }
+  );
+
+  const exhibitors = exhibitorData?.exhibitors || [];
+  const categories = exhibitorData?.categories || [];
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

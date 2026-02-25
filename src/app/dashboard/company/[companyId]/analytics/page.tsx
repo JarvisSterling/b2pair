@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
+import { useRealtime } from "@/hooks/use-realtime";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Loader2,
@@ -51,17 +52,15 @@ interface StatCard {
 export default function CompanyAnalyticsPage() {
   const params = useParams();
   const companyId = params.companyId as string;
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
-    const res = await fetch(`/api/companies/${companyId}/analytics?days=30`);
-    const data = await res.json();
-    setAnalytics(data);
-    setLoading(false);
-  }, [companyId]);
+  const { data: analytics, isLoading: loading, mutate } = useSWRFetch<Analytics>(`/api/companies/${companyId}/analytics?days=30`);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // Real-time: refresh when analytics data changes
+  useRealtime({
+    table: "company_analytics",
+    filter: { company_id: companyId },
+    onChanged: () => mutate(),
+  });
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

@@ -34,110 +34,78 @@ export default async function AnalyticsDashboard({ params }: PageProps) {
 
   if (!event) notFound();
 
-  // --- Participant stats ---
-  const { count: totalParticipants } = await supabase
-    .from("participants")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
+  // --- All queries in parallel ---
+  const [
+    { count: totalParticipants },
+    { count: approvedParticipants },
+    { count: pendingParticipants },
+    { count: rejectedParticipants },
+    { data: typeBreakdown },
+    { data: allParticipants },
+    { count: totalMatches },
+    { count: acceptedMatches },
+    { count: savedMatches },
+    { count: dismissedMatches },
+    { data: matchScores },
+    { count: totalMeetings },
+    { count: pendingMeetings },
+    { count: acceptedMeetings },
+    { count: declinedMeetings },
+    { count: completedMeetings },
+    { count: noShowMeetings },
+    { data: ratingData },
+    { count: totalConversations },
+    { count: totalMessages },
+    { data: topParticipants },
+  ] = await Promise.all([
+    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "approved"),
+    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "pending"),
+    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "rejected"),
+    supabase.from("event_participant_types").select("id, name, color").eq("event_id", eventId).order("sort_order"),
+    supabase.from("participants").select("role, intent, participant_type_id, status").eq("event_id", eventId).eq("status", "approved"),
+    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "accepted"),
+    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "saved"),
+    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "dismissed"),
+    supabase.from("matches").select("score").eq("event_id", eventId),
+    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "pending"),
+    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "accepted"),
+    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "declined"),
+    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "completed"),
+    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "no_show"),
+    supabase.from("meetings").select("requester_rating, recipient_rating").eq("event_id", eventId).not("requester_rating", "is", null),
+    supabase.from("conversations").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    supabase.from("messages").select("*, conversations!inner(event_id)", { count: "exact", head: true }).eq("conversations.event_id", eventId),
+    supabase.from("matches").select(`score, participant_a:participants!matches_participant_a_id_fkey(profiles!inner(full_name, company_name)), participant_b:participants!matches_participant_b_id_fkey(profiles!inner(full_name, company_name))`).eq("event_id", eventId).order("score", { ascending: false }).limit(5),
+  ]);
 
-  const { count: approvedParticipants } = await supabase
-    .from("participants")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "approved");
+  // Compute breakdowns from the single allParticipants query
+  const approvedList = allParticipants || [];
 
-  const { count: pendingParticipants } = await supabase
-    .from("participants")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "pending");
-
-  const { count: rejectedParticipants } = await supabase
-    .from("participants")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "rejected");
-
-  // Participant breakdown by type
-  const { data: typeBreakdown } = await supabase
-    .from("event_participant_types")
-    .select("id, name, color")
-    .eq("event_id", eventId)
-    .order("sort_order");
-
-  const typeCounts = await Promise.all(
-    (typeBreakdown || []).map(async (t: any) => {
-      const { count } = await supabase
-        .from("participants")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId)
-        .eq("participant_type_id", t.id)
-        .eq("status", "approved");
-      return { ...t, count: count || 0 };
-    })
-  );
-
-  // Participant breakdown by role
-  const { data: roleData } = await supabase
-    .from("participants")
-    .select("role")
-    .eq("event_id", eventId)
-    .eq("status", "approved");
+  const typeCounts = (typeBreakdown || []).map((t: any) => ({
+    ...t,
+    count: approvedList.filter((p: any) => p.participant_type_id === t.id).length,
+  }));
 
   const roleCounts: Record<string, number> = {};
-  (roleData || []).forEach((p: any) => {
+  approvedList.forEach((p: any) => {
     const role = p.role || "unspecified";
     roleCounts[role] = (roleCounts[role] || 0) + 1;
   });
 
-  // Participant breakdown by intent
-  const { data: intentData } = await supabase
-    .from("participants")
-    .select("intent")
-    .eq("event_id", eventId)
-    .eq("status", "approved");
-
   const intentCounts: Record<string, number> = {};
-  (intentData || []).forEach((p: any) => {
+  approvedList.forEach((p: any) => {
     const intent = p.intent || "unspecified";
     intentCounts[intent] = (intentCounts[intent] || 0) + 1;
   });
 
-  // --- Match stats ---
-  const { count: totalMatches } = await supabase
-    .from("matches")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  const { count: acceptedMatches } = await supabase
-    .from("matches")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "accepted");
-
-  const { count: savedMatches } = await supabase
-    .from("matches")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "saved");
-
-  const { count: dismissedMatches } = await supabase
-    .from("matches")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "dismissed");
-
-  // Average match score
-  const { data: matchScores } = await supabase
-    .from("matches")
-    .select("score")
-    .eq("event_id", eventId);
-
+  // Match stats
   const avgScore = matchScores?.length
     ? Math.round(matchScores.reduce((sum, m) => sum + m.score, 0) / matchScores.length)
     : 0;
 
-  // Top match score
   const topScore = matchScores?.length
     ? Math.round(Math.max(...matchScores.map((m) => m.score)))
     : 0;
@@ -146,49 +114,7 @@ export default async function AnalyticsDashboard({ params }: PageProps) {
     ? Math.round(((acceptedMatches || 0) / (totalMatches || 1)) * 100)
     : 0;
 
-  // --- Meeting stats ---
-  const { count: totalMeetings } = await supabase
-    .from("meetings")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  const { count: pendingMeetings } = await supabase
-    .from("meetings")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "pending");
-
-  const { count: acceptedMeetings } = await supabase
-    .from("meetings")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "accepted");
-
-  const { count: declinedMeetings } = await supabase
-    .from("meetings")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "declined");
-
-  const { count: completedMeetings } = await supabase
-    .from("meetings")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "completed");
-
-  const { count: noShowMeetings } = await supabase
-    .from("meetings")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "no_show");
-
-  // Meeting ratings
-  const { data: ratingData } = await supabase
-    .from("meetings")
-    .select("requester_rating, recipient_rating")
-    .eq("event_id", eventId)
-    .not("requester_rating", "is", null);
-
+  // Meeting stats
   const allRatings = [
     ...(ratingData || []).map((m) => m.requester_rating).filter(Boolean),
     ...(ratingData || []).map((m) => m.recipient_rating).filter(Boolean),
@@ -201,33 +127,6 @@ export default async function AnalyticsDashboard({ params }: PageProps) {
   const meetingAcceptRate = totalMeetings
     ? Math.round(((acceptedMeetings || 0) + (completedMeetings || 0)) / (totalMeetings || 1) * 100)
     : 0;
-
-  // --- Messaging stats ---
-  const { count: totalConversations } = await supabase
-    .from("conversations")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  const { count: totalMessages } = await supabase
-    .from("messages")
-    .select("*, conversations!inner(event_id)", { count: "exact", head: true })
-    .eq("conversations.event_id", eventId);
-
-  // --- Top matched participants ---
-  const { data: topParticipants } = await supabase
-    .from("matches")
-    .select(`
-      score,
-      participant_a:participants!matches_participant_a_id_fkey(
-        profiles!inner(full_name, company_name)
-      ),
-      participant_b:participants!matches_participant_b_id_fkey(
-        profiles!inner(full_name, company_name)
-      )
-    `)
-    .eq("event_id", eventId)
-    .order("score", { ascending: false })
-    .limit(5);
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-in">

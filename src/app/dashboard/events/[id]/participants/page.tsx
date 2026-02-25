@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { useRealtime } from "@/hooks/use-realtime";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,33 +61,34 @@ const ROLE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
 
 export default function ParticipantsPage() {
   const eventId = useEventId();
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: participants = [], isLoading: loading, mutate } = useSWR<Participant[]>(
+    eventId ? `participants-${eventId}` : null,
+    async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("participants")
+        .select(`
+          id, role, status, intent, created_at,
+          profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, linkedin_url, company_website, expertise_areas)
+        `)
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: false });
+      return (data || []) as unknown as Participant[];
+    },
+    { revalidateOnFocus: true, dedupingInterval: 2000 }
+  );
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [updating, setUpdating] = useState<string | null>(null);
   const [selected, setSelected] = useState<Participant | null>(null);
 
-  const loadParticipants = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("participants")
-      .select(`
-        id, role, status, intent, created_at,
-        profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, linkedin_url, company_website, expertise_areas)
-      `)
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: false });
-
-    if (data) {
-      setParticipants(data as unknown as Participant[]);
-    }
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => {
-    loadParticipants();
-  }, [loadParticipants]);
+  // Real-time: refresh when participants change for this event
+  useRealtime({
+    table: "participants",
+    filter: { event_id: eventId },
+    onChanged: () => mutate(),
+  });
 
   async function updateStatus(participantId: string, status: "approved" | "rejected") {
     setUpdating(participantId);
@@ -96,8 +99,10 @@ export default function ParticipantsPage() {
       .update({ status })
       .eq("id", participantId);
 
-    setParticipants((prev) =>
-      prev.map((p) => (p.id === participantId ? { ...p, status } : p))
+    // Optimistic update + revalidate
+    mutate(
+      participants.map((p) => (p.id === participantId ? { ...p, status } : p)),
+      { revalidate: true }
     );
     setUpdating(null);
   }

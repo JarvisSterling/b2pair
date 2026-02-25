@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
@@ -27,26 +28,30 @@ interface EventSettings {
 export default function EventSettingsPage() {
   const router = useRouter();
   const eventId = useEventId();
+  const { data: eventData, isLoading: loading, mutate } = useSWR(
+    eventId ? `event-settings-${eventId}` : null,
+    async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("events")
+        .select("id, name, description, status, max_participants, requires_approval, meeting_duration_minutes, max_meetings_per_participant, break_between_meetings, registration_open, primary_color")
+        .eq("id", eventId)
+        .single();
+      return data as EventSettings | null;
+    },
+    { revalidateOnFocus: false }
+  );
+
   const [event, setEvent] = useState<EventSettings | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const loadEvent = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("events")
-      .select("id, name, description, status, max_participants, requires_approval, meeting_duration_minutes, max_meetings_per_participant, break_between_meetings, registration_open, primary_color")
-      .eq("id", eventId)
-      .single();
-
-    if (data) setEvent(data as EventSettings);
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => {
-    loadEvent();
-  }, [loadEvent]);
+  // Sync SWR data to local state for form editing
+  const [initialized, setInitialized] = useState(false);
+  if (eventData && !initialized) {
+    setEvent(eventData);
+    setInitialized(true);
+  }
 
   async function handleSave() {
     if (!event) return;

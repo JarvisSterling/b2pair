@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useSWRFetch, useSWRMultiFetch } from "@/hooks/use-swr-fetch";
+import { useRealtime } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,47 +51,36 @@ export default function CompanyDashboardPage() {
   const params = useParams();
   const companyId = params.companyId as string;
 
-  const [company, setCompany] = useState<CompanyInfo | null>(null);
-  const [stats, setStats] = useState({ profile_views: 0, unique_visitors: 0, resource_downloads: 0, meeting_requests_received: 0, leads_captured: 0, cta_clicks_total: 0 });
-  const [capabilities, setCapabilities] = useState<string[]>([]);
-  const [memberCount, setMemberCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  // Fetch all data with SWR (instant cache + background revalidation)
+  const { data: companyJson } = useSWRFetch<{ memberships: any[] }>(`/api/user/companies`);
+  const { data: analyticsData, mutate: mutateAnalytics } = useSWRFetch<any>(`/api/companies/${companyId}/analytics?days=30`);
+  const { data: membersData } = useSWRFetch<any>(`/api/companies/${companyId}/members`);
 
-  const loadData = useCallback(async () => {
-    const [companyRes, analyticsRes, membersRes] = await Promise.all([
-      fetch(`/api/user/companies`),
-      fetch(`/api/companies/${companyId}/analytics?days=30`),
-      fetch(`/api/companies/${companyId}/members`),
-    ]);
+  const membership = (companyJson?.memberships || []).find((m: any) => m.company_id === companyId);
+  const company: CompanyInfo | null = membership ? {
+    id: membership.company_id,
+    name: membership.company_name,
+    slug: membership.company_slug,
+    status: membership.company_status,
+    capabilities: membership.capabilities,
+    logo_url: membership.company_logo,
+    event_id: membership.event_id,
+    event_name: membership.event_name,
+    event_slug: membership.event_slug,
+    team_limit: null,
+  } : null;
 
-    const companyJson = await companyRes.json();
-    const membership = (companyJson.memberships || []).find((m: any) => m.company_id === companyId);
-    if (membership) {
-      setCompany({
-        id: membership.company_id,
-        name: membership.company_name,
-        slug: membership.company_slug,
-        status: membership.company_status,
-        capabilities: membership.capabilities,
-        logo_url: membership.company_logo,
-        event_id: membership.event_id,
-        event_name: membership.event_name,
-        event_slug: membership.event_slug,
-        team_limit: null,
-      });
-    }
+  const stats = analyticsData?.totals || { profile_views: 0, unique_visitors: 0, resource_downloads: 0, meeting_requests_received: 0, leads_captured: 0, cta_clicks_total: 0 };
+  const capabilities = analyticsData?.capabilities || [];
+  const memberCount = membersData ? (Array.isArray(membersData) ? membersData.length : (membersData.members || []).length) : 0;
+  const loading = !companyJson;
 
-    const analyticsData = await analyticsRes.json();
-    setStats(analyticsData.totals || stats);
-    setCapabilities(analyticsData.capabilities || []);
-
-    const membersData = await membersRes.json();
-    setMemberCount(Array.isArray(membersData) ? membersData.length : (membersData.members || []).length);
-
-    setLoading(false);
-  }, [companyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
+  // Real-time: refresh analytics when company_analytics changes
+  useRealtime({
+    table: "company_analytics",
+    filter: { company_id: companyId },
+    onChanged: () => mutateAnalytics(),
+  });
 
   if (loading) {
     return (

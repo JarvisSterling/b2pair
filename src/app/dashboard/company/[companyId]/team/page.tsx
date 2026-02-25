@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
+import { useRealtime } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,9 +48,10 @@ export default function CompanyTeamPage() {
   const params = useParams();
   const companyId = params.companyId as string;
 
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [seatLimit, setSeatLimit] = useState(5);
-  const [loading, setLoading] = useState(true);
+  const { data: membersData, isLoading: loading, mutate } = useSWRFetch<{ members: TeamMember[]; seat_limit: number }>(`/api/companies/${companyId}/members`);
+  const members = membersData?.members || [];
+  const seatLimit = membersData?.seat_limit || 5;
+
   const [showInvite, setShowInvite] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -57,15 +60,12 @@ export default function CompanyTeamPage() {
 
   const [inviteForm, setInviteForm] = useState({ name: "", email: "", role: "representative" });
 
-  const loadData = useCallback(async () => {
-    const res = await fetch(`/api/companies/${companyId}/members`);
-    const data = await res.json();
-    setMembers(data.members || []);
-    setSeatLimit(data.seat_limit || 5);
-    setLoading(false);
-  }, [companyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
+  // Real-time: refresh when team members change
+  useRealtime({
+    table: "company_members",
+    filter: { company_id: companyId },
+    onChanged: () => mutate(),
+  });
 
   async function inviteMember() {
     if (!inviteForm.name || !inviteForm.email) return;
@@ -85,7 +85,7 @@ export default function CompanyTeamPage() {
       return;
     }
 
-    await loadData();
+    mutate();
     setInviteForm({ name: "", email: "", role: "representative" });
     setShowInvite(false);
     setSaving(false);
@@ -94,7 +94,7 @@ export default function CompanyTeamPage() {
   async function removeMember(memberId: string) {
     setDeleting(memberId);
     await fetch(`/api/companies/${companyId}/members?id=${memberId}`, { method: "DELETE" });
-    await loadData();
+    mutate();
     setDeleting(null);
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useSWRMultiFetch } from "@/hooks/use-swr-fetch";
 import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,33 +54,26 @@ interface Room {
 
 export default function ParticipantAgendaPage() {
   const eventId = useEventId();
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [savedSessionIds, setSavedSessionIds] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: agendaData, isLoading: loading, mutate } = useSWRMultiFetch(
+    eventId ? `agenda-${eventId}` : null,
+    [`/api/agenda?eventId=${eventId}`, `/api/agenda/schedule?eventId=${eventId}`],
+    ([agenda, schedule]) => ({
+      tracks: agenda.tracks || [],
+      sessions: agenda.sessions || [],
+      rooms: agenda.rooms || [],
+      savedSessionIds: schedule.sessionIds || [],
+    })
+  );
+
+  const tracks: Track[] = agendaData?.tracks || [];
+  const sessions: Session[] = agendaData?.sessions || [];
+  const rooms: Room[] = agendaData?.rooms || [];
+  const [localSavedIds, setLocalSavedIds] = useState<string[] | null>(null);
+  const savedSessionIds = localSavedIds ?? agendaData?.savedSessionIds ?? [];
+
   const [toggling, setToggling] = useState<string | null>(null);
   const [filterTrack, setFilterTrack] = useState<string>("all");
   const [filterView, setFilterView] = useState<"all" | "my-schedule">("all");
-
-  const loadData = useCallback(async () => {
-    const [agendaRes, scheduleRes] = await Promise.all([
-      fetch(`/api/agenda?eventId=${eventId}`),
-      fetch(`/api/agenda/schedule?eventId=${eventId}`),
-    ]);
-    const agenda = await agendaRes.json();
-    const schedule = await scheduleRes.json();
-
-    setTracks(agenda.tracks || []);
-    setSessions(agenda.sessions || []);
-    setRooms(agenda.rooms || []);
-    setSavedSessionIds(schedule.sessionIds || []);
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   async function toggleSession(sessionId: string) {
     setToggling(sessionId);
@@ -90,9 +84,10 @@ export default function ParticipantAgendaPage() {
     });
     const { saved } = await res.json();
 
-    setSavedSessionIds((prev) =>
-      saved ? [...prev, sessionId] : prev.filter((id) => id !== sessionId)
-    );
+    setLocalSavedIds((prev) => {
+      const current = prev ?? savedSessionIds;
+      return saved ? [...current, sessionId] : current.filter((id: string) => id !== sessionId);
+    });
     setToggling(null);
   }
 
@@ -279,7 +274,9 @@ export default function ParticipantAgendaPage() {
                                     className="flex items-center gap-1.5 text-caption"
                                   >
                                     {ss.speaker.avatar_url ? (
-                                      <SafeImage src={ss.speaker.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" width={20} height={20} />
+                                      <SafeImage src={ss.speaker.avatar_url}
+ alt=""
+ className="h-5 w-5 rounded-full object-cover" width={20} height={20} />
                                     ) : (
                                       <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-medium">
                                         {ss.speaker.full_name[0]}

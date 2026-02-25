@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,10 +43,13 @@ export default function CheckInDashboard() {
   const params = useParams();
   const eventId = params.eventId as string;
 
-  const [totalParticipants, setTotalParticipants] = useState(0);
-  const [checkedInCount, setCheckedInCount] = useState(0);
-  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: checkinData, isLoading: loading, mutate } = useSWRFetch<{
+    totalParticipants: number; checkedInCount: number; checkIns: CheckIn[];
+  }>(`/api/checkin?eventId=${eventId}`);
+
+  const totalParticipants = checkinData?.totalParticipants || 0;
+  const checkedInCount = checkinData?.checkedInCount || 0;
+  const checkIns = checkinData?.checkIns || [];
 
   // Scan mode
   const [mode, setMode] = useState<"scan" | "search">("scan");
@@ -62,18 +66,7 @@ export default function CheckInDashboard() {
 
   const scanInputRef = useRef<HTMLInputElement>(null);
 
-  const loadData = useCallback(async () => {
-    const res = await fetch(`/api/checkin?eventId=${eventId}`);
-    const data = await res.json();
-    setTotalParticipants(data.totalParticipants);
-    setCheckedInCount(data.checkedInCount);
-    setCheckIns(data.checkIns || []);
-    setLoading(false);
-  }, [eventId]);
-
   useEffect(() => {
-    loadData();
-
     // Real-time updates
     const supabase = createClient();
     const channel = supabase
@@ -81,12 +74,12 @@ export default function CheckInDashboard() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "check_ins", filter: `event_id=eq.${eventId}` },
-        () => loadData()
+        () => mutate()
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [loadData, eventId]);
+  }, [mutate, eventId]);
 
   // Auto-focus scan input
   useEffect(() => {
@@ -115,8 +108,8 @@ export default function CheckInDashboard() {
         participant: data.participant,
       });
       if (!data.alreadyCheckedIn) {
-        setCheckedInCount((c) => c + 1);
-        loadData();
+        mutate();
+        mutate();
       }
     } else {
       setLastResult({ success: false, alreadyCheckedIn: false, participant: null });
@@ -171,7 +164,7 @@ export default function CheckInDashboard() {
     });
 
     if (res.ok) {
-      loadData();
+      mutate();
       handleSearch(); // Refresh search results
     }
     setProcessing(false);
@@ -179,7 +172,7 @@ export default function CheckInDashboard() {
 
   async function undoCheckIn(checkInId: string) {
     await fetch(`/api/checkin?id=${checkInId}`, { method: "DELETE" });
-    loadData();
+    mutate();
   }
 
   const checkedInPct = totalParticipants > 0

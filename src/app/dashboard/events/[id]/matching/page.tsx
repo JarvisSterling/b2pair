@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,8 +29,62 @@ interface MatchingRules {
 
 export default function MatchingRulesPage() {
   const eventId = useEventId();
+  // SWR: load matching rules + stats with caching
+  const { data: matchingData, isLoading: loading, mutate } = useSWR(
+    eventId ? `matching-rules-${eventId}` : null,
+    async () => {
+      const supabase = createClient();
+
+      const [rulesRes, participantsRes] = await Promise.all([
+        supabase.from("matching_rules").select("*").eq("event_id", eventId).single(),
+        supabase.from("participants").select("id, intent_vector, intent_confidence, ai_intent_classification").eq("event_id", eventId).eq("status", "approved"),
+      ]);
+
+      let rules = rulesRes.data as MatchingRules | null;
+
+      // Create default rules if none exist
+      if (!rules) {
+        const { data: newRules } = await supabase
+          .from("matching_rules")
+          .insert({
+            event_id: eventId,
+            intent_weight: 0.35,
+            industry_weight: 0.25,
+            interest_weight: 0.25,
+            complementarity_weight: 0.15,
+            minimum_score: 0.3,
+            max_recommendations: 20,
+            exclude_same_company: true,
+            exclude_same_role: false,
+            prioritize_sponsors: false,
+            prioritize_vip: false,
+          })
+          .select()
+          .single();
+        rules = newRules as MatchingRules | null;
+      }
+
+      // Embedding count
+      const pIds = (participantsRes.data || []).map((p: any) => p.id);
+      const { count: embCount } = pIds.length > 0
+        ? await supabase.from("profile_embeddings").select("id", { count: "exact", head: true }).in("participant_id", pIds)
+        : { count: 0 };
+
+      // Intent stats
+      const allP = participantsRes.data || [];
+      const intentStats = {
+        total: allP.length,
+        withVector: allP.filter((p: any) => p.intent_vector && Object.keys(p.intent_vector).length > 0 && p.intent_confidence > 0).length,
+        highConfidence: allP.filter((p: any) => p.intent_confidence >= 50).length,
+        withAI: allP.filter((p: any) => p.ai_intent_classification && Object.keys(p.ai_intent_classification).length > 0).length,
+      };
+
+      return { rules, embeddingCount: embCount || 0, intentStats };
+    },
+    { revalidateOnFocus: false }
+  );
+
   const [rules, setRules] = useState<MatchingRules | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
@@ -40,68 +95,14 @@ export default function MatchingRulesPage() {
   const [classifyingAI, setClassifyingAI] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
 
-  const loadRules = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("matching_rules")
-      .select("*")
-      .eq("event_id", eventId)
-      .single();
-
-    // Check existing embedding count
-    const { count: embCount } = await supabase
-      .from("profile_embeddings")
-      .select("id", { count: "exact", head: true })
-      .in(
-        "participant_id",
-        (await supabase.from("participants").select("id").eq("event_id", eventId).eq("status", "approved")).data?.map((p: any) => p.id) || []
-      );
-    setEmbeddingCount(embCount || 0);
-
-    // Load intent data quality stats
-    const { data: allParticipants } = await supabase
-      .from("participants")
-      .select("id, intent_vector, intent_confidence, ai_intent_classification")
-      .eq("event_id", eventId)
-      .eq("status", "approved");
-
-    if (allParticipants) {
-      const withVector = allParticipants.filter((p: any) => p.intent_vector && Object.keys(p.intent_vector).length > 0 && p.intent_confidence > 0).length;
-      const highConfidence = allParticipants.filter((p: any) => p.intent_confidence >= 50).length;
-      const withAI = allParticipants.filter((p: any) => p.ai_intent_classification && Object.keys(p.ai_intent_classification).length > 0).length;
-      setIntentStats({ total: allParticipants.length, withVector, highConfidence, withAI });
-    }
-
-    if (data) {
-      setRules(data as MatchingRules);
-    } else {
-      // Create default rules
-      const { data: newRules } = await supabase
-        .from("matching_rules")
-        .insert({
-          event_id: eventId,
-          intent_weight: 0.35,
-          industry_weight: 0.25,
-          interest_weight: 0.25,
-          complementarity_weight: 0.15,
-          minimum_score: 0.3,
-          max_recommendations: 20,
-          exclude_same_company: true,
-          exclude_same_role: false,
-          prioritize_sponsors: false,
-          prioritize_vip: false,
-        })
-        .select()
-        .single();
-
-      if (newRules) setRules(newRules as MatchingRules);
-    }
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => {
-    loadRules();
-  }, [loadRules]);
+  // Sync SWR data into local state for form editing
+  const [initialized, setInitialized] = useState(false);
+  if (matchingData && !initialized) {
+    setRules(matchingData.rules);
+    setEmbeddingCount(matchingData.embeddingCount);
+    setIntentStats(matchingData.intentStats);
+    setInitialized(true);
+  }
 
   async function handleSave() {
     if (!rules) return;
@@ -395,7 +396,7 @@ export default function MatchingRulesPage() {
                     const data = await res.json();
                     if (data.success) {
                       // Reload stats
-                      loadRules();
+                      mutate();
                     }
                   } finally {
                     setComputingIntents(false);
@@ -426,7 +427,7 @@ export default function MatchingRulesPage() {
                     const data = await res.json();
                     if (data.success) {
                       setAiResult(`Classified ${data.classified} of ${data.total} participants`);
-                      loadRules(); // Refresh stats
+                      mutate(); // Refresh stats
                     } else {
                       setAiResult(`Error: ${data.error}`);
                     }

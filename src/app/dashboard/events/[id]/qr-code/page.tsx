@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useEventId } from "@/hooks/use-event-id";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, QrCode, CheckCircle2 } from "lucide-react";
@@ -9,21 +9,13 @@ import { SafeImage } from "@/components/ui/safe-image";
 
 export default function MyQRCodePage() {
   const eventId = useEventId();
-  const [token, setToken] = useState<string | null>(null);
-  const [checkedIn, setCheckedIn] = useState(false);
-  const [checkedInAt, setCheckedInAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: qrData, isLoading: loading } = useSWRFetch<{ token: string | null; checkedIn: boolean; checkedInAt: string | null }>(
+    eventId ? `/api/checkin?eventId=${eventId}&mode=my-qr` : null
+  );
 
-  const loadQR = useCallback(async () => {
-    const res = await fetch(`/api/checkin?eventId=${eventId}&mode=my-qr`);
-    const data = await res.json();
-    setToken(data.token);
-    setCheckedIn(data.checkedIn);
-    setCheckedInAt(data.checkedInAt);
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => { loadQR(); }, [loadQR]);
+  const token = qrData?.token || null;
+  const checkedIn = qrData?.checkedIn || false;
+  const checkedInAt = qrData?.checkedInAt || null;
 
   if (loading) {
     return (
@@ -69,7 +61,11 @@ export default function MyQRCodePage() {
 
             {qrUrl ? (
               <div className={`p-4 bg-white rounded-xl ${checkedIn ? "opacity-50" : ""}`}>
-                <SafeImage src={qrUrl} alt="QR Code" className="w-64 h-64" width={256} height={256} />
+                <SafeImage src={qrUrl}
+ alt="QR Code"
+ className="w-64 h-64"
+ width={256}
+ height={256} />
               </div>
             ) : (
               <div className="flex flex-col items-center py-8">

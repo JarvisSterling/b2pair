@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { useRealtime } from "@/hooks/use-realtime";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
@@ -88,10 +90,7 @@ export default function EventMatchesPage() {
   const router = useRouter();
   const perms = useParticipantPerms(eventId);
   const track = useActivityTracker(eventId);
-  const [matches, setMatches] = useState<MatchEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "saved">("all");
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -103,69 +102,69 @@ export default function EventMatchesPage() {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSent, setRequestSent] = useState<string | null>(null);
 
-  const loadMatches = useCallback(async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  // SWR: fetch matches with caching
+  const { data: matchData, isLoading: loading, mutate } = useSWR(
+    eventId ? `matches-${eventId}` : null,
+    async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { matches: [] as MatchEntry[], myParticipantId: null };
 
-    const { data: myParticipant } = await supabase
-      .from("participants")
-      .select("id")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single();
+      const { data: myParticipant } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .single();
 
-    if (!myParticipant) {
-      setLoading(false);
-      return;
-    }
+      if (!myParticipant) return { matches: [] as MatchEntry[], myParticipantId: null };
 
-    setMyParticipantId(myParticipant.id);
+      const [{ data: matchesA }, { data: matchesB }] = await Promise.all([
+        supabase
+          .from("matches")
+          .select(`
+            id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status,
+            participant_b:participants!matches_participant_b_id_fkey(
+              id, role, intent,
+              profiles!inner(full_name, avatar_url, title, company_name, industry, bio, expertise_areas)
+            )
+          `)
+          .eq("event_id", eventId)
+          .eq("participant_a_id", myParticipant.id)
+          .order("score", { ascending: false }),
+        supabase
+          .from("matches")
+          .select(`
+            id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status,
+            participant_a:participants!matches_participant_a_id_fkey(
+              id, role, intent,
+              profiles!inner(full_name, avatar_url, title, company_name, industry, bio, expertise_areas)
+            )
+          `)
+          .eq("event_id", eventId)
+          .eq("participant_b_id", myParticipant.id)
+          .order("score", { ascending: false }),
+      ]);
 
-    const { data: matchesA } = await supabase
-      .from("matches")
-      .select(`
-        id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status,
-        participant_b:participants!matches_participant_b_id_fkey(
-          id, role, intent,
-          profiles!inner(full_name, avatar_url, title, company_name, industry, bio, expertise_areas)
-        )
-      `)
-      .eq("event_id", eventId)
-      .eq("participant_a_id", myParticipant.id)
-      .order("score", { ascending: false });
+      const combined: MatchEntry[] = [
+        ...(matchesA || []).map((m: any) => ({ ...m, other_participant: m.participant_b })),
+        ...(matchesB || []).map((m: any) => ({ ...m, other_participant: m.participant_a })),
+      ].sort((a, b) => b.score - a.score);
 
-    const { data: matchesB } = await supabase
-      .from("matches")
-      .select(`
-        id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status,
-        participant_a:participants!matches_participant_a_id_fkey(
-          id, role, intent,
-          profiles!inner(full_name, avatar_url, title, company_name, industry, bio, expertise_areas)
-        )
-      `)
-      .eq("event_id", eventId)
-      .eq("participant_b_id", myParticipant.id)
-      .order("score", { ascending: false });
+      return { matches: combined, myParticipantId: myParticipant.id };
+    },
+    { revalidateOnFocus: true, dedupingInterval: 2000 }
+  );
 
-    const combined: MatchEntry[] = [
-      ...(matchesA || []).map((m: any) => ({
-        ...m,
-        other_participant: m.participant_b,
-      })),
-      ...(matchesB || []).map((m: any) => ({
-        ...m,
-        other_participant: m.participant_a,
-      })),
-    ].sort((a, b) => b.score - a.score);
+  const matches = matchData?.matches || [];
+  const myParticipantId = matchData?.myParticipantId || null;
 
-    setMatches(combined);
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => {
-    loadMatches();
-  }, [loadMatches]);
+  // Real-time: refresh when matches change for this event
+  useRealtime({
+    table: "matches",
+    filter: { event_id: eventId },
+    onChanged: () => mutate(),
+  });
 
   async function handleGenerate() {
     setGenerating(true);
@@ -176,24 +175,26 @@ export default function EventMatchesPage() {
     });
 
     if (res.ok) {
-      await loadMatches();
+      mutate();
     }
     setGenerating(false);
   }
 
   async function updateMatchStatus(matchId: string, status: "saved" | "dismissed" | "pending") {
     const supabase = createClient();
+    const match = matches.find((m) => m.id === matchId);
+    if (match) {
+      if (status === "saved") track("match_saved", match.other_participant?.id);
+      if (status === "dismissed") track("match_dismissed", match.other_participant?.id);
+    }
     await supabase.from("matches").update({ status }).eq("id", matchId);
-    setMatches((prev) =>
-      prev.map((m) => {
-        if (m.id === matchId) {
-          // Track the action
-          if (status === "saved") track("match_saved", m.other_participant?.id);
-          if (status === "dismissed") track("match_dismissed", m.other_participant?.id);
-          return { ...m, status };
-        }
-        return m;
-      })
+    // Optimistic update + revalidate
+    mutate(
+      matchData ? {
+        ...matchData,
+        matches: matchData.matches.map((m) => m.id === matchId ? { ...m, status } : m),
+      } : undefined,
+      { revalidate: true }
     );
   }
 

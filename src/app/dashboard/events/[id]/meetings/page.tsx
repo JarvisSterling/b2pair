@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
@@ -62,8 +63,73 @@ export default function EventMeetingsPage() {
   const requestParticipantId = searchParams.get("request");
   const perms = useParticipantPerms(eventId);
 
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true);
+  // SWR: cached meeting data with background revalidation
+  const { data: meetingsResult, isLoading: loading, mutate } = useSWR(
+    eventId ? `meetings-${eventId}` : null,
+    async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [] as Meeting[];
+
+      const { data: myParticipant } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (!myParticipant) return [] as Meeting[];
+
+      const [{ data: asRequester }, { data: asRecipient }] = await Promise.all([
+        supabase
+          .from("meetings")
+          .select(`
+            id, event_id, status, start_time, duration_minutes, meeting_type, location,
+            agenda_note, decline_reason, requester_rating, recipient_rating, created_at,
+            recipient:participants!meetings_recipient_id_fkey(
+              id, profiles!inner(full_name, avatar_url, title, company_name)
+            )
+          `)
+          .eq("event_id", eventId)
+          .eq("requester_id", myParticipant.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("meetings")
+          .select(`
+            id, event_id, status, start_time, duration_minutes, meeting_type, location,
+            agenda_note, decline_reason, requester_rating, recipient_rating, created_at,
+            requester:participants!meetings_requester_id_fkey(
+              id, profiles!inner(full_name, avatar_url, title, company_name)
+            )
+          `)
+          .eq("event_id", eventId)
+          .eq("recipient_id", myParticipant.id)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      const combined: Meeting[] = [
+        ...(asRequester || []).map((m: any) => ({
+          ...m,
+          is_requester: true,
+          other_person: m.recipient?.profiles
+            ? { id: m.recipient.id, ...m.recipient.profiles }
+            : { id: null, full_name: "Unknown", avatar_url: null, title: null, company_name: null },
+        })),
+        ...(asRecipient || []).map((m: any) => ({
+          ...m,
+          is_requester: false,
+          other_person: m.requester?.profiles
+            ? { id: m.requester.id, ...m.requester.profiles }
+            : { id: null, full_name: "Unknown", avatar_url: null, title: null, company_name: null },
+        })),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return combined;
+    },
+    { revalidateOnFocus: true, dedupingInterval: 2000 }
+  );
+
+  const meetings = meetingsResult || [];
   const [filter, setFilter] = useState<string>("all");
   const [updating, setUpdating] = useState<string | null>(null);
   const [ratingMeeting, setRatingMeeting] = useState<string | null>(null);
@@ -82,22 +148,20 @@ export default function EventMeetingsPage() {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
+  // Real-time subscription for meeting updates
   useEffect(() => {
-    loadMeetings();
-
-    // Real-time subscription for meeting updates
     const supabase = createClient();
     const channel = supabase
       .channel("meetings-realtime")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "meetings", filter: `event_id=eq.${eventId}` },
-        () => loadMeetings()
+        () => mutate()
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [eventId]);
+  }, [eventId, mutate]);
 
   // Handle ?request= query param
   useEffect(() => {
@@ -141,7 +205,7 @@ export default function EventMeetingsPage() {
 
     if (res.ok) {
       setRequestSent(true);
-      loadMeetings();
+      mutate();
       setTimeout(() => {
         setShowRequestModal(false);
         setRequestTarget(null);
@@ -151,75 +215,6 @@ export default function EventMeetingsPage() {
     }
 
     setSendingRequest(false);
-  }
-
-  async function loadMeetings() {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: myParticipant } = await supabase
-      .from("participants")
-      .select("id")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!myParticipant) {
-      setLoading(false);
-      return;
-    }
-
-    const { data: asRequester } = await supabase
-      .from("meetings")
-      .select(`
-        id, event_id, status, start_time, duration_minutes, meeting_type, location,
-        agenda_note, decline_reason, requester_rating, recipient_rating, created_at,
-        recipient:participants!meetings_recipient_id_fkey(
-          id, profiles!inner(full_name, avatar_url, title, company_name)
-        )
-      `)
-      .eq("event_id", eventId)
-      .eq("requester_id", myParticipant.id)
-      .order("created_at", { ascending: false });
-
-    const { data: asRecipient } = await supabase
-      .from("meetings")
-      .select(`
-        id, event_id, status, start_time, duration_minutes, meeting_type, location,
-        agenda_note, decline_reason, requester_rating, recipient_rating, created_at,
-        requester:participants!meetings_requester_id_fkey(
-          id, profiles!inner(full_name, avatar_url, title, company_name)
-        )
-      `)
-      .eq("event_id", eventId)
-      .eq("recipient_id", myParticipant.id)
-      .order("created_at", { ascending: false });
-
-    const combined: Meeting[] = [
-      ...(asRequester || []).map((m: any) => ({
-        ...m,
-        is_requester: true,
-        other_person: m.recipient?.profiles
-          ? { id: m.recipient.id, ...m.recipient.profiles }
-          : { id: null, full_name: "Unknown", avatar_url: null, title: null, company_name: null },
-      })),
-      ...(asRecipient || []).map((m: any) => ({
-        ...m,
-        is_requester: false,
-        other_person: m.requester?.profiles
-          ? { id: m.requester.id, ...m.requester.profiles }
-          : { id: null, full_name: "Unknown", avatar_url: null, title: null, company_name: null },
-      })),
-    ].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-
-    setMeetings(combined);
-    setLoading(false);
   }
 
   async function handleResponse(
@@ -232,8 +227,10 @@ export default function EventMeetingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ meetingId, status }),
     });
-    setMeetings((prev) =>
-      prev.map((m) => (m.id === meetingId ? { ...m, status } : m))
+    // Optimistic update + revalidate
+    mutate(
+      meetings.map((m) => (m.id === meetingId ? { ...m, status } : m)),
+      { revalidate: true }
     );
     setUpdating(null);
   }
@@ -247,7 +244,7 @@ export default function EventMeetingsPage() {
     });
     setRatingMeeting(null);
     setSelectedRating(0);
-    loadMeetings();
+    mutate();
   }
 
   const filtered = meetings.filter((m) => {
@@ -345,7 +342,9 @@ export default function EventMeetingsPage() {
                 <CardContent className="pt-5 pb-5">
                   <div className="flex items-start gap-4">
                     {other.avatar_url ? (
-                      <SafeImage src={other.avatar_url} alt={other.full_name} className="h-11 w-11 rounded-full object-cover shrink-0" width={400} height={200} />
+                      <SafeImage src={other.avatar_url}
+ alt={other.full_name}
+ className="h-11 w-11 rounded-full object-cover shrink-0" width={400} height={200} />
                     ) : (
                       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary text-caption font-medium shrink-0">
                         {initials}

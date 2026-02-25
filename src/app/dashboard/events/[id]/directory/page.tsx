@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import useSWR from "swr";
+import { useRealtime } from "@/hooks/use-realtime";
 import { createClient } from "@/lib/supabase/client";
 import { useEventId } from "@/hooks/use-event-id";
 import { useParticipantPerms } from "@/hooks/use-participant-perms";
@@ -64,73 +66,69 @@ export default function DirectoryPage() {
   const router = useRouter();
   const perms = useParticipantPerms(eventId);
   const track = useActivityTracker(eventId);
-  const [entries, setEntries] = useState<DirectoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: entries = [], isLoading: loading, mutate } = useSWR<DirectoryEntry[]>(
+    eventId ? `directory-${eventId}` : null,
+    async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { data } = await supabase
+        .from("participants")
+        .select(`
+          id, role, intent, tags, company_role,
+          profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas),
+          company:companies(name, logo_url, capabilities)
+        `)
+        .eq("event_id", eventId)
+        .eq("status", "approved")
+        .neq("role", "organizer")
+        .order("created_at", { ascending: false });
+
+      if (!data) return [];
+
+      let entriesWithScores = data as unknown as DirectoryEntry[];
+
+      if (user) {
+        const { data: myP } = await supabase
+          .from("participants")
+          .select("id")
+          .eq("event_id", eventId)
+          .eq("user_id", user.id)
+          .single();
+
+        if (myP) {
+          const [{ data: matchesA }, { data: matchesB }] = await Promise.all([
+            supabase.from("matches").select("participant_b_id, score").eq("event_id", eventId).eq("participant_a_id", myP.id),
+            supabase.from("matches").select("participant_a_id, score").eq("event_id", eventId).eq("participant_b_id", myP.id),
+          ]);
+
+          const scoreMap = new Map<string, number>();
+          (matchesA || []).forEach((m: any) => scoreMap.set(m.participant_b_id, m.score));
+          (matchesB || []).forEach((m: any) => scoreMap.set(m.participant_a_id, m.score));
+
+          entriesWithScores = entriesWithScores.map((e) => ({
+            ...e,
+            matchScore: scoreMap.get(e.id),
+          }));
+        }
+      }
+
+      return entriesWithScores;
+    },
+    { revalidateOnFocus: true, dedupingInterval: 2000 }
+  );
+
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [industryFilter, setIndustryFilter] = useState("all");
   const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
 
-  const loadEntries = useCallback(async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { data } = await supabase
-      .from("participants")
-      .select(`
-        id, role, intent, tags, company_role,
-        profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas),
-        company:companies(name, logo_url, capabilities)
-      `)
-      .eq("event_id", eventId)
-      .eq("status", "approved")
-      .neq("role", "organizer")
-      .order("created_at", { ascending: false });
-
-    if (!data) { setLoading(false); return; }
-
-    let entriesWithScores = data as unknown as DirectoryEntry[];
-
-    // Load match scores in background
-    if (user) {
-      const { data: myP } = await supabase
-        .from("participants")
-        .select("id")
-        .eq("event_id", eventId)
-        .eq("user_id", user.id)
-        .single();
-
-      if (myP) {
-        const { data: matchesA } = await supabase
-          .from("matches")
-          .select("participant_b_id, score")
-          .eq("event_id", eventId)
-          .eq("participant_a_id", myP.id);
-
-        const { data: matchesB } = await supabase
-          .from("matches")
-          .select("participant_a_id, score")
-          .eq("event_id", eventId)
-          .eq("participant_b_id", myP.id);
-
-        const scoreMap = new Map<string, number>();
-        (matchesA || []).forEach((m: any) => scoreMap.set(m.participant_b_id, m.score));
-        (matchesB || []).forEach((m: any) => scoreMap.set(m.participant_a_id, m.score));
-
-        entriesWithScores = entriesWithScores.map((e) => ({
-          ...e,
-          matchScore: scoreMap.get(e.id),
-        }));
-      }
-    }
-
-    setEntries(entriesWithScores);
-    setLoading(false);
-  }, [eventId]);
-
-  useEffect(() => {
-    loadEntries();
-  }, [loadEntries]);
+  // Real-time: refresh when participants change
+  useRealtime({
+    table: "participants",
+    filter: { event_id: eventId },
+    onChanged: () => mutate(),
+  });
 
   const industries = [...new Set(entries.map((e) => e.profiles.industry).filter(Boolean))] as string[];
   const roles = [...new Set(entries.map((e) => e.role))];

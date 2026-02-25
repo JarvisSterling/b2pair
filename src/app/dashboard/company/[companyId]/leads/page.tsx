@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useSWRFetch } from "@/hooks/use-swr-fetch";
+import { useRealtime } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,19 +32,17 @@ interface Lead {
 export default function CompanyLeadsPage() {
   const params = useParams();
   const companyId = params.companyId as string;
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: leadsData, isLoading: loading, mutate } = useSWRFetch<{ leads: Lead[] }>(`/api/companies/${companyId}/leads`);
+  const leads = leadsData?.leads || [];
   const [search, setSearch] = useState("");
   const [filterQual, setFilterQual] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
-    const res = await fetch(`/api/companies/${companyId}/leads`);
-    const data = await res.json();
-    setLeads(data.leads || []);
-    setLoading(false);
-  }, [companyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
+  // Real-time: refresh when leads change for this company
+  useRealtime({
+    table: "company_leads",
+    filter: { company_id: companyId },
+    onChanged: () => mutate(),
+  });
 
   async function updateLead(leadId: string, updates: Record<string, unknown>) {
     await fetch(`/api/companies/${companyId}/leads`, {
@@ -50,7 +50,7 @@ export default function CompanyLeadsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: leadId, ...updates }),
     });
-    await loadData();
+    mutate();
   }
 
   if (loading) {

@@ -78,6 +78,8 @@ export function BannerEditor({
       console.error("Banner upload failed:", err);
     } finally {
       setUploading(false);
+      // Reset file input so the same or new file can be selected again
+      if (fileRef.current) fileRef.current.value = "";
     }
   }
 

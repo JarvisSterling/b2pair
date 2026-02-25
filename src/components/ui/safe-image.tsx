@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { ImageProps } from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 /**
  * SafeImage wraps next/image for user-provided URLs.
@@ -31,12 +31,20 @@ interface SafeImageProps extends Omit<ImageProps, "src"> {
 export function SafeImage({ src, fallback, alt, ...props }: SafeImageProps) {
   const [error, setError] = useState(false);
 
+  // Reset error state when src changes
+  const prevSrc = useRef(src);
+  if (prevSrc.current !== src) {
+    prevSrc.current = src;
+    if (error) setError(false);
+  }
+
   if (error && fallback) {
     return <>{fallback}</>;
   }
 
   return (
     <Image
+      key={src}
       src={src}
       alt={alt}
       unoptimized={!isOptimizable(src)}

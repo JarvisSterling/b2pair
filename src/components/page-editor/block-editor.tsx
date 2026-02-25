@@ -323,6 +323,7 @@ function ImageBlockEditor({
         console.error("Upload failed:", err);
       } finally {
         setUploading(false);
+        if (fileRef.current) fileRef.current.value = "";
       }
     },
     [eventId, onUpdate]
@@ -412,6 +413,7 @@ function GalleryBlockEditor({
       console.error("Upload failed:", err);
     } finally {
       setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   }
 

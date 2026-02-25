@@ -129,64 +129,26 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         </Link>
       </div>
 
-      {/* Mode switcher (only shown when user has a company membership) */}
-      {companyMembership && (
+      {/* Current mode indicator */}
+      {companyMembership && mode === "company" && (
         <div className="px-3 pt-2 pb-1">
-          <div className="flex items-center rounded-lg bg-muted/50 p-1">
-            <button
-              onClick={() => {
-                if (!profile.onboarding_completed) {
-                  router.push("/onboarding/participant");
-                  return;
-                }
-                setMode("participant");
-                router.push(basePath);
-              }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-caption font-medium transition-all",
-                mode === "participant"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <User className="h-3.5 w-3.5" />
-              Participant
-            </button>
-            <button
-              onClick={() => {
-                setMode("company");
-                router.push(`/dashboard/company/${companyMembership.company_id}`);
-              }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-caption font-medium transition-all",
-                mode === "company"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Building2 className="h-3.5 w-3.5" />
-              Company
-            </button>
-          </div>
-          {mode === "company" && (
-            <div className="flex items-center gap-2 mt-2 px-2">
-              {companyMembership.company_logo ? (
-                <SafeImage src={companyMembership.company_logo} alt="" className="h-5 w-5 rounded object-cover" width={48} height={48} />
-              ) : (
-                <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
-                  {companyMembership.company_name[0]}
-                </div>
-              )}
-              <span className="text-caption font-medium truncate">{companyMembership.company_name}</span>
-              <div className="flex gap-1 ml-auto">
-                {companyMembership.capabilities.map((cap) => (
-                  <span key={cap} className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary capitalize">
-                    {cap}
-                  </span>
-                ))}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+            {companyMembership.company_logo ? (
+              <SafeImage src={companyMembership.company_logo} alt="" className="h-5 w-5 rounded object-cover" width={48} height={48} />
+            ) : (
+              <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
+                {companyMembership.company_name[0]}
               </div>
+            )}
+            <span className="text-caption font-medium truncate">{companyMembership.company_name}</span>
+            <div className="flex gap-1 ml-auto">
+              {companyMembership.capabilities.map((cap) => (
+                <span key={cap} className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary capitalize">
+                  {cap}
+                </span>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -232,6 +194,22 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
                   </Link>
                 );
               })}
+
+            {/* Switch to company view */}
+            {companyMembership && (
+              <div className="pt-4 mt-4 border-t border-border">
+                <button
+                  onClick={() => {
+                    setMode("company");
+                    router.push(`/dashboard/company/${companyMembership.company_id}`);
+                  }}
+                  className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-body text-muted-foreground hover:bg-secondary hover:text-foreground transition-all w-full"
+                >
+                  <ArrowRightLeft className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                  <span className="truncate">Switch to {companyMembership.company_name}</span>
+                </button>
+              </div>
+            )}
           </>
         ) : (
           /* Company navigation */
@@ -266,7 +244,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
                 );
               })}
 
-            {/* Back to participant mode link */}
+            {/* Switch to participant view */}
             <div className="pt-4 mt-4 border-t border-border">
               <button
                 onClick={() => {

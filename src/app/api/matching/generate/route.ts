@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     .select(`
       id, role, intent, intents, tags, looking_for, offering,
       intent_vector, intent_confidence, ai_intent_classification,
-      profiles!inner(full_name, title, company_name, industry, expertise_areas, interests, bio)
+      profiles!inner(full_name, title, company_name, company_size, industry, expertise_areas, interests, bio)
     `)
     .eq("event_id", eventId)
     .eq("status", "approved");
@@ -74,26 +74,29 @@ export async function POST(request: Request) {
 
   // Weights from rules
   const weights = {
-    intent: rules?.intent_weight ?? 0.35,
-    industry: rules?.industry_weight ?? 0.25,
+    intent: rules?.intent_weight ?? 0.30,
+    industry: rules?.industry_weight ?? 0.20,
     interest: rules?.interest_weight ?? 0.25,
     complementarity: rules?.complementarity_weight ?? 0.15,
+    company_size: rules?.company_size_weight ?? 0.10,
     embedding: hasEmbeddings ? (rules?.embedding_weight ?? 0.20) : 0,
   };
 
   if (!hasEmbeddings) {
-    weights.intent = rules?.intent_weight ?? 0.35;
-    weights.industry = rules?.industry_weight ?? 0.25;
+    weights.intent = rules?.intent_weight ?? 0.30;
+    weights.industry = rules?.industry_weight ?? 0.20;
     weights.interest = rules?.interest_weight ?? 0.25;
     weights.complementarity = rules?.complementarity_weight ?? 0.15;
+    weights.company_size = rules?.company_size_weight ?? 0.10;
   }
 
-  const totalWeight = weights.intent + weights.industry + weights.interest + weights.complementarity + weights.embedding;
+  const totalWeight = weights.intent + weights.industry + weights.interest + weights.complementarity + weights.company_size + weights.embedding;
   const normalized = {
     intent: weights.intent / totalWeight,
     industry: weights.industry / totalWeight,
     interest: weights.interest / totalWeight,
     complementarity: weights.complementarity / totalWeight,
+    company_size: weights.company_size / totalWeight,
     embedding: weights.embedding / totalWeight,
   };
 
@@ -200,6 +203,7 @@ export async function POST(request: Request) {
       const industryScore = computeIndustryScore(pA.profiles, pB.profiles);
       const interestScore = computeInterestScore(pA.profiles, pB.profiles);
       const complementarityScore = computeComplementarityScore(pA, pB);
+      const companySizeScore = computeCompanySizeScore(pA.profiles, pB.profiles);
 
       let embeddingScore = 50;
       if (hasEmbeddings) {
@@ -213,6 +217,7 @@ export async function POST(request: Request) {
           industryScore * normalized.industry +
           interestScore * normalized.interest +
           complementarityScore * normalized.complementarity +
+          companySizeScore * normalized.company_size +
           embeddingScore * normalized.embedding) * 100
       ) / 100;
 
@@ -257,6 +262,35 @@ export async function POST(request: Request) {
 }
 
 /* ─── Scoring Functions ─── */
+
+/**
+ * Company size scoring: favors complementary sizes (small meets large = business opportunity)
+ * while still giving decent scores to similar sizes (peer networking).
+ * 
+ * Matrix logic:
+ * - Complementary (e.g. 1-10 ↔ 1000+): 90 — startup meets enterprise, high-value match
+ * - Adjacent complement (e.g. 11-50 ↔ 201-1000): 80 — good business fit
+ * - Same tier: 65 — peer networking value
+ * - One step apart: 55 — moderate fit
+ * - Unknown: 50 — neutral, no penalty
+ */
+function computeCompanySizeScore(a: any, b: any): number {
+  if (!a.company_size || !b.company_size) return 50; // neutral if unknown
+
+  const sizeOrder = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
+  const idxA = sizeOrder.indexOf(a.company_size);
+  const idxB = sizeOrder.indexOf(b.company_size);
+
+  if (idxA === -1 || idxB === -1) return 50;
+
+  const distance = Math.abs(idxA - idxB);
+
+  // Complementary sizes score highest (big meets small = deals happen)
+  if (distance >= 3) return 90;
+  if (distance === 2) return 80;
+  if (distance === 1) return 55;
+  return 65; // same size = peer networking
+}
 
 function computeIndustryScore(a: any, b: any): number {
   if (!a.industry || !b.industry) return 50;
@@ -391,6 +425,16 @@ function generateReasons(
       (w: string) => w.length > 3 && a.offering.toLowerCase().includes(w)
     );
     if (overlap) reasons.push(`${b.profiles.full_name}'s needs align with ${a.profiles.full_name}'s offerings`);
+  }
+
+  // Company size complementarity
+  if (a.profiles.company_size && b.profiles.company_size) {
+    const sizeOrder = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
+    const dist = Math.abs(sizeOrder.indexOf(a.profiles.company_size) - sizeOrder.indexOf(b.profiles.company_size));
+    if (dist >= 3) {
+      const sizeLabels: Record<string, string> = { "1-10": "startup", "11-50": "small business", "51-200": "mid-size", "201-1000": "large company", "1000+": "enterprise" };
+      reasons.push(`${sizeLabels[a.profiles.company_size] || a.profiles.company_size} meets ${sizeLabels[b.profiles.company_size] || b.profiles.company_size}`);
+    }
   }
 
   if (hasEmbeddings && embeddingScore >= 75) {

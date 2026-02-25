@@ -217,6 +217,26 @@ export default function MessagesPage() {
     setLoadingMessages(true);
     const supabase = createClient();
 
+    // Mark messages as read + clear notification badge
+    if (myParticipantIds.length) {
+      await supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("conversation_id", convoId)
+        .not("sender_id", "in", `(${myParticipantIds.join(",")})`)
+        .is("read_at", null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("notifications")
+          .update({ read: true })
+          .eq("user_id", user.id)
+          .eq("type", "new_message")
+          .eq("read", false);
+      }
+    }
+
     const { data } = await supabase
       .from("messages")
       .select("id, content, content_type, sender_id, created_at, file_url, file_name, file_size, file_type")

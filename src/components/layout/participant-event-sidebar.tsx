@@ -78,13 +78,30 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("read", false)
-        .eq("type", "new_message")
-        .then(({ count }) => setUnreadCount(count || 0));
+
+      // Load initial unread count
+      const loadUnread = () => {
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .eq("type", "new_message")
+          .then(({ count }) => setUnreadCount(count || 0));
+      };
+      loadUnread();
+
+      // Subscribe to notification changes so badge updates live
+      const channel = supabase
+        .channel("sidebar-notifications")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          () => loadUnread()
+        )
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
     });
   }, [eventId]);
 

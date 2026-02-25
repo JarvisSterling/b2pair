@@ -270,6 +270,17 @@ export default function EventMessagesPage() {
           .neq("sender_id", myParticipantId)
           .is("read_at", null);
 
+        // Also mark new_message notifications as read (clears sidebar badge)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("notifications")
+            .update({ read: true })
+            .eq("user_id", user.id)
+            .eq("type", "new_message")
+            .eq("read", false);
+        }
+
         setConversations((prev) =>
           prev.map((c) => (c.id === convoId ? { ...c, unread_count: 0 } : c))
         );
@@ -424,7 +435,9 @@ export default function EventMessagesPage() {
                     }`}
                   >
                     {other.avatar_url ? (
-                      <SafeImage src={other.avatar_url} alt={other.full_name} className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
+                      <SafeImage src={other.avatar_url}
+ alt={other.full_name}
+ className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
                     ) : (
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium shrink-0">
                         {initials}
@@ -504,7 +517,9 @@ export default function EventMessagesPage() {
                       >
                         {msg.file_url && msg.file_type?.startsWith("image/") ? (
                           <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
-                            <SafeImage src={msg.file_url} alt={msg.file_name || "Image"} className="max-w-full rounded-md max-h-64 object-cover mb-1" width={24} height={24} />
+                            <SafeImage src={msg.file_url}
+ alt={msg.file_name || "Image"}
+ className="max-w-full rounded-md max-h-64 object-cover mb-1" width={24} height={24} />
                           </a>
                         ) : msg.file_url ? (
                           <a

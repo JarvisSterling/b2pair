@@ -108,7 +108,7 @@ export default async function ParticipantHome() {
   if (latestEvent) {
     const { data: participant } = await admin
       .from("participants")
-      .select("looking_for, offering")
+      .select("looking_for, offering, company_id")
       .eq("id", latestEvent.participantId)
       .single();
 
@@ -118,11 +118,13 @@ export default async function ParticipantHome() {
       .eq("id", user!.id)
       .single();
 
+    const belongsToCompany = !!participant?.company_id;
+
     profileCompletion = {
       hasLookingFor: !!participant?.looking_for,
       hasOffering: !!participant?.offering,
-      hasCompanySize: !!profile?.company_size,
-      hasCompanyWebsite: !!profile?.company_website,
+      hasCompanySize: belongsToCompany ? true : !!profile?.company_size,
+      hasCompanyWebsite: belongsToCompany ? true : !!profile?.company_website,
     };
   }
 

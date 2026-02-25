@@ -88,7 +88,7 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
   // Check profile completion for nudge
   const { data: myParticipantFull } = await admin
     .from("participants")
-    .select("looking_for, offering")
+    .select("looking_for, offering, company_id")
     .eq("id", myParticipant.id)
     .single();
 
@@ -98,11 +98,14 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
     .eq("id", user.id)
     .single();
 
+  // If participant belongs to a company, company_size and website are admin-managed
+  const belongsToCompany = !!myParticipantFull?.company_id;
+
   const profileCompletion = {
     hasLookingFor: !!myParticipantFull?.looking_for,
     hasOffering: !!myParticipantFull?.offering,
-    hasCompanySize: !!myProfile?.company_size,
-    hasCompanyWebsite: !!myProfile?.company_website,
+    hasCompanySize: belongsToCompany ? true : !!myProfile?.company_size,
+    hasCompanyWebsite: belongsToCompany ? true : !!myProfile?.company_website,
   };
 
   // Fetch stats

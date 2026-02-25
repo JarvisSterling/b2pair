@@ -6,14 +6,19 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { MatchQualityMeter } from "@/components/match-quality-meter";
 import {
   Loader2,
   Check,
   Eye,
   EyeOff,
   ArrowRight,
+  ArrowLeft,
   Calendar,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +42,57 @@ interface RegistrationFlowProps {
   alreadyRegistered: boolean;
 }
 
+const INTENTS = [
+  { key: "buying", label: "Buy / Source", emoji: "🛒", desc: "Find products or services" },
+  { key: "selling", label: "Sell / Promote", emoji: "💼", desc: "Showcase your offerings" },
+  { key: "investing", label: "Invest", emoji: "📈", desc: "Discover opportunities" },
+  { key: "partnering", label: "Partner", emoji: "🤝", desc: "Find strategic partners" },
+  { key: "learning", label: "Learn", emoji: "🎓", desc: "Gain knowledge & insights" },
+  { key: "networking", label: "Network", emoji: "🌐", desc: "Expand your connections" },
+];
+
+const COMPANY_SIZES = [
+  { value: "1-10", label: "1–10" },
+  { value: "11-50", label: "11–50" },
+  { value: "51-200", label: "51–200" },
+  { value: "201-1000", label: "201–1,000" },
+  { value: "1000+", label: "1,000+" },
+];
+
+const EXPERTISE_AREAS = [
+  "Software Development",
+  "Product Management",
+  "Sales & BD",
+  "Marketing",
+  "Design & UX",
+  "Data & Analytics",
+  "Operations",
+  "Finance & Accounting",
+  "Human Resources",
+  "Strategy",
+  "Supply Chain",
+  "Customer Success",
+  "Engineering",
+  "Research",
+  "Legal & Compliance",
+  "AI & Machine Learning",
+];
+
+const INTEREST_OPTIONS = [
+  "Sustainability",
+  "Digital Transformation",
+  "Growth Strategy",
+  "International Expansion",
+  "Innovation & R&D",
+  "Talent Acquisition",
+  "Fundraising",
+  "Market Research",
+  "Brand Building",
+  "Process Automation",
+  "Cybersecurity",
+  "E-commerce",
+];
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString("en-US", {
@@ -57,19 +113,22 @@ export function RegistrationFlow({
   const supabase = createClient();
 
   const startAsLogin = searchParams.get("mode") === "signin";
-  const [currentStep, setCurrentStep] = useState<1 | 2>(alreadyRegistered ? 2 : isLoggedIn ? 2 : 1);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(
+    alreadyRegistered ? 2 : isLoggedIn ? 2 : 1
+  );
   const [isLogin, setIsLogin] = useState(startAsLogin);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Form state
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Step 1: Account
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Step 2 state
+  // Step 2: Profile
   const [selectedType, setSelectedType] = useState<string>("");
   const [title, setTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -77,7 +136,48 @@ export function RegistrationFlow({
   const [lookingFor, setLookingFor] = useState("");
   const [offering, setOffering] = useState("");
 
+  // Step 3: Enhance
+  const [companySize, setCompanySize] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [expertiseAreas, setExpertiseAreas] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
+
   const dateRange = `${formatDate(event.start_date)} – ${formatDate(event.end_date)}`;
+
+  const canProceedStep2 = title.trim() && companyName.trim() && selectedIntents.length > 0;
+
+  function toggleArrayItem(
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    item: string
+  ) {
+    setter((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+    );
+  }
+
+  async function handleSuggest() {
+    if (selectedIntents.length === 0) return;
+    setSuggesting(true);
+    try {
+      const res = await fetch("/api/participants/suggest-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          companyName: companyName.trim(),
+          intents: selectedIntents,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.lookingFor && !lookingFor.trim()) setLookingFor(data.lookingFor);
+        if (data.offering && !offering.trim()) setOffering(data.offering);
+      }
+    } catch {
+      // Silently fail
+    }
+    setSuggesting(false);
+  }
 
   async function handleGoogleAuth() {
     const redirectUrl = `${window.location.origin}/auth/callback?next=/events/${event.slug}/register`;
@@ -106,7 +206,6 @@ export function RegistrationFlow({
     }
 
     if (isLogin) {
-      // Sign in
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -118,7 +217,6 @@ export function RegistrationFlow({
       }
       setCurrentStep(2);
     } else {
-      // Sign up
       if (!firstName.trim() || !lastName.trim()) {
         setError("First and last name are required");
         setLoading(false);
@@ -158,7 +256,6 @@ export function RegistrationFlow({
         return;
       }
 
-      // Sign in after signup
       await supabase.auth.signInWithPassword({ email, password });
       setCurrentStep(2);
     }
@@ -167,11 +264,15 @@ export function RegistrationFlow({
   }
 
   async function handleStep2Submit() {
+    if (!canProceedStep2) return;
+    setCurrentStep(3);
+  }
+
+  async function handleFinalSubmit() {
     setLoading(true);
     setError(null);
 
     try {
-      // If not already registered (sign-in flow), register now
       if (isLogin && !alreadyRegistered) {
         const res = await fetch("/api/events/register", {
           method: "POST",
@@ -190,46 +291,26 @@ export function RegistrationFlow({
           setLoading(false);
           return;
         }
-      } else if (!isLogin && selectedType) {
-        // Update participant type if signup already created it without type
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const supabaseAdmin = await fetch("/api/events/update-participant", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              eventId: event.id,
-              participantTypeId: selectedType,
-              title: title.trim(),
-              companyName: companyName.trim(),
-            }),
-          });
-        }
       }
 
-      // Update profile with additional info
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("profiles").update({
-          title: title.trim() || undefined,
-          company_name: companyName.trim() || undefined,
-        }).eq("id", user.id);
-
-        // Update participant: type + intents + looking_for + offering
-        await fetch("/api/events/update-participant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventId: event.id,
-            participantTypeId: selectedType || null,
-            title: title.trim(),
-            companyName: companyName.trim(),
-            intents: selectedIntents,
-            lookingFor: lookingFor.trim(),
-            offering: offering.trim(),
-          }),
-        });
-      }
+      // Update participant with all collected data
+      await fetch("/api/events/update-participant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: event.id,
+          participantTypeId: selectedType || null,
+          title: title.trim(),
+          companyName: companyName.trim(),
+          intents: selectedIntents,
+          lookingFor: lookingFor.trim(),
+          offering: offering.trim(),
+          companySize: companySize || null,
+          companyWebsite: companyWebsite.trim() || null,
+          expertiseAreas,
+          interests,
+        }),
+      });
 
       router.push(`/events/${event.slug}/registered`);
     } catch {
@@ -265,8 +346,7 @@ export function RegistrationFlow({
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left sidebar */}
-      <div className="w-[320px] shrink-0 border-r bg-muted/30 p-8 flex flex-col">
-        {/* Event info */}
+      <div className="hidden md:flex w-[320px] shrink-0 border-r bg-muted/30 p-8 flex-col">
         <div className="mb-10">
           {event.banner_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -290,20 +370,10 @@ export function RegistrationFlow({
           </p>
         </div>
 
-        {/* Steps */}
         <div className="space-y-4">
-          <StepIndicator
-            stepNumber={1}
-            label="Create an account"
-            active={currentStep === 1}
-            completed={currentStep > 1}
-          />
-          <StepIndicator
-            stepNumber={2}
-            label="Complete your profile"
-            active={currentStep === 2}
-            completed={false}
-          />
+          <StepIndicator stepNumber={1} label="Create an account" active={currentStep === 1} completed={currentStep > 1} />
+          <StepIndicator stepNumber={2} label="Complete your profile" active={currentStep === 2} completed={currentStep > 2} />
+          <StepIndicator stepNumber={3} label="Enhance your matches" active={currentStep === 3} completed={false} />
         </div>
 
         <div className="mt-auto">
@@ -318,8 +388,21 @@ export function RegistrationFlow({
 
       {/* Main content */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 flex items-start justify-center pt-16 px-8">
+        {/* Mobile step indicator */}
+        <div className="md:hidden px-6 pt-6">
+          <p className="text-xs text-muted-foreground text-center">
+            Step {currentStep} of 3: {currentStep === 1 ? "Create Account" : currentStep === 2 ? "Your Profile" : "Enhance Matches"}
+          </p>
+          <div className="flex gap-1.5 mt-2">
+            {[1, 2, 3].map((s) => (
+              <div key={s} className={cn("h-1 flex-1 rounded-full", s <= currentStep ? "bg-primary" : "bg-border")} />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-start justify-center pt-10 md:pt-16 px-6 md:px-8">
           <div className="w-full max-w-lg">
+            {/* ── STEP 1: Account ── */}
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div>
@@ -339,6 +422,27 @@ export function RegistrationFlow({
                 </div>
 
                 <div className="space-y-4">
+                  {!isLogin && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium mb-1.5 block">First name <span className="text-destructive">*</span></label>
+                        <Input
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="Jane"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-1.5 block">Last name <span className="text-destructive">*</span></label>
+                        <Input
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Smith"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Your email address</label>
                     <Input
@@ -367,25 +471,6 @@ export function RegistrationFlow({
                       </button>
                     </div>
                   </div>
-
-                  {!isLogin && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block">First name *</label>
-                        <Input
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block">Last name *</label>
-                        <Input
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="relative">
@@ -441,15 +526,36 @@ export function RegistrationFlow({
               </div>
             )}
 
+            {/* ── STEP 2: Profile ── */}
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">Complete your profile</h1>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Tell us a bit about yourself so we can find the best matches for you.
+                    Tell us about yourself so we can match you with the right people.
                   </p>
                 </div>
 
+                {/* Why we collect this */}
+                <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground">
+                    We use this information to match you with the right people at the event. The more you share, the better your matches will be.
+                  </p>
+                </div>
+
+                {/* Match Quality Meter */}
+                <MatchQualityMeter
+                  title={title}
+                  companyName={companyName}
+                  intents={selectedIntents}
+                  lookingFor={lookingFor}
+                  offering={offering}
+                  companySize={companySize}
+                  companyWebsite={companyWebsite}
+                />
+
+                {/* Participant type */}
                 {participantTypes.length > 0 && (
                   <div>
                     <label className="text-sm font-medium mb-2 block">I am participating as</label>
@@ -466,16 +572,11 @@ export function RegistrationFlow({
                           )}
                         >
                           <div className="flex items-center gap-2">
-                            <div
-                              className="h-3 w-3 rounded-full"
-                              style={{ backgroundColor: pt.color }}
-                            />
+                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: pt.color }} />
                             <span className="font-medium text-sm">{pt.name}</span>
                           </div>
                           {pt.description && (
-                            <p className="text-xs text-muted-foreground mt-1 ml-5">
-                              {pt.description}
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 ml-5">{pt.description}</p>
                           )}
                         </button>
                       ))}
@@ -483,94 +584,246 @@ export function RegistrationFlow({
                   </div>
                 )}
 
+                {/* Required fields */}
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Job title</label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Product Manager"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Company</label>
-                  <Input
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g. Acme Inc."
-                  />
-                </div>
-
-                {/* Intent multi-select */}
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">
-                    What are you looking to do at this event?
-                  </label>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Select all that apply. This helps us find better matches for you.
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-4">
+                    Required
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { key: "buying", label: "Buy / Source", emoji: "🛒", desc: "Find products or services" },
-                      { key: "selling", label: "Sell / Promote", emoji: "💼", desc: "Showcase your offerings" },
-                      { key: "investing", label: "Invest", emoji: "📈", desc: "Discover opportunities" },
-                      { key: "partnering", label: "Partner", emoji: "🤝", desc: "Find strategic partners" },
-                      { key: "learning", label: "Learn", emoji: "🎓", desc: "Gain knowledge & insights" },
-                      { key: "networking", label: "Network", emoji: "🌐", desc: "Expand your connections" },
-                    ].map((intent) => {
-                      const selected = selectedIntents.includes(intent.key);
-                      return (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">
+                        Job title <span className="text-destructive">*</span>
+                      </label>
+                      <Input
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Product Manager"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">
+                        Company <span className="text-destructive">*</span>
+                      </label>
+                      <Input
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="e.g. Acme Inc."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">
+                        What are you here for? <span className="text-destructive">*</span>
+                      </label>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Select up to 3. This helps us find the right people for you.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {INTENTS.map((intent) => {
+                          const selected = selectedIntents.includes(intent.key);
+                          return (
+                            <button
+                              key={intent.key}
+                              type="button"
+                              onClick={() => {
+                                setSelectedIntents((prev) =>
+                                  selected
+                                    ? prev.filter((i) => i !== intent.key)
+                                    : prev.length < 3
+                                    ? [...prev, intent.key]
+                                    : prev
+                                );
+                              }}
+                              className={cn(
+                                "rounded-lg border p-3 text-left transition-all",
+                                selected
+                                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                  : "border-border hover:border-primary/30",
+                                !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">{intent.emoji}</span>
+                                <span className="font-medium text-sm">{intent.label}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5 ml-7">{intent.desc}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedIntents.length >= 3 && (
+                        <p className="text-xs text-muted-foreground mt-2">Maximum 3 selections.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Optional fields */}
+                <div className="border-t border-border pt-5">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    Optional
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    These fields are optional but strongly improve your match quality.
+                  </p>
+
+                  {selectedIntents.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSuggest}
+                      disabled={suggesting}
+                      className="w-full text-xs mb-4"
+                    >
+                      {suggesting ? (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      Suggest for me
+                    </Button>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">What are you looking for?</label>
+                      <Textarea
+                        value={lookingFor}
+                        onChange={(e) => setLookingFor(e.target.value)}
+                        placeholder="e.g. Packaging suppliers in Europe, AI solutions for HR..."
+                        rows={2}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">What do you offer?</label>
+                      <Textarea
+                        value={offering}
+                        onChange={(e) => setOffering(e.target.value)}
+                        placeholder="e.g. Cloud-based logistics platform, B2B consulting..."
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {error && <p className="text-sm text-red-600">{error}</p>}
+              </div>
+            )}
+
+            {/* ── STEP 3: Enhance Matches ── */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">Enhance your matches</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    A few more details to help our matching engine connect you with the best people.
+                  </p>
+                </div>
+
+                {/* Why we collect this */}
+                <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground">
+                    We collect this information to give you the best possible experience and match you with the right people at the event. All data is used exclusively for matching purposes.
+                  </p>
+                </div>
+
+                {/* Match Quality Meter */}
+                <MatchQualityMeter
+                  title={title}
+                  companyName={companyName}
+                  intents={selectedIntents}
+                  lookingFor={lookingFor}
+                  offering={offering}
+                  companySize={companySize}
+                  companyWebsite={companyWebsite}
+                />
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">Company size</label>
+                      <select
+                        value={companySize}
+                        onChange={(e) => setCompanySize(e.target.value)}
+                        className="flex w-full rounded bg-input px-4 py-2.5 text-sm text-foreground border border-border transition-colors duration-150 hover:border-border-strong focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/20"
+                      >
+                        <option value="">Select...</option>
+                        {COMPANY_SIZES.map((s) => (
+                          <option key={s.value} value={s.value}>{s.label} employees</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">Company website</label>
+                      <Input
+                        value={companyWebsite}
+                        onChange={(e) => setCompanyWebsite(e.target.value)}
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Expertise */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Your expertise</label>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Select areas you specialize in. This powers our matching algorithm.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {EXPERTISE_AREAS.map((area) => (
                         <button
-                          key={intent.key}
+                          key={area}
                           type="button"
-                          onClick={() => {
-                            setSelectedIntents((prev) =>
-                              selected
-                                ? prev.filter((i) => i !== intent.key)
-                                : prev.length < 3
-                                ? [...prev, intent.key]
-                                : prev
-                            );
-                          }}
+                          onClick={() => toggleArrayItem(setExpertiseAreas, area)}
                           className={cn(
-                            "rounded-lg border p-3 text-left transition-all",
-                            selected
-                              ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                              : "border-border hover:border-primary/30",
-                            !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
+                            "rounded-full border px-3 py-1.5 text-xs transition-all",
+                            expertiseAreas.includes(area)
+                              ? "border-primary bg-primary/5 text-primary font-medium"
+                              : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground"
                           )}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">{intent.emoji}</span>
-                            <span className="font-medium text-sm">{intent.label}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 ml-7">{intent.desc}</p>
+                          {expertiseAreas.includes(area) && <Check className="mr-1 inline h-3 w-3" />}
+                          {area}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
+                    {expertiseAreas.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">{expertiseAreas.length} selected</p>
+                    )}
                   </div>
-                  {selectedIntents.length >= 3 && (
-                    <p className="text-xs text-muted-foreground mt-2">Maximum 3 selections.</p>
-                  )}
-                </div>
 
-                {/* Looking for / Offering */}
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">What are you looking for?</label>
-                  <Input
-                    value={lookingFor}
-                    onChange={(e) => setLookingFor(e.target.value)}
-                    placeholder="e.g. Packaging suppliers in Europe, AI solutions for HR..."
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">What do you offer?</label>
-                  <Input
-                    value={offering}
-                    onChange={(e) => setOffering(e.target.value)}
-                    placeholder="e.g. Cloud-based logistics platform, B2B consulting..."
-                  />
+                  {/* Interests */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Your interests</label>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      What topics are you looking to explore or learn more about?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {INTEREST_OPTIONS.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => toggleArrayItem(setInterests, item)}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-xs transition-all",
+                            interests.includes(item)
+                              ? "border-primary/50 bg-primary/5 text-primary font-medium"
+                              : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground"
+                          )}
+                        >
+                          {interests.includes(item) && <Check className="mr-1 inline h-3 w-3" />}
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                    {interests.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">{interests.length} selected</p>
+                    )}
+                  </div>
                 </div>
 
                 {error && <p className="text-sm text-red-600">{error}</p>}
@@ -580,16 +833,55 @@ export function RegistrationFlow({
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t px-8 py-4 flex items-center justify-end">
-          <Button
-            onClick={currentStep === 1 ? handleStep1Submit : handleStep2Submit}
-            disabled={loading}
-            size="lg"
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+        <div className="border-t px-6 md:px-8 py-4 flex items-center justify-between">
+          <div>
+            {currentStep > 1 && (
+              <Button
+                variant="ghost"
+                onClick={() => setCurrentStep((currentStep - 1) as 1 | 2 | 3)}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {currentStep === 3 && (
+              <Button
+                variant="outline"
+                onClick={handleFinalSubmit}
+                disabled={loading}
+              >
+                Skip & finish
+              </Button>
+            )}
+
+            <Button
+              onClick={
+                currentStep === 1
+                  ? handleStep1Submit
+                  : currentStep === 2
+                  ? handleStep2Submit
+                  : handleFinalSubmit
+              }
+              disabled={loading || (currentStep === 2 && !canProceedStep2)}
+              size="lg"
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {currentStep === 3 ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Complete Registration
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
       intents,
       lookingFor,
       offering,
+      companySize,
+      companyWebsite,
+      expertiseAreas,
+      interests,
     } = body;
 
     if (!eventId) {
@@ -74,11 +78,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // Update profile if title/company provided
-    if (title || companyName) {
-      const profileUpdates: Record<string, any> = {};
-      if (title) profileUpdates.title = title;
-      if (companyName) profileUpdates.company_name = companyName;
+    // Update profile if any profile fields provided
+    const profileUpdates: Record<string, any> = {};
+    if (title) profileUpdates.title = title;
+    if (companyName) profileUpdates.company_name = companyName;
+    if (companySize) profileUpdates.company_size = companySize;
+    if (companyWebsite) profileUpdates.company_website = companyWebsite;
+    if (expertiseAreas !== undefined) profileUpdates.expertise_areas = expertiseAreas;
+    if (interests !== undefined) profileUpdates.interests = interests;
+    if (Object.keys(profileUpdates).length > 0) {
       await admin.from("profiles").update(profileUpdates).eq("id", user.id);
     }
 

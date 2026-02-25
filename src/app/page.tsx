@@ -1,8 +1,12 @@
 import { ArrowRight, Zap, Calendar, Users, MessageSquare, BarChart3, Shield, Globe, UserCog, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -15,15 +19,26 @@ export default function Home() {
             <span className="text-h3 font-semibold tracking-tight">B2Pair</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/auth/sign-in">
-              <Button variant="ghost">Sign in</Button>
-            </Link>
-            <Link href="/auth/sign-up">
-              <Button>
-                Create your event
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard">
+                <Button>
+                  Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/sign-in">
+                  <Button variant="ghost">Sign in</Button>
+                </Link>
+                <Link href="/auth/sign-up">
+                  <Button>
+                    Create your event
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>

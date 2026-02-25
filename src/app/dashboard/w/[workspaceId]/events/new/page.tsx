@@ -137,6 +137,29 @@ export default function NewEventInWorkspace() {
       return;
     }
 
+    // Create default matching rules
+    await supabase.from("matching_rules").insert({
+      event_id: event.id,
+    });
+
+    // Add creator as organizer participant
+    await supabase.from("participants").insert({
+      event_id: event.id,
+      user_id: user.id,
+      role: "organizer",
+      status: "approved",
+    });
+
+    // Seed default event pages and theme
+    const { getDefaultPages } = await import("@/types/event-pages");
+    await supabase.from("event_pages").insert(
+      getDefaultPages(data.name).map((p) => ({ ...p, event_id: event.id }))
+    );
+    await supabase.from("event_themes").insert({
+      event_id: event.id,
+      theme_key: "light-classic",
+    });
+
     router.push(`/dashboard/w/${workspaceId}/events/${event.id}`);
   }
 

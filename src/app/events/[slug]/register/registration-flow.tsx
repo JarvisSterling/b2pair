@@ -536,14 +536,6 @@ export function RegistrationFlow({
                   </p>
                 </div>
 
-                {/* Why we collect this */}
-                <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
-                  <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <p className="text-xs text-muted-foreground">
-                    We use this information to match you with the right people at the event. The more you share, the better your matches will be.
-                  </p>
-                </div>
-
                 {/* Match Quality Meter */}
                 <MatchQualityMeter
                   title={title}
@@ -704,6 +696,14 @@ export function RegistrationFlow({
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Why we collect this */}
+                <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground">
+                    We use this information to match you with the right people at the event. The more you share, the better your matches will be.
+                  </p>
                 </div>
 
                 {error && <p className="text-sm text-red-600">{error}</p>}

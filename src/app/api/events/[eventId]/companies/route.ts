@@ -73,7 +73,7 @@ export async function POST(
   if (!isOrganizer) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
-  const { name, contact_email, capabilities, tier_id, booth_type, booth_number, team_limit } = body;
+  const { name, contact_email, capabilities, tier_id, booth_type, booth_number, team_limit, company_size, website } = body;
 
   if (!name || !contact_email || !capabilities?.length) {
     return NextResponse.json({ error: "name, contact_email, and capabilities required" }, { status: 400 });
@@ -91,6 +91,8 @@ export async function POST(
       capabilities,
       status: "invited",
       team_limit: team_limit || null,
+      company_size: company_size || null,
+      website: website || null,
     })
     .select()
     .single();

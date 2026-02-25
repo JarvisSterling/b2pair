@@ -69,8 +69,8 @@ export default function PartnersPage() {
   const [sponsorsEnabled, setSponsorsEnabled] = useState(false);
   const [exhibitorsEnabled, setExhibitorsEnabled] = useState(false);
 
-  const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", tier_id: "", team_limit: "" });
-  const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "" });
+  const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", tier_id: "", team_limit: "", company_size: "", website: "" });
+  const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
   const [tierForm, setTierForm] = useState({ name: "", color: "#6366f1", rank: 1, seat_limit: 5, perks: {} as Record<string, boolean | number> });
 
   const sponsors = companies.filter((c) => c.capabilities.includes("sponsor"));
@@ -115,11 +115,13 @@ export default function PartnersPage() {
         capabilities: ["sponsor"],
         tier_id: sponsorForm.tier_id || undefined,
         team_limit: sponsorForm.team_limit ? parseInt(sponsorForm.team_limit) : undefined,
+        company_size: sponsorForm.company_size || undefined,
+        website: sponsorForm.website || undefined,
       }),
     });
     if (res.ok) {
       await loadData();
-      setSponsorForm({ name: "", contact_email: "", tier_id: "", team_limit: "" });
+      setSponsorForm({ name: "", contact_email: "", tier_id: "", team_limit: "", company_size: "", website: "" });
       setShowAddSponsor(false);
     }
     setSaving(false);
@@ -138,11 +140,13 @@ export default function PartnersPage() {
         booth_type: exhibitorForm.booth_type || undefined,
         booth_number: exhibitorForm.booth_number || undefined,
         team_limit: exhibitorForm.team_limit ? parseInt(exhibitorForm.team_limit) : undefined,
+        company_size: exhibitorForm.company_size || undefined,
+        website: exhibitorForm.website || undefined,
       }),
     });
     if (res.ok) {
       await loadData();
-      setExhibitorForm({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "" });
+      setExhibitorForm({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
       setShowAddExhibitor(false);
     }
     setSaving(false);
@@ -305,6 +309,31 @@ export default function PartnersPage() {
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">Leave empty to use tier default</p>
                   </div>
+                  <div>
+                    <label className="text-caption font-medium mb-1.5 block">Company size</label>
+                    <select
+                      value={sponsorForm.company_size}
+                      onChange={(e) => setSponsorForm((f) => ({ ...f, company_size: e.target.value }))}
+                      className="flex h-10 w-full rounded bg-input px-3 text-body border border-border focus-visible:outline-none focus-visible:border-primary/50"
+                    >
+                      <option value="">Select...</option>
+                      <option value="1-10">1–10 employees</option>
+                      <option value="11-50">11–50 employees</option>
+                      <option value="51-200">51–200 employees</option>
+                      <option value="201-1000">201–1,000 employees</option>
+                      <option value="1000+">1,000+ employees</option>
+                    </select>
+                    <p className="text-[10px] text-muted-foreground mt-1">Pre-fills for team members</p>
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium mb-1.5 block">Company website</label>
+                    <Input
+                      value={sponsorForm.website}
+                      onChange={(e) => setSponsorForm((f) => ({ ...f, website: e.target.value }))}
+                      placeholder="https://..."
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Pre-fills for team members</p>
+                  </div>
                 </div>
                 <div className="flex gap-2 mt-5">
                   <Button onClick={addSponsor} disabled={saving || !sponsorForm.name || !sponsorForm.contact_email}>
@@ -383,6 +412,31 @@ export default function PartnersPage() {
                     <label className="text-caption font-medium mb-1.5 block">Team member limit</label>
                     <Input type="number" min="1" value={exhibitorForm.team_limit} onChange={(e) => setExhibitorForm((f) => ({ ...f, team_limit: e.target.value }))} placeholder="Default: 5" />
                     <p className="text-[10px] text-muted-foreground mt-1">Leave empty for default (5)</p>
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium mb-1.5 block">Company size</label>
+                    <select
+                      value={exhibitorForm.company_size}
+                      onChange={(e) => setExhibitorForm((f) => ({ ...f, company_size: e.target.value }))}
+                      className="flex h-10 w-full rounded bg-input px-3 text-body border border-border focus-visible:outline-none focus-visible:border-primary/50"
+                    >
+                      <option value="">Select...</option>
+                      <option value="1-10">1–10 employees</option>
+                      <option value="11-50">11–50 employees</option>
+                      <option value="51-200">51–200 employees</option>
+                      <option value="201-1000">201–1,000 employees</option>
+                      <option value="1000+">1,000+ employees</option>
+                    </select>
+                    <p className="text-[10px] text-muted-foreground mt-1">Pre-fills for team members</p>
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium mb-1.5 block">Company website</label>
+                    <Input
+                      value={exhibitorForm.website}
+                      onChange={(e) => setExhibitorForm((f) => ({ ...f, website: e.target.value }))}
+                      placeholder="https://..."
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Pre-fills for team members</p>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-5">

@@ -17,7 +17,7 @@ export async function GET(request: Request, { params }: Params) {
     .select(`
       id, email, name, role, invite_status,
       company:companies(
-        id, name, slug, logo_url, capabilities, status, event_id,
+        id, name, slug, logo_url, capabilities, status, event_id, website, company_size,
         event:events(id, name, slug, logo_url, banner_url)
       )
     `)
@@ -45,7 +45,7 @@ export async function GET(request: Request, { params }: Params) {
 
   return NextResponse.json({
     member: { id: member.id, email: member.email, name: member.name, role: member.role },
-    company: { id: company.id, name: company.name, slug: company.slug, logo_url: company.logo_url, capabilities: company.capabilities },
+    company: { id: company.id, name: company.name, slug: company.slug, logo_url: company.logo_url, capabilities: company.capabilities, website: company.website || null, company_size: company.company_size || null },
     event: event ? { id: event.id, name: event.name, slug: event.slug, logo_url: event.logo_url } : null,
   });
 }
@@ -68,7 +68,7 @@ export async function POST(request: Request, { params }: Params) {
     .from("company_members")
     .select(`
       id, invite_status, role, company_id,
-      company:companies(id, event_id, capabilities)
+      company:companies(id, name, event_id, capabilities)
     `)
     .eq("invite_code", code)
     .single();
@@ -82,7 +82,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
 
   const body = await request.json();
-  const { full_name, bio, title, interests, avatar_url } = body;
+  const { full_name, bio, title, interests, avatar_url, intents, looking_for, offering, expertise_areas, user_interests } = body;
 
   // Update user profile metadata
   if (full_name) {
@@ -95,7 +95,7 @@ export async function POST(request: Request, { params }: Params) {
     });
   }
 
-  // Update profile in profiles table if it exists
+  // Update profile in profiles table
   await admin
     .from("profiles")
     .upsert({
@@ -104,6 +104,10 @@ export async function POST(request: Request, { params }: Params) {
       avatar_url: avatar_url || user.user_metadata?.avatar_url,
       bio: bio || null,
       title: title || null,
+      company_name: company.name || null,
+      expertise_areas: expertise_areas || [],
+      interests: user_interests || [],
+      onboarding_completed: true,
     }, { onConflict: "id" });
 
   // Determine company_role based on capabilities
@@ -137,6 +141,10 @@ export async function POST(request: Request, { params }: Params) {
       .eq("id", existingParticipant.id);
     participantId = existingParticipant.id;
   } else {
+    // Validate intents
+    const validIntents = ["buying", "selling", "investing", "partnering", "learning", "networking"];
+    const cleanIntents = (intents || []).filter((i: string) => validIntents.includes(i));
+
     // Create new participant
     const { data: newParticipant, error: pError } = await admin
       .from("participants")
@@ -147,7 +155,10 @@ export async function POST(request: Request, { params }: Params) {
         status: "approved",
         company_id: company.id,
         company_role: companyRole,
-        intent: "networking",
+        intent: cleanIntents[0] || "networking",
+        intents: cleanIntents.length > 0 ? cleanIntents : ["networking"],
+        looking_for: looking_for || null,
+        offering: offering || null,
       })
       .select("id")
       .single();

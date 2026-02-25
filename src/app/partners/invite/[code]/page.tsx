@@ -566,36 +566,7 @@ export default function TeamMemberInvitePage() {
               </div>
 
               <div className="space-y-4">
-                {/* Only show company size/website if admin didn't fill them */}
-                {(!adminFilledSize || !adminFilledWebsite) && (
-                  <div className="grid grid-cols-2 gap-3">
-                    {!adminFilledSize && (
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block">Company size</label>
-                        <select
-                          value={companySize}
-                          onChange={(e) => setCompanySize(e.target.value)}
-                          className="flex w-full rounded bg-input px-4 py-2.5 text-sm text-foreground border border-border transition-colors duration-150 hover:border-border-strong focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/20"
-                        >
-                          <option value="">Select...</option>
-                          {COMPANY_SIZES.map((s) => (
-                            <option key={s.value} value={s.value}>{s.label} employees</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    {!adminFilledWebsite && (
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block">Company website</label>
-                        <Input
-                          value={companyWebsite}
-                          onChange={(e) => setCompanyWebsite(e.target.value)}
-                          placeholder="https://..."
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Company size and website are admin-only — not shown to team members */}
 
                 {/* Expertise */}
                 <div>

@@ -172,13 +172,39 @@ export default function OnboardWizardPage() {
     const supabase = createClient();
 
     if (authMode === "signup") {
-      const { data: signUpData, error } = await supabase.auth.signUp({
+      if (!authForm.full_name.trim()) {
+        setAuthError("Full name is required");
+        setAuthLoading(false);
+        return;
+      }
+      if (authForm.password.length < 8) {
+        setAuthError("Password must be at least 8 characters");
+        setAuthLoading(false);
+        return;
+      }
+      // Use server-side account creation (auto-confirms, consistent with registration flow)
+      const res = await fetch("/api/auth/create-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: authForm.email,
+          password: authForm.password,
+          fullName: authForm.full_name,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setAuthError(result.error || "Failed to create account");
+        setAuthLoading(false);
+        return;
+      }
+      // Sign in to get client session
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: authForm.email,
         password: authForm.password,
-        options: { data: { full_name: authForm.full_name } },
       });
-      if (error) { setAuthError(error.message); setAuthLoading(false); return; }
-      setUser(signUpData.user);
+      if (signInError) { setAuthError(signInError.message); setAuthLoading(false); return; }
+      setUser(signInData.user);
     } else {
       const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: authForm.email,

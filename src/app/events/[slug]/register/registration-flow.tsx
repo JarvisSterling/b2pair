@@ -246,16 +246,17 @@ export function RegistrationFlow({
 
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
+      // Only create the user account in Step 1 — participant record is created
+      // in handleFinalSubmit after all profile data is collected
       const res = await fetch("/api/events/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId: event.id,
-          mode: "signup",
+          mode: "signup_account_only",
           email,
           password,
           fullName,
-          participantTypeId: null,
         }),
       });
 
@@ -285,6 +286,7 @@ export function RegistrationFlow({
   }
 
   async function handleFinalSubmit() {
+    if (loading) return; // Prevent double-click
     setLoading(true);
     setError(null);
 
@@ -305,7 +307,7 @@ export function RegistrationFlow({
           registerBody.email = email;
           registerBody.password = password;
         } else {
-          // Signup mode — already registered in Step 1, just need participant record
+          // Signup mode — account created in Step 1, now create participant record
           registerBody.mode = "authenticated";
         }
 

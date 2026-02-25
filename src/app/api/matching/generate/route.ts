@@ -334,15 +334,16 @@ function computeComplementarityScore(a: any, b: any): number {
 
   if (a.role !== b.role) score += 20;
 
+  // Only match meaningful words (>3 chars to skip "and", "the", "for", etc.)
   if (a.looking_for && b.offering) {
     const aLooking = a.looking_for.toLowerCase();
     const bOffering = b.offering.toLowerCase();
-    if (aLooking.split(" ").some((w: string) => bOffering.includes(w))) score += 15;
+    if (aLooking.split(" ").some((w: string) => w.length > 3 && bOffering.includes(w))) score += 15;
   }
   if (b.looking_for && a.offering) {
     const bLooking = b.looking_for.toLowerCase();
     const aOffering = a.offering.toLowerCase();
-    if (bLooking.split(" ").some((w: string) => aOffering.includes(w))) score += 15;
+    if (bLooking.split(" ").some((w: string) => w.length > 3 && aOffering.includes(w))) score += 15;
   }
 
   return Math.min(score, 100);

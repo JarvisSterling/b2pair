@@ -22,7 +22,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (mode !== "authenticated" && (!email || !password)) {
+  if (mode !== "authenticated" && mode !== "signup_account_only" && (!email || !password)) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
+  }
+
+  if (mode === "signup_account_only" && (!email || !password)) {
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 }
@@ -48,6 +55,51 @@ export async function POST(req: NextRequest) {
       { error: "Registration is closed for this event" },
       { status: 400 }
     );
+  }
+
+  // signup_account_only: create user account only, no participant record yet
+  // Used by registration flow Step 1 — participant is created later with full profile data
+  if (mode === "signup_account_only") {
+    if (!fullName?.trim()) {
+      return NextResponse.json(
+        { error: "Full name is required" },
+        { status: 400 }
+      );
+    }
+
+    const { data: newUser, error: createError } =
+      await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
+
+    if (createError) {
+      if (createError.message.includes("already been registered")) {
+        return NextResponse.json(
+          { error: "An account with this email already exists. Try signing in instead." },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json(
+        { error: createError.message },
+        { status: 400 }
+      );
+    }
+
+    // Set up their profile (no participant record yet)
+    await admin.from("profiles").update({
+      full_name: fullName.trim(),
+      platform_role: "participant",
+      onboarding_completed: true,
+    }).eq("id", newUser.user.id);
+
+    return NextResponse.json({
+      success: true,
+      userId: newUser.user.id,
+      accountOnly: true,
+    });
   }
 
   let userId: string;

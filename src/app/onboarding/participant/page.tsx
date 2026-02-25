@@ -51,7 +51,6 @@ const INTEREST_OPTIONS = [
 
 export default function ParticipantOnboardingPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,6 +77,7 @@ export default function ParticipantOnboardingPage() {
 
   useEffect(() => {
     async function init() {
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/auth/sign-in"); return; }
 
@@ -152,19 +152,25 @@ export default function ParticipantOnboardingPage() {
     setError(null);
 
     try {
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/auth/sign-in"); return; }
 
-      await supabase.from("profiles").update({
-        platform_role: "participant",
-        title: title.trim() || null,
-        company_name: companyName.trim() || null,
-        company_size: companySize || null,
-        company_website: companyWebsite.trim() || null,
-        expertise_areas: expertiseAreas,
-        interests: interests,
-        onboarding_completed: true,
-      }).eq("id", user.id);
+      // Use server API to update profile (bypasses RLS via admin client)
+      await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform_role: "participant",
+          title: title.trim() || null,
+          company_name: companyName.trim() || null,
+          company_size: companySize || null,
+          company_website: companyWebsite.trim() || null,
+          expertise_areas: expertiseAreas,
+          interests: interests,
+          onboarding_completed: true,
+        }),
+      });
 
       if (eventId) {
         const res = await fetch("/api/events/register-participant", {

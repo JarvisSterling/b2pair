@@ -48,14 +48,6 @@ const INTENTS = [
   { key: "networking", label: "Network", desc: "Expand your connections" },
 ];
 
-const COMPANY_SIZES = [
-  { value: "1-10", label: "1–10" },
-  { value: "11-50", label: "11–50" },
-  { value: "51-200", label: "51–200" },
-  { value: "201-1000", label: "201–1,000" },
-  { value: "1000+", label: "1,000+" },
-];
-
 const EXPERTISE_AREAS = [
   "Software Development", "Product Management", "Sales & BD", "Marketing",
   "Design & UX", "Data & Analytics", "Operations", "Finance & Accounting",
@@ -202,13 +194,27 @@ export default function TeamMemberInvitePage() {
         return;
       }
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
-      const { data: signUpData, error } = await supabase.auth.signUp({
+
+      // Use server-side account creation (auto-confirms, consistent with registration flow)
+      const res = await fetch("/api/auth/create-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail, password, fullName }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setAuthError(result.error || "Failed to create account");
+        setSaving(false);
+        return;
+      }
+
+      // Sign in to get a client session
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: authEmail,
         password,
-        options: { data: { full_name: fullName } },
       });
-      if (error) { setAuthError(error.message); setSaving(false); return; }
-      setUser(signUpData.user);
+      if (signInError) { setAuthError(signInError.message); setSaving(false); return; }
+      setUser(signInData.user);
     } else {
       const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: authEmail,
@@ -314,9 +320,9 @@ export default function TeamMemberInvitePage() {
         {step !== "auth" && step !== "done" && (
           <div className="mb-4">
             <div className="flex gap-1.5">
-              {["profile", "enhance"].map((s, i) => (
+              {["auth", "profile", "enhance"].map((s) => (
                 <div key={s} className={cn("h-1 flex-1 rounded-full", 
-                  s === step || (step === "enhance" && s === "profile") ? "bg-primary" : "bg-border"
+                  s === "auth" || s === step || (step === "enhance" && s === "profile") ? "bg-primary" : "bg-border"
                 )} />
               ))}
             </div>

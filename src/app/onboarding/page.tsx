@@ -62,6 +62,13 @@ const EXPERTISE_AREAS = [
   "AI & Machine Learning",
 ];
 
+const INTEREST_OPTIONS = [
+  "Sustainability", "Digital Transformation", "Growth Strategy",
+  "International Expansion", "Innovation & R&D", "Talent Acquisition",
+  "Fundraising", "Market Research", "Brand Building",
+  "Process Automation", "Cybersecurity", "E-commerce",
+];
+
 const COMPANY_SIZES = [
   { value: "1-10", label: "1-10 employees" },
   { value: "11-50", label: "11-50 employees" },
@@ -103,12 +110,15 @@ export default function OnboardingPage() {
     linkedinUrl: "",
   });
 
-  // Detect if user came through sponsor/exhibitor flow (has company membership)
+  // Detect if user is a participant (has company membership or participant records)
+  // and redirect to the unified participant onboarding flow
   useEffect(() => {
-    async function checkCompanyMembership() {
+    async function checkParticipantStatus() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Check for company memberships (sponsor/exhibitor flow)
       const { data: memberships } = await supabase
         .from("company_members")
         .select("id")
@@ -116,12 +126,33 @@ export default function OnboardingPage() {
         .eq("invite_status", "accepted")
         .limit(1);
       if (memberships && memberships.length > 0) {
-        // Redirect to unified participant onboarding flow
+        router.push("/onboarding/participant");
+        return;
+      }
+
+      // Check for existing participant records (registered for events)
+      const { data: participants } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+      if (participants && participants.length > 0) {
+        router.push("/onboarding/participant");
+        return;
+      }
+
+      // Check if profile already says participant
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("platform_role")
+        .eq("id", user.id)
+        .single();
+      if (profile?.platform_role === "participant") {
         router.push("/onboarding/participant");
         return;
       }
     }
-    checkCompanyMembership();
+    checkParticipantStatus();
   }, []);
 
   function updateData(updates: Partial<OnboardingData>) {
@@ -520,27 +551,25 @@ function InterestsStep({
             Interests (what are you looking to learn or explore?)
           </label>
           <div className="flex flex-wrap gap-2">
-            {EXPERTISE_AREAS.filter(
-              (a) => !data.expertiseAreas.includes(a)
-            ).map((area) => (
+            {INTEREST_OPTIONS.map((item) => (
               <button
-                key={area}
+                key={item}
                 type="button"
-                onClick={() => toggleArrayItem("interests", area)}
+                onClick={() => toggleArrayItem("interests", item)}
                 className={`
                   rounded-full border px-3 py-1.5 text-caption
                   transition-all duration-150 ease-out
                   ${
-                    data.interests.includes(area)
+                    data.interests.includes(item)
                       ? "border-primary/50 bg-primary/5 text-primary font-medium"
                       : "border-border bg-background text-muted-foreground hover:border-border-strong hover:bg-secondary hover:text-foreground"
                   }
                 `}
               >
-                {data.interests.includes(area) && (
+                {data.interests.includes(item) && (
                   <Check className="mr-1 inline h-3 w-3" />
                 )}
-                {area}
+                {item}
               </button>
             ))}
           </div>

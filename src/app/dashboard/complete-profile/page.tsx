@@ -148,6 +148,19 @@ export default function CompleteProfilePage() {
       onboarding_completed: true,
     }).eq("id", user.id);
 
+    // Also update participant records with intents/looking_for/offering
+    if (selectedIntents.length > 0 || lookingFor.trim() || offering.trim()) {
+      await fetch("/api/events/update-all-participants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intents: selectedIntents,
+          lookingFor: lookingFor.trim(),
+          offering: offering.trim(),
+        }),
+      });
+    }
+
     router.push(redirectTo);
     router.refresh();
   }

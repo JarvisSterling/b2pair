@@ -130,14 +130,26 @@ export async function POST(request: Request, { params }: Params) {
   let participantId: string;
 
   if (existingParticipant) {
-    // Update existing participant with company info
+    // Update existing participant with company info AND profile data from the form
+    const validIntents = ["buying", "selling", "investing", "partnering", "learning", "networking"];
+    const cleanIntents = (intents || []).filter((i: string) => validIntents.includes(i));
+
+    const participantUpdate: Record<string, any> = {
+      company_id: company.id,
+      company_role: companyRole,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (cleanIntents.length > 0) {
+      participantUpdate.intents = cleanIntents;
+      participantUpdate.intent = cleanIntents[0];
+    }
+    if (looking_for) participantUpdate.looking_for = looking_for;
+    if (offering) participantUpdate.offering = offering;
+
     await admin
       .from("participants")
-      .update({
-        company_id: company.id,
-        company_role: companyRole,
-        updated_at: new Date().toISOString(),
-      })
+      .update(participantUpdate)
       .eq("id", existingParticipant.id);
     participantId = existingParticipant.id;
   } else {

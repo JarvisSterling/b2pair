@@ -57,7 +57,9 @@ function BannerImage({
     );
   }
   return (
-    <SafeImage src={url} alt="Event banner" className={cn("object-cover", className)} width={48} height={48} />
+    <div className={cn("relative overflow-hidden", className)}>
+      <SafeImage src={url} alt="Event banner" className="object-cover" fill sizes="100vw" />
+    </div>
   );
 }
 
@@ -287,7 +289,7 @@ export function BannerDisplay({
       <div className="relative min-h-[520px] overflow-hidden">
         {bannerUrl ? (
           <>
-            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
+            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={1920} height={1080} />
             <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(255,255,255,${gradientOpacity * 0.4}), rgba(255,255,255,${gradientOpacity * 0.8}))` }} />
           </>
         ) : (
@@ -315,7 +317,7 @@ export function BannerDisplay({
       <div className="relative min-h-[560px] overflow-hidden">
         {bannerUrl ? (
           <>
-            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
+            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={1920} height={1080} />
             <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
           </>
         ) : (
@@ -343,7 +345,7 @@ export function BannerDisplay({
       <div className="relative min-h-[580px] overflow-hidden">
         {bannerUrl ? (
           <>
-            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
+            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={1920} height={1080} />
             <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
           </>
         ) : (

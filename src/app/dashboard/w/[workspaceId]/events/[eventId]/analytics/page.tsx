@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,6 +35,10 @@ export default async function AnalyticsDashboard({ params }: PageProps) {
 
   if (!event) notFound();
 
+  // Use admin client for aggregate queries (RLS on matches/meetings/etc.
+  // restricts to own records, but organizer needs to see all event data)
+  const admin = createAdminClient();
+
   // --- All queries in parallel ---
   const [
     { count: totalParticipants },
@@ -58,27 +63,27 @@ export default async function AnalyticsDashboard({ params }: PageProps) {
     { count: totalMessages },
     { data: topParticipants },
   ] = await Promise.all([
-    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId),
-    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "approved"),
-    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "pending"),
-    supabase.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "rejected"),
-    supabase.from("event_participant_types").select("id, name, color").eq("event_id", eventId).order("sort_order"),
-    supabase.from("participants").select("role, intent, participant_type_id, status").eq("event_id", eventId).eq("status", "approved"),
-    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId),
-    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "accepted"),
-    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "saved"),
-    supabase.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "dismissed"),
-    supabase.from("matches").select("score").eq("event_id", eventId),
-    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId),
-    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "pending"),
-    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "accepted"),
-    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "declined"),
-    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "completed"),
-    supabase.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "no_show"),
-    supabase.from("meetings").select("requester_rating, recipient_rating").eq("event_id", eventId).not("requester_rating", "is", null),
-    supabase.from("conversations").select("*", { count: "exact", head: true }).eq("event_id", eventId),
-    supabase.from("messages").select("*, conversations!inner(event_id)", { count: "exact", head: true }).eq("conversations.event_id", eventId),
-    supabase.from("matches").select(`score, participant_a:participants!matches_participant_a_id_fkey(profiles!inner(full_name, company_name)), participant_b:participants!matches_participant_b_id_fkey(profiles!inner(full_name, company_name))`).eq("event_id", eventId).order("score", { ascending: false }).limit(5),
+    admin.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    admin.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "approved"),
+    admin.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "pending"),
+    admin.from("participants").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "rejected"),
+    admin.from("event_participant_types").select("id, name, color").eq("event_id", eventId).order("sort_order"),
+    admin.from("participants").select("role, intent, participant_type_id, status").eq("event_id", eventId).eq("status", "approved"),
+    admin.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    admin.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "accepted"),
+    admin.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "saved"),
+    admin.from("matches").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "dismissed"),
+    admin.from("matches").select("score").eq("event_id", eventId),
+    admin.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    admin.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "pending"),
+    admin.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "accepted"),
+    admin.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "declined"),
+    admin.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "completed"),
+    admin.from("meetings").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "no_show"),
+    admin.from("meetings").select("requester_rating, recipient_rating").eq("event_id", eventId).not("requester_rating", "is", null),
+    admin.from("conversations").select("*", { count: "exact", head: true }).eq("event_id", eventId),
+    admin.from("messages").select("*, conversations!inner(event_id)", { count: "exact", head: true }).eq("conversations.event_id", eventId),
+    admin.from("matches").select(`score, participant_a:participants!matches_participant_a_id_fkey(profiles!inner(full_name, company_name)), participant_b:participants!matches_participant_b_id_fkey(profiles!inner(full_name, company_name))`).eq("event_id", eventId).order("score", { ascending: false }).limit(5),
   ]);
 
   // Compute breakdowns from the single allParticipants query

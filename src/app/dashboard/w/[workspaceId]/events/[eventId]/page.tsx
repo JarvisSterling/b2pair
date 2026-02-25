@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,10 @@ export default async function EventControlPanel({ params }: PageProps) {
 
   if (!event) notFound();
 
-  const { count: participantCount } = await supabase
+  // Admin client for aggregate queries (bypasses RLS)
+  const admin = createAdminClient();
+
+  const { count: participantCount } = await admin
     .from("participants")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId)
@@ -80,7 +84,7 @@ export default async function EventControlPanel({ params }: PageProps) {
 
   const breakdownWithCounts = await Promise.all(
     (typeBreakdown || []).map(async (t: any) => {
-      const { count } = await supabase
+      const { count } = await admin
         .from("participants")
         .select("*", { count: "exact", head: true })
         .eq("event_id", eventId)

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ContentBlock } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface BlockPropertiesProps {
   block: ContentBlock;
@@ -266,12 +267,10 @@ function HeroFields({
         <Label className="text-xs">Background image</Label>
         {block.backgroundUrl ? (
           <div className="mt-1 relative rounded-lg overflow-hidden bg-muted h-24">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <SafeImage 
               src={block.backgroundUrl}
               alt="Hero background"
-              className="w-full h-full object-cover"
-            />
+              className="w-full h-full object-cover" width={800} height={400} />
             <button
               onClick={() => onUpdate({ backgroundUrl: undefined })}
               className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded p-1 hover:bg-black/80"
@@ -386,12 +385,10 @@ function ImageFields({
         <Label className="text-xs">Image</Label>
         {block.url ? (
           <div className="mt-1 relative rounded-lg overflow-hidden bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <SafeImage 
               src={block.url}
               alt={block.alt}
-              className="w-full max-h-32 object-cover"
-            />
+              className="w-full max-h-32 object-cover" width={800} height={400} />
             <button
               onClick={() => onUpdate({ url: "", alt: "" })}
               className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded p-1 hover:bg-black/80"
@@ -511,12 +508,10 @@ function GalleryFields({
                 key={i}
                 className="relative group/img rounded-lg overflow-hidden bg-muted aspect-square"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <SafeImage 
                   src={img.url}
                   alt={img.alt}
-                  className="w-full h-full object-cover"
-                />
+                  className="w-full h-full object-cover" width={800} height={400} />
                 <button
                   onClick={() => {
                     const images = block.images.filter((_, idx) => idx !== i);

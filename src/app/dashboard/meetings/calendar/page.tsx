@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface CalendarMeeting {
   id: string;
@@ -382,11 +383,7 @@ export default function MeetingsCalendarPage() {
           <CardContent className="pt-5 pb-5">
             <div className="flex items-start gap-4">
               {selectedMeeting.other_person.avatar_url ? (
-                <img
-                  src={selectedMeeting.other_person.avatar_url}
-                  alt=""
-                  className="h-11 w-11 rounded-full object-cover"
-                />
+                <SafeImage src={selectedMeeting.other_person.avatar_url} alt="" className="h-11 w-11 rounded-full object-cover" width={400} height={200} />
               ) : (
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-medium">
                   {(selectedMeeting.other_person.full_name || "?").charAt(0)}

@@ -28,6 +28,7 @@ import {
 import type { ContentBlock, BlockType } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
 import { randomId } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/safe-image";
 
 const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ReactNode }[] = [
   { type: "rich-text", label: "Text", icon: <Type className="h-4 w-4" /> },
@@ -331,8 +332,7 @@ function ImageBlockEditor({
     <div className="space-y-2">
       {block.url ? (
         <div className="relative rounded-lg overflow-hidden bg-muted">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={block.url} alt={block.alt} className="w-full max-h-48 object-cover" />
+          <SafeImage src={block.url} alt={block.alt} className="w-full max-h-48 object-cover" width={800} height={400} />
           <button
             onClick={() => onUpdate({ url: "", alt: "" })}
             className="absolute top-2 right-2 bg-black/60 text-white rounded-md p-1.5 hover:bg-black/80 transition-colors"
@@ -439,8 +439,7 @@ function GalleryBlockEditor({
         <div className="grid grid-cols-4 gap-2">
           {block.images.map((img, i) => (
             <div key={i} className="relative group/img rounded-lg overflow-hidden bg-muted aspect-square">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt={img.alt} className="w-full h-full object-cover" />
+              <SafeImage src={img.url} alt={img.alt} className="w-full h-full object-cover" width={800} height={400} />
               <button
                 onClick={() => removeImage(i)}
                 className="absolute top-1 right-1 bg-black/60 text-white rounded p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"

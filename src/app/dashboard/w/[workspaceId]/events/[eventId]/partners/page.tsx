@@ -28,6 +28,7 @@ import {
   Globe,
 } from "lucide-react";
 import type { Company, CompanyStatus, SponsorTier, SponsorProfile, ExhibitorProfile, CompanyMember } from "@/types/sponsors";
+import { SafeImage } from "@/components/ui/safe-image";
 
 type ActiveTab = "sponsors" | "exhibitors" | "tiers" | "settings";
 
@@ -748,7 +749,7 @@ function CompanyDetailPanel({
       {/* Header */}
       <div className="flex items-center gap-4 p-6 border-b border-border sticky top-0 bg-background z-10">
         {company.logo_url ? (
-          <img src={company.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+          <SafeImage src={company.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" width={48} height={48} />
         ) : (
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary text-lg font-bold shrink-0">
             {company.name[0]}
@@ -839,7 +840,7 @@ function CompanyDetailPanel({
 
         {/* Banner */}
         {company.banner_url && (
-          <img src={company.banner_url} alt="Banner" className="w-full h-32 object-cover rounded-lg" />
+          <SafeImage src={company.banner_url} alt="Banner" className="w-full h-32 object-cover rounded-lg" width={400} height={128} />
         )}
 
         {/* Sponsor details */}
@@ -934,7 +935,7 @@ function CompanyDetailPanel({
                   <div className="space-y-2">
                     {exhibitorProfile.products.map((p: any, i: number) => (
                       <div key={i} className="flex items-start gap-3 p-2 rounded bg-muted/30">
-                        {p.image_url && <img src={p.image_url} alt="" className="h-10 w-10 rounded object-cover shrink-0" />}
+                        {p.image_url && <SafeImage src={p.image_url} alt="" className="h-10 w-10 rounded object-cover shrink-0" width={40} height={40} />}
                         <div>
                           <p className="text-caption font-medium">{p.name}</p>
                           {p.description && <p className="text-[11px] text-muted-foreground">{p.description}</p>}
@@ -1207,7 +1208,7 @@ function CompanyList({
           <CardContent className="py-4">
             <div className="flex items-center gap-4">
               {company.logo_url ? (
-                <img src={company.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                <SafeImage src={company.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" width={40} height={40} />
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary text-small font-bold shrink-0">
                   {company.name[0]}

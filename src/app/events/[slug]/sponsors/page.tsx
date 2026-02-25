@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Crown } from "lucide-react";
 import Link from "next/link";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -69,7 +70,7 @@ export default async function SponsorsDirectoryPage({ params }: PageProps) {
                   >
                     <div className="flex items-center gap-3">
                       {company.logo_url ? (
-                        <img src={company.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                        <SafeImage src={company.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" width={48} height={48} />
                       ) : (
                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
                           {company.name[0]}
@@ -110,7 +111,7 @@ export default async function SponsorsDirectoryPage({ params }: PageProps) {
                 >
                   <div className="flex items-center gap-3">
                     {company.logo_url ? (
-                      <img src={company.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                      <SafeImage src={company.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" width={48} height={48} />
                     ) : (
                       <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
                         {company.name[0]}

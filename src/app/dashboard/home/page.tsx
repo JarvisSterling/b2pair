@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
+import { SafeImage } from "@/components/ui/safe-image";
 
 export default async function ParticipantHome() {
   const supabase = await createClient();
@@ -175,12 +176,10 @@ export default async function ParticipantHome() {
               <Card className="group mb-8 overflow-hidden cursor-pointer hover:shadow-lg hover:border-border-strong transition-all duration-200">
                 {latestEvent.page_hero_url && (
                   <div className="h-40 bg-muted overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <SafeImage 
                       src={latestEvent.page_hero_url}
                       alt=""
-                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                    />
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" width={800} height={400} />
                   </div>
                 )}
                 <CardContent className={latestEvent.page_hero_url ? "pt-5" : "pt-6"}>

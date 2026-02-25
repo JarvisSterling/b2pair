@@ -11,6 +11,7 @@ import { Check, ArrowRight, Loader2, Eye, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { SafeImage } from "@/components/ui/safe-image";
 
 type BannerLayout = "split" | "image-below" | "centered" | "full-bleed";
 
@@ -56,8 +57,7 @@ function BannerImage({
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} alt="Event banner" className={cn("object-cover", className)} />
+    <SafeImage src={url} alt="Event banner" className={cn("object-cover", className)} width={48} height={48} />
   );
 }
 
@@ -287,8 +287,7 @@ export function BannerDisplay({
       <div className="relative min-h-[520px] overflow-hidden">
         {bannerUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
+            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
             <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(255,255,255,${gradientOpacity * 0.4}), rgba(255,255,255,${gradientOpacity * 0.8}))` }} />
           </>
         ) : (
@@ -316,8 +315,7 @@ export function BannerDisplay({
       <div className="relative min-h-[560px] overflow-hidden">
         {bannerUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
+            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
             <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
           </>
         ) : (
@@ -345,8 +343,7 @@ export function BannerDisplay({
       <div className="relative min-h-[580px] overflow-hidden">
         {bannerUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} />
+            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
             <div className="absolute inset-0" style={{ backgroundColor: `rgba(30,41,59,${darkOverlay})` }} />
           </>
         ) : (

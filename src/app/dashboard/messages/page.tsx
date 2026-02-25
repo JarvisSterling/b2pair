@@ -15,6 +15,7 @@ import {
   FileText,
   Download,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Conversation {
   id: string;
@@ -369,8 +370,7 @@ export default function MessagesPage() {
                     }`}
                   >
                     {other.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={other.avatar_url} alt={other.full_name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                      <SafeImage src={other.avatar_url} alt={other.full_name} className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
                     ) : (
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium shrink-0">
                         {initials}
@@ -433,8 +433,7 @@ export default function MessagesPage() {
                       >
                         {msg.file_url && msg.file_type?.startsWith("image/") ? (
                           <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={msg.file_url} alt={msg.file_name || "Image"} className="max-w-full rounded-md max-h-64 object-cover mb-1" />
+                            <SafeImage src={msg.file_url} alt={msg.file_name || "Image"} className="max-w-full rounded-md max-h-64 object-cover mb-1" width={24} height={24} />
                           </a>
                         ) : msg.file_url ? (
                           <a

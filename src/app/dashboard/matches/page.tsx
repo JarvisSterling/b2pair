@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface MatchItem {
   id: string;
@@ -220,11 +221,7 @@ function MatchCard({ match }: { match: MatchItem }) {
       <CardContent className="p-5">
         <div className="flex items-start gap-4">
           {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={profile.full_name}
-              className="h-12 w-12 rounded-full object-cover"
-            />
+            <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-12 w-12 rounded-full object-cover" width={48} height={48} />
           ) : (
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
               {initials}

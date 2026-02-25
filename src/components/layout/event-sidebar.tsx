@@ -20,6 +20,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useState } from "react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Props {
   workspaceId: string;
@@ -163,7 +164,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
       <div className="border-t border-border p-3">
         <div className="flex items-center gap-3 px-3 py-2">
           {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+            <SafeImage src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
               {initials}

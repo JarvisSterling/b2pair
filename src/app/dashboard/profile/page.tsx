@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Save, Loader2, Check, Pencil, X } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 const INDUSTRIES = [
   "Technology", "Healthcare", "Finance", "Manufacturing", "Retail",
@@ -174,8 +175,7 @@ export default function ProfilePage() {
         <CardContent className="pt-6">
           <div className="flex items-start gap-5">
             {profile.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt={profile.full_name} className="h-20 w-20 rounded-full object-cover shrink-0" />
+              <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-20 w-20 rounded-full object-cover shrink-0" width={80} height={80} />
             ) : (
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary text-h1 font-semibold shrink-0">
                 {initials}

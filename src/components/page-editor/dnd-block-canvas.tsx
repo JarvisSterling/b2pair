@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { ContentBlock, BlockType } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/safe-image";
 
 const BLOCK_LABELS: Record<BlockType, { label: string; icon: React.ReactNode }> = {
   hero: { label: "Hero", icon: <Layout className="h-3.5 w-3.5" /> },
@@ -252,12 +253,10 @@ function BlockPreview({ block }: { block: ContentBlock }) {
       );
     case "image":
       return block.url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <SafeImage 
           src={block.url}
           alt={block.alt}
-          className="rounded-lg max-h-32 object-cover w-full"
-        />
+          className="rounded-lg max-h-32 object-cover w-full" width={800} height={400} />
       ) : (
         <div className="h-20 rounded-lg border border-dashed border-border/40 flex items-center justify-center text-xs text-muted-foreground/50">
           No image uploaded
@@ -268,13 +267,11 @@ function BlockPreview({ block }: { block: ContentBlock }) {
         <div className="flex gap-1.5">
           {block.images.length > 0
             ? block.images.slice(0, 4).map((img, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <SafeImage 
                   key={i}
                   src={img.url}
                   alt={img.alt}
-                  className="h-16 w-16 rounded-lg object-cover"
-                />
+                  className="h-16 w-16 rounded-lg object-cover" width={64} height={64} />
               ))
             : <p className="text-xs text-muted-foreground/50 italic">No images</p>}
           {block.images.length > 4 && (

@@ -16,6 +16,7 @@ import {
   MapPin,
   Tag,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Exhibitor {
   id: string;
@@ -75,13 +76,13 @@ export default function ParticipantExhibitorsPage() {
 
         {selected.banner_url && (
           <div className="rounded-xl overflow-hidden mb-6 h-48">
-            <img src={selected.banner_url} alt="" className="w-full h-full object-cover" />
+            <SafeImage src={selected.banner_url} alt="" className="w-full h-full object-cover" width={800} height={400} />
           </div>
         )}
 
         <div className="flex items-start gap-4 mb-6">
           {selected.logo_url ? (
-            <img src={selected.logo_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0 border" />
+            <SafeImage src={selected.logo_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0 border" width={64} height={64} />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10 text-primary text-h2 font-bold shrink-0">
               {selected.name[0]}
@@ -131,7 +132,7 @@ export default function ParticipantExhibitorsPage() {
                   <CardContent className="pt-5">
                     <div className="flex gap-3">
                       {product.image_url && (
-                        <img src={product.image_url} alt="" className="h-16 w-16 rounded-lg object-cover shrink-0" />
+                        <SafeImage src={product.image_url} alt="" className="h-16 w-16 rounded-lg object-cover shrink-0" width={64} height={64} />
                       )}
                       <div>
                         <p className="text-body font-medium">{product.name}</p>
@@ -229,7 +230,7 @@ export default function ParticipantExhibitorsPage() {
                 <CardContent className="pt-5">
                   <div className="flex items-start gap-3">
                     {exhibitor.logo_url ? (
-                      <img src={exhibitor.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0 border" />
+                      <SafeImage src={exhibitor.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0 border" width={48} height={48} />
                     ) : (
                       <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary text-body font-bold shrink-0">
                         {exhibitor.name[0]}

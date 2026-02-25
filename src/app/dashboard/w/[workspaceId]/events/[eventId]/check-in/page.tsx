@@ -20,6 +20,7 @@ import {
   Scan,
   Keyboard,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface CheckIn {
   id: string;
@@ -363,7 +364,7 @@ export default function CheckInDashboard() {
                       className="flex items-center gap-3 p-3 rounded-lg border border-border"
                     >
                       {profile.avatar_url ? (
-                        <img src={profile.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
+                        <SafeImage src={profile.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" width={36} height={36} />
                       ) : (
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium shrink-0">
                           {initials}
@@ -435,7 +436,7 @@ export default function CheckInDashboard() {
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 group transition-colors"
                 >
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+                    <SafeImage src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" width={32} height={32} />
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 text-small font-medium shrink-0">
                       {initials}

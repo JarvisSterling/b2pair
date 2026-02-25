@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CompanyTracker, TrackDownload } from "@/components/events/company-tracker";
 import { Globe, Download, ShoppingBag, FileText, ExternalLink, Play, Calendar, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface PageProps {
   params: Promise<{ slug: string; companySlug: string }>;
@@ -60,14 +61,14 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
       {/* Banner */}
       {company.banner_url && (
         <div className="rounded-xl overflow-hidden mb-6 h-48">
-          <img src={company.banner_url} alt="" className="w-full h-full object-cover" />
+          <SafeImage src={company.banner_url} alt="" className="w-full h-full object-cover" width={800} height={400} />
         </div>
       )}
 
       {/* Header */}
       <div className="flex items-start gap-4 mb-6">
         {company.logo_url ? (
-          <img src={company.logo_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+          <SafeImage src={company.logo_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0" width={64} height={64} />
         ) : (
           <div className="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold shrink-0">
             {company.name[0]}
@@ -126,7 +127,7 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
               <div key={i} className="rounded-lg border p-4">
                 <div className="flex gap-3">
                   {product.image_url && (
-                    <img src={product.image_url} alt="" className="h-16 w-16 rounded-lg object-cover shrink-0" />
+                    <SafeImage src={product.image_url} alt="" className="h-16 w-16 rounded-lg object-cover shrink-0" width={64} height={64} />
                   )}
                   <div>
                     <p className="font-medium text-sm">{product.name}</p>
@@ -187,7 +188,7 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
               return (
                 <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                    <SafeImage src={profile.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
                   ) : (
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium shrink-0">
                       {initials}

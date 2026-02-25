@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { SafeImage } from "@/components/ui/safe-image";
 
 export default function ExhibitorsDirectoryPage() {
   const params = useParams();
@@ -102,7 +103,7 @@ export default function ExhibitorsDirectoryPage() {
                   <CardContent className="pt-5">
                     <div className="flex items-start gap-3 mb-2">
                       {ex.logo_url ? (
-                        <img src={ex.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                        <SafeImage src={ex.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" width={48} height={48} />
                       ) : (
                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
                           {ex.name[0]}

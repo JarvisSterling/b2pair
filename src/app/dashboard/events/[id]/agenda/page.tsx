@@ -17,6 +17,7 @@ import {
   Coffee,
   Filter,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Track {
   id: string;
@@ -278,11 +279,7 @@ export default function ParticipantAgendaPage() {
                                     className="flex items-center gap-1.5 text-caption"
                                   >
                                     {ss.speaker.avatar_url ? (
-                                      <img
-                                        src={ss.speaker.avatar_url}
-                                        alt=""
-                                        className="h-5 w-5 rounded-full object-cover"
-                                      />
+                                      <SafeImage src={ss.speaker.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" width={20} height={20} />
                                     ) : (
                                       <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-medium">
                                         {ss.speaker.full_name[0]}

@@ -30,20 +30,32 @@ export async function POST(request: Request) {
 
   const admin = getAdmin();
 
-  // Fetch all approved participants with profiles
-  const { data: participants, error: fetchError } = await admin
+  // Fetch all approved participants with profiles (left join so participants without profiles aren't silently dropped)
+  const { data: rawParticipants, error: fetchError } = await admin
     .from("participants")
     .select(`
       id, role, intent, intents, tags, looking_for, offering,
       intent_vector, intent_confidence, ai_intent_classification,
-      profiles!inner(full_name, title, company_name, company_size, industry, expertise_areas, interests, bio)
+      profiles(full_name, title, company_name, company_size, industry, expertise_areas, interests, bio)
     `)
     .eq("event_id", eventId)
     .eq("status", "approved");
 
-  if (fetchError || !participants) {
+  if (fetchError || !rawParticipants) {
     return NextResponse.json({ error: "Failed to fetch participants" }, { status: 500 });
   }
+
+  // Ensure every participant has a profiles object (default empty fields for those missing profiles)
+  const DEFAULT_PROFILE = {
+    full_name: null, title: null, company_name: null, company_size: null,
+    industry: null, expertise_areas: [], interests: [], bio: null,
+  };
+  const participants = rawParticipants.map((p: any) => ({
+    ...p,
+    profiles: p.profiles || DEFAULT_PROFILE,
+  }));
+
+  const participantsWithoutProfiles = rawParticipants.filter((p: any) => !p.profiles);
 
   if (participants.length < 2) {
     return NextResponse.json({ error: "Need at least 2 participants to generate matches" }, { status: 400 });
@@ -256,6 +268,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     success: true,
     participantCount: participants.length,
+    participantsWithoutProfiles: participantsWithoutProfiles.length,
     matchCount: matches.length,
     vectorsComputed: participantVectors.size,
   });

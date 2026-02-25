@@ -25,6 +25,7 @@ import {
   X,
   Image as ImageIcon,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface OnboardData {
   member: { id: string; email: string; name: string; role: string };
@@ -356,7 +357,7 @@ export default function OnboardWizardPage() {
         <div className="max-w-3xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             {data.event.logo_url && (
-              <img src={data.event.logo_url} alt="" className="h-8 w-8 rounded object-cover" />
+              <SafeImage src={data.event.logo_url} alt="" className="h-8 w-8 rounded object-cover" width={32} height={32} />
             )}
             <div>
               <p className="text-caption text-muted-foreground">{data.event.name}</p>
@@ -457,12 +458,12 @@ export default function OnboardWizardPage() {
                 <div>
                   <label className="text-caption font-medium mb-1.5 block">Logo URL *</label>
                   <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://your-company.com/logo.png" />
-                  {logo && <img src={logo} alt="Logo preview" className="mt-2 h-16 w-16 rounded-lg object-cover border" />}
+                  {logo && <SafeImage src={logo} alt="Logo preview" className="mt-2 h-16 w-16 rounded-lg object-cover border" width={64} height={64} />}
                 </div>
                 <div>
                   <label className="text-caption font-medium mb-1.5 block">Banner image URL</label>
                   <Input value={banner} onChange={(e) => setBanner(e.target.value)} placeholder="https://your-company.com/banner.jpg" />
-                  {banner && <img src={banner} alt="Banner preview" className="mt-2 h-24 w-full rounded-lg object-cover border" />}
+                  {banner && <SafeImage src={banner} alt="Banner preview" className="mt-2 h-24 w-full rounded-lg object-cover border" width={400} height={96} />}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
@@ -791,7 +792,7 @@ export default function OnboardWizardPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4 mb-6">
                   {logo ? (
-                    <img src={logo} alt="" className="h-16 w-16 rounded-xl object-cover border" />
+                    <SafeImage src={logo} alt="" className="h-16 w-16 rounded-xl object-cover border" width={64} height={64} />
                   ) : (
                     <div className="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-h2 font-bold">
                       {data.company.name[0]}

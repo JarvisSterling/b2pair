@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { ContentBlock, SponsorBlock as SponsorBlockType, ExhibitorDirectoryBlock as ExhibitorDirBlockType, FeaturedSponsorBlock as FeaturedBlockType, SponsorBannerBlock as BannerBlockType } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface BlockRendererProps {
   blocks: ContentBlock[];
@@ -185,13 +186,11 @@ function RenderBlock({ block }: { block: ContentBlock }) {
     case "image":
       return (
         <figure>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <SafeImage 
             src={block.url}
             alt={block.alt}
             className="w-full rounded-xl object-cover"
-            loading="lazy"
-          />
+            loading="lazy" width={800} height={400} />
           {block.caption && (
             <figcaption
               className="mt-2 text-center text-sm"
@@ -215,13 +214,11 @@ function RenderBlock({ block }: { block: ContentBlock }) {
         >
           {block.images.map((img, i) => (
             <figure key={i} className="overflow-hidden rounded-xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <SafeImage 
                 src={img.url}
                 alt={img.alt}
                 className="w-full aspect-[4/3] object-cover hover:scale-105 transition-transform duration-200"
-                loading="lazy"
-              />
+                loading="lazy" width={800} height={400} />
             </figure>
           ))}
         </div>
@@ -421,7 +418,7 @@ function SponsorLogosBlock({ block }: { block: SponsorBlockType }) {
                   className="transition-opacity hover:opacity-80"
                 >
                   {sponsor.logo_url ? (
-                    <img src={sponsor.logo_url} alt={sponsor.name} className={cn(logoSizeClass, "object-contain")} />
+                    <SafeImage src={sponsor.logo_url} alt={sponsor.name} className={cn(logoSizeClass, "object-contain")} width={48} height={48} />
                   ) : (
                     <span className="text-sm font-medium px-4 py-2 rounded-lg" style={{ backgroundColor: "var(--page-surface)", color: "var(--page-text)" }}>
                       {sponsor.name}
@@ -508,7 +505,7 @@ function ExhibitorDirectoryBlock({ block }: { block: ExhibitorDirBlockType }) {
               >
                 <div className="flex items-center gap-3 mb-2">
                   {ex.logo_url ? (
-                    <img src={ex.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                    <SafeImage src={ex.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" width={40} height={40} />
                   ) : (
                     <div className="h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold" style={{ backgroundColor: "var(--page-accent)", color: "#fff", opacity: 0.8 }}>
                       {ex.name[0]}
@@ -559,13 +556,13 @@ function FeaturedSponsorBlockRenderer({ block }: { block: FeaturedBlockType }) {
     <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: "var(--page-surface)" }}>
       {company.banner_url && (
         <div className="h-32 overflow-hidden">
-          <img src={company.banner_url} alt="" className="w-full h-full object-cover" />
+          <SafeImage src={company.banner_url} alt="" className="w-full h-full object-cover" width={800} height={400} />
         </div>
       )}
       <div className="p-6">
         <div className="flex items-center gap-4 mb-3">
           {company.logo_url ? (
-            <img src={company.logo_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
+            <SafeImage src={company.logo_url} alt="" className="h-14 w-14 rounded-xl object-cover" width={56} height={56} />
           ) : (
             <div className="h-14 w-14 rounded-xl flex items-center justify-center text-lg font-bold" style={{ backgroundColor: "var(--page-accent)", color: "#fff" }}>
               {company.name[0]}
@@ -637,7 +634,7 @@ function SponsorBannerBlockRenderer({ block }: { block: BannerBlockType }) {
       href={`sponsors/${sponsor.slug}`}
       className="block rounded-xl overflow-hidden transition-all hover:shadow-md"
     >
-      <img src={sponsor.banner_url} alt={sponsor.name} className="w-full h-32 object-cover" />
+      <SafeImage src={sponsor.banner_url} alt={sponsor.name} className="w-full h-32 object-cover" width={400} height={128} />
     </a>
   );
 }

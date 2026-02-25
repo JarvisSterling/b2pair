@@ -19,6 +19,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Profile {
   id: string;
@@ -145,11 +146,7 @@ export function Header({ profile }: { profile: Profile }) {
 
           <Link href="/dashboard/settings" className="hidden lg:block">
             {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.full_name}
-                className="h-8 w-8 rounded-full object-cover"
-              />
+              <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
                 {initials}
@@ -209,11 +206,7 @@ export function Header({ profile }: { profile: Profile }) {
             <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
               <div className="flex items-center gap-3 mb-3 px-2">
                 {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.full_name}
-                    className="h-9 w-9 rounded-full object-cover"
-                  />
+                  <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-9 w-9 rounded-full object-cover" width={400} height={200} />
                 ) : (
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
                     {initials}

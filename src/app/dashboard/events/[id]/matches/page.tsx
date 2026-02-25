@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActivityTracker } from "@/hooks/use-activity-tracker";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface MatchEntry {
   id: string;
@@ -359,8 +360,7 @@ export default function EventMatchesPage() {
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     {p.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.avatar_url} alt={p.full_name} className="h-14 w-14 rounded-full object-cover shrink-0" />
+                      <SafeImage src={p.avatar_url} alt={p.full_name} className="h-14 w-14 rounded-full object-cover shrink-0" width={56} height={56} />
                     ) : (
                       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary text-body font-medium shrink-0">
                         {initials}

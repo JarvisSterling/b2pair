@@ -24,6 +24,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface InviteData {
   member: { id: string; email: string; name: string; role: string };
@@ -296,8 +297,7 @@ export default function TeamMemberInvitePage() {
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-3">
             {data.company.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={data.company.logo_url} alt="" className="h-12 w-12 rounded-xl object-cover border" />
+              <SafeImage src={data.company.logo_url} alt="" width={48} height={48} className="h-12 w-12 rounded-xl object-cover border" />
             ) : (
               <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg font-bold">
                 {data.company.name[0]}

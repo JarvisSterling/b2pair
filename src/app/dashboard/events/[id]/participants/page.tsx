@@ -20,6 +20,7 @@ import {
   Mail,
   Globe,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Participant {
   id: string;
@@ -208,12 +209,10 @@ export default function ParticipantsPage() {
                 className="flex items-center gap-4 rounded-md border border-border bg-card p-4 transition-colors duration-150 hover:bg-secondary/30 cursor-pointer"
               >
                 {profile.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SafeImage 
                     src={profile.avatar_url}
                     alt={profile.full_name}
-                    className="h-10 w-10 rounded-full object-cover shrink-0"
-                  />
+                    className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
                 ) : (
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium shrink-0">
                     {initials}
@@ -291,12 +290,10 @@ export default function ParticipantsPage() {
               {/* Profile header */}
               <div className="flex items-start gap-4 mb-6">
                 {selected.profiles.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SafeImage 
                     src={selected.profiles.avatar_url}
                     alt={selected.profiles.full_name}
-                    className="h-16 w-16 rounded-full object-cover shrink-0"
-                  />
+                    className="h-16 w-16 rounded-full object-cover shrink-0" width={64} height={64} />
                 ) : (
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary text-h3 font-medium shrink-0">
                     {selected.profiles.full_name

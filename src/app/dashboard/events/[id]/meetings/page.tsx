@@ -19,6 +19,7 @@ import {
   Star,
   MessageSquare,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Meeting {
   id: string;
@@ -344,11 +345,7 @@ export default function EventMeetingsPage() {
                 <CardContent className="pt-5 pb-5">
                   <div className="flex items-start gap-4">
                     {other.avatar_url ? (
-                      <img
-                        src={other.avatar_url}
-                        alt={other.full_name}
-                        className="h-11 w-11 rounded-full object-cover shrink-0"
-                      />
+                      <SafeImage src={other.avatar_url} alt={other.full_name} className="h-11 w-11 rounded-full object-cover shrink-0" width={400} height={200} />
                     ) : (
                       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary text-caption font-medium shrink-0">
                         {initials}

@@ -23,6 +23,7 @@ import {
   Tag,
 } from "lucide-react";
 import { useActivityTracker } from "@/hooks/use-activity-tracker";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface DirectoryEntry {
   id: string;
@@ -237,8 +238,7 @@ export default function DirectoryPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3 mb-3">
                     {p.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.avatar_url} alt={p.full_name} className="h-12 w-12 rounded-full object-cover shrink-0" />
+                      <SafeImage src={p.avatar_url} alt={p.full_name} className="h-12 w-12 rounded-full object-cover shrink-0" width={48} height={48} />
                     ) : (
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary text-caption font-medium shrink-0">
                         {initials}
@@ -349,11 +349,10 @@ export default function DirectoryPage() {
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-4">
                   {selectedEntry.profiles.avatar_url ? (
-                    <img
+                    <SafeImage 
                       src={selectedEntry.profiles.avatar_url}
                       alt={selectedEntry.profiles.full_name}
-                      className="h-16 w-16 rounded-full object-cover"
-                    />
+                      className="h-16 w-16 rounded-full object-cover" width={64} height={64} />
                   ) : (
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary text-h3 font-semibold">
                       {selectedEntry.profiles.full_name

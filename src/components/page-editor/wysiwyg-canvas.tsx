@@ -47,6 +47,7 @@ import type { RichTextBlock } from "@/types/event-pages";
 import { EventThemeProvider } from "@/components/events/theme-provider";
 import type { ContentBlock, BlockType, ThemeKey, EventPage } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface WysiwygCanvasProps {
   page: EventPage;
@@ -446,8 +447,7 @@ function ImageLiveBlock({
   if (block.url) {
     return (
       <figure className="relative group/img">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={block.url} alt={block.alt} className="w-full rounded-xl object-cover" />
+        <SafeImage src={block.url} alt={block.alt} className="w-full rounded-xl object-cover" width={800} height={400} />
         <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors rounded-xl flex items-center justify-center">
           <div className="opacity-0 group-hover/img:opacity-100 transition-opacity flex gap-2">
             <button
@@ -558,8 +558,7 @@ function GalleryLiveBlock({
         )}>
           {block.images.map((img, i) => (
             <figure key={i} className="relative group/img overflow-hidden rounded-xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt={img.alt} className="w-full aspect-[4/3] object-cover" />
+              <SafeImage src={img.url} alt={img.alt} className="w-full aspect-[4/3] object-cover" width={800} height={400} />
               <button
                 onClick={(e) => {
                   e.stopPropagation();

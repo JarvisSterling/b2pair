@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Profile {
   id: string;
@@ -240,12 +241,10 @@ export function Sidebar({ profile }: { profile: Profile }) {
           className="flex items-center gap-3 rounded-sm p-2 hover:bg-secondary transition-colors duration-150"
         >
           {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <SafeImage 
               src={profile.avatar_url}
               alt={profile.full_name}
-              className="h-9 w-9 rounded-full object-cover"
-            />
+              className="h-9 w-9 rounded-full object-cover" width={400} height={200} />
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
               {initials}

@@ -20,6 +20,7 @@ import {
   Send,
   ExternalLink,
 } from "lucide-react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface CompanyInfo {
   id: string;
@@ -104,7 +105,7 @@ export default function CompanyDashboardPage() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           {company?.logo_url ? (
-            <img src={company.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover border" />
+            <SafeImage src={company.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover border" width={40} height={40} />
           ) : (
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
               {company?.name?.[0] || "C"}

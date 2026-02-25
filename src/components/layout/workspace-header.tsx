@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { useState } from "react";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Props {
   profile: {
@@ -98,7 +99,7 @@ export function WorkspaceHeader({ profile, workspaces, currentWorkspaceId }: Pro
 
       <div className="flex items-center gap-3">
         {profile.avatar_url ? (
-          <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+          <SafeImage src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
         ) : (
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
             {initials}

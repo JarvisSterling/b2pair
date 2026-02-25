@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface MatchProfile {
   matchId: string;
@@ -374,11 +375,7 @@ function MatchCard({ match }: { match: MatchProfile }) {
         {/* Avatar / header area */}
         <div className="relative bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center py-10">
           {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={profile.full_name}
-              className="h-24 w-24 rounded-full object-cover ring-4 ring-background shadow-lg"
-            />
+            <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-24 w-24 rounded-full object-cover ring-4 ring-background shadow-lg" width={400} height={96} />
           ) : (
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl font-semibold ring-4 ring-background shadow-lg">
               {initials}

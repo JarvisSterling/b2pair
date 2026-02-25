@@ -28,6 +28,7 @@ import {
 import { useState, useEffect } from "react";
 import { useParticipantPerms } from "@/hooks/use-participant-perms";
 import { useCompanyMemberships, type CompanyMembership } from "@/hooks/use-company-memberships";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface Props {
   eventId: string;
@@ -170,7 +171,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           {mode === "company" && (
             <div className="flex items-center gap-2 mt-2 px-2">
               {companyMembership.company_logo ? (
-                <img src={companyMembership.company_logo} alt="" className="h-5 w-5 rounded object-cover" />
+                <SafeImage src={companyMembership.company_logo} alt="" className="h-5 w-5 rounded object-cover" width={48} height={48} />
               ) : (
                 <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
                   {companyMembership.company_name[0]}
@@ -293,7 +294,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           className="flex items-center gap-3 px-3 py-2 rounded-sm hover:bg-secondary transition-colors"
         >
           {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+            <SafeImage src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
               {initials}

@@ -21,6 +21,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface RegistrationFlowProps {
   event: {
@@ -129,8 +130,9 @@ export function RegistrationFlow({
   const supabase = createClient();
 
   const startAsLogin = searchParams.get("mode") === "signin";
+  // Skip Step 1 (account creation) if already logged in
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(
-    alreadyRegistered ? 2 : isLoggedIn ? 2 : 1
+    isLoggedIn ? 2 : 1
   );
   const [isLogin, setIsLogin] = useState(startAsLogin);
   const [showPassword, setShowPassword] = useState(false);
@@ -380,12 +382,9 @@ export function RegistrationFlow({
       <div className="hidden md:flex w-[320px] shrink-0 border-r bg-muted/30 p-8 flex-col">
         <div className="mb-10">
           {event.banner_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={event.banner_url}
+            <SafeImage               src={event.banner_url}
               alt={event.name}
-              className="w-full h-32 object-cover rounded-xl mb-4"
-            />
+              className="w-full h-32 object-cover rounded-xl mb-4" width={800} height={400} />
           ) : (
             <div className="w-full h-32 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 mb-4" />
           )}

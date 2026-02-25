@@ -54,29 +54,29 @@ export default async function EventControlPanel({ params }: PageProps) {
     .eq("event_id", eventId)
     .eq("status", "approved");
 
-  const { count: pendingCount } = await supabase
+  const { count: pendingCount } = await admin
     .from("participants")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId)
     .eq("status", "pending");
 
-  const { count: matchCount } = await supabase
+  const { count: matchCount } = await admin
     .from("matches")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId);
 
-  const { count: meetingCount } = await supabase
+  const { count: meetingCount } = await admin
     .from("meetings")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId);
 
-  const { count: typeCount } = await supabase
+  const { count: typeCount } = await admin
     .from("event_participant_types")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId);
 
   // Participant breakdown by type
-  const { data: typeBreakdown } = await supabase
+  const { data: typeBreakdown } = await admin
     .from("event_participant_types")
     .select("id, name, color")
     .eq("event_id", eventId)
@@ -95,7 +95,7 @@ export default async function EventControlPanel({ params }: PageProps) {
   );
 
   // Count participants with no type assigned
-  const { count: noTypeCount } = await supabase
+  const { count: noTypeCount } = await admin
     .from("participants")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId)

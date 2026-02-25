@@ -4,14 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import sharp from "sharp";
 import { randomUUID } from "crypto";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 const IMAGE_CONFIGS: Record<string, { maxWidth: number; quality: number }> = {
-  banner: { maxWidth: 1600, quality: 80 },
-  logo: { maxWidth: 400, quality: 85 },
-  content: { maxWidth: 1200, quality: 80 },
-  gallery: { maxWidth: 800, quality: 75 },
+  banner: { maxWidth: 2400, quality: 92 },
+  logo: { maxWidth: 600, quality: 90 },
+  content: { maxWidth: 1600, quality: 88 },
+  gallery: { maxWidth: 1200, quality: 85 },
 };
 
 export async function POST(req: NextRequest) {

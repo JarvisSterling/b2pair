@@ -116,8 +116,9 @@ export default function OnboardingPage() {
         .eq("invite_status", "accepted")
         .limit(1);
       if (memberships && memberships.length > 0) {
-        setIsParticipantMode(true);
-        setData((prev) => ({ ...prev, platformRole: "participant" }));
+        // Redirect to unified participant onboarding flow
+        router.push("/onboarding/participant");
+        return;
       }
     }
     checkCompanyMembership();

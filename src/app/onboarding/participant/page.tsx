@@ -19,12 +19,12 @@ import {
 import { cn } from "@/lib/utils";
 
 const INTENTS = [
-  { key: "buying", label: "Buy / Source", emoji: "🛒", desc: "Find products or services" },
-  { key: "selling", label: "Sell / Promote", emoji: "💼", desc: "Showcase your offerings" },
-  { key: "investing", label: "Invest", emoji: "📈", desc: "Discover opportunities" },
-  { key: "partnering", label: "Partner", emoji: "🤝", desc: "Find strategic partners" },
-  { key: "learning", label: "Learn", emoji: "🎓", desc: "Gain knowledge & insights" },
-  { key: "networking", label: "Network", emoji: "🌐", desc: "Expand your connections" },
+  { key: "buying", label: "Buy / Source", desc: "Find products or services" },
+  { key: "selling", label: "Sell / Promote", desc: "Showcase your offerings" },
+  { key: "investing", label: "Invest", desc: "Discover opportunities" },
+  { key: "partnering", label: "Partner", desc: "Find strategic partners" },
+  { key: "learning", label: "Learn", desc: "Gain knowledge & insights" },
+  { key: "networking", label: "Network", desc: "Expand your connections" },
 ];
 
 const COMPANY_SIZES = [
@@ -36,37 +36,17 @@ const COMPANY_SIZES = [
 ];
 
 const EXPERTISE_AREAS = [
-  "Software Development",
-  "Product Management",
-  "Sales & BD",
-  "Marketing",
-  "Design & UX",
-  "Data & Analytics",
-  "Operations",
-  "Finance & Accounting",
-  "Human Resources",
-  "Strategy",
-  "Supply Chain",
-  "Customer Success",
-  "Engineering",
-  "Research",
-  "Legal & Compliance",
-  "AI & Machine Learning",
+  "Software Development", "Product Management", "Sales & BD", "Marketing",
+  "Design & UX", "Data & Analytics", "Operations", "Finance & Accounting",
+  "Human Resources", "Strategy", "Supply Chain", "Customer Success",
+  "Engineering", "Research", "Legal & Compliance", "AI & Machine Learning",
 ];
 
 const INTEREST_OPTIONS = [
-  "Sustainability",
-  "Digital Transformation",
-  "Growth Strategy",
-  "International Expansion",
-  "Innovation & R&D",
-  "Talent Acquisition",
-  "Fundraising",
-  "Market Research",
-  "Brand Building",
-  "Process Automation",
-  "Cybersecurity",
-  "E-commerce",
+  "Sustainability", "Digital Transformation", "Growth Strategy",
+  "International Expansion", "Innovation & R&D", "Talent Acquisition",
+  "Fundraising", "Market Research", "Brand Building",
+  "Process Automation", "Cybersecurity", "E-commerce",
 ];
 
 export default function ParticipantOnboardingPage() {
@@ -277,7 +257,7 @@ export default function ParticipantOnboardingPage() {
         {/* ── STEP 2: Profile Basics ── */}
         {currentStep === 0 && (
           <Card>
-            <CardContent className="pt-6 space-y-6">
+            <CardContent className="pt-6 space-y-4">
               <div>
                 <h2 className="text-lg font-semibold">Complete your profile</h2>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -287,21 +267,13 @@ export default function ParticipantOnboardingPage() {
                 </p>
               </div>
 
-              {/* Why we collect this */}
-              <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
-                <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground">
-                  We use this information to match you with the right people at the event. The more you share, the better your matches will be.
-                </p>
-              </div>
-
               {/* Required fields */}
               <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-4">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
                   Required
                 </p>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">
                       Job title <span className="text-destructive">*</span>
@@ -337,7 +309,7 @@ export default function ParticipantOnboardingPage() {
                     <p className="text-xs text-muted-foreground mb-3">
                       Select up to 3. This helps us find the right people for you.
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {INTENTS.map((intent) => {
                         const selected = selectedIntents.includes(intent.key);
                         return (
@@ -354,39 +326,35 @@ export default function ParticipantOnboardingPage() {
                               );
                             }}
                             className={cn(
-                              "rounded-lg border p-3 text-left transition-all",
+                              "rounded-lg border px-2.5 py-2 text-left transition-all",
                               selected
-                                ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                                 : "border-border hover:border-primary/30",
                               !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
                             )}
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="text-base">{intent.emoji}</span>
-                              <span className="font-medium text-sm">{intent.label}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 ml-7">{intent.desc}</p>
+                            <span className="font-medium text-xs">{intent.label}</span>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{intent.desc}</p>
                           </button>
                         );
                       })}
                     </div>
                     {selectedIntents.length >= 3 && (
-                      <p className="text-xs text-muted-foreground mt-2">Maximum 3 selections.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Maximum 3 selections.</p>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Optional fields */}
-              <div className="border-t border-border pt-5">
+              <div className="border-t border-border pt-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                   Optional
                 </p>
-                <p className="text-xs text-muted-foreground mb-4">
+                <p className="text-xs text-muted-foreground mb-3">
                   These fields are optional but strongly improve your match quality.
                 </p>
 
-                {/* AI Suggestion button */}
                 {selectedIntents.length > 0 && (
                   <Button
                     type="button"
@@ -394,7 +362,7 @@ export default function ParticipantOnboardingPage() {
                     size="sm"
                     onClick={handleSuggest}
                     disabled={suggesting}
-                    className="w-full text-xs mb-4"
+                    className="w-full text-xs mb-3"
                   >
                     {suggesting ? (
                       <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
@@ -405,7 +373,7 @@ export default function ParticipantOnboardingPage() {
                   </Button>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">What are you looking for?</label>
                     <Textarea
@@ -428,19 +396,24 @@ export default function ParticipantOnboardingPage() {
                 </div>
               </div>
 
+              {/* Why we collect this */}
+              <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
+                <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  We use this information to match you with the right people at the event. The more you share, the better your matches will be.
+                </p>
+              </div>
+
               {error && <p className="text-sm text-red-600">{error}</p>}
 
-              <div className="flex items-center justify-between pt-2">
-                <div /> {/* spacer */}
+              <div className="flex items-center justify-end pt-2">
                 <Button
-                  onClick={() => {
-                    if (canProceedStep2) setCurrentStep(1);
-                  }}
+                  onClick={() => { if (canProceedStep2) setCurrentStep(1); }}
                   disabled={!canProceedStep2}
                   size="lg"
                 >
-                  <ArrowRight className="mr-2 h-4 w-4" />
                   Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -450,7 +423,7 @@ export default function ParticipantOnboardingPage() {
         {/* ── STEP 3: Company Details + Expertise ── */}
         {currentStep === 1 && (
           <Card>
-            <CardContent className="pt-6 space-y-6">
+            <CardContent className="pt-6 space-y-4">
               <div>
                 <h2 className="text-lg font-semibold">Enhance your matches</h2>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -458,15 +431,6 @@ export default function ParticipantOnboardingPage() {
                 </p>
               </div>
 
-              {/* Why we collect this */}
-              <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
-                <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground">
-                  We collect this information to give you the best possible experience and match you with the right people at the event. All data is used exclusively for matching purposes.
-                </p>
-              </div>
-
-              {/* Company details */}
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -492,7 +456,6 @@ export default function ParticipantOnboardingPage() {
                   </div>
                 </div>
 
-                {/* Expertise */}
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Your expertise</label>
                   <p className="text-xs text-muted-foreground mb-3">
@@ -521,7 +484,6 @@ export default function ParticipantOnboardingPage() {
                   )}
                 </div>
 
-                {/* Interests */}
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Your interests</label>
                   <p className="text-xs text-muted-foreground mb-3">
@@ -551,6 +513,14 @@ export default function ParticipantOnboardingPage() {
                 </div>
               </div>
 
+              {/* Why we collect this */}
+              <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
+                <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  We collect this information to give you the best possible experience and match you with the right people at the event. All data is used exclusively for matching purposes.
+                </p>
+              </div>
+
               {error && <p className="text-sm text-red-600">{error}</p>}
 
               <div className="flex items-center justify-between pt-2">
@@ -560,18 +530,10 @@ export default function ParticipantOnboardingPage() {
                 </Button>
 
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleSubmit}
-                    disabled={saving}
-                  >
+                  <Button variant="outline" onClick={handleSubmit} disabled={saving}>
                     Skip & finish
                   </Button>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={saving}
-                    size="lg"
-                  >
+                  <Button onClick={handleSubmit} disabled={saving} size="lg">
                     {saving ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (

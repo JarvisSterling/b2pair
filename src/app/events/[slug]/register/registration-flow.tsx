@@ -40,6 +40,20 @@ interface RegistrationFlowProps {
   }[];
   isLoggedIn: boolean;
   alreadyRegistered: boolean;
+  existingProfile?: {
+    full_name: string | null;
+    title: string | null;
+    company_name: string | null;
+    company_size: string | null;
+    company_website: string | null;
+    expertise_areas: string[] | null;
+    interests: string[] | null;
+  } | null;
+  existingParticipant?: {
+    intents: string[] | null;
+    looking_for: string | null;
+    offering: string | null;
+  } | null;
 }
 
 const INTENTS = [
@@ -107,6 +121,8 @@ export function RegistrationFlow({
   participantTypes,
   isLoggedIn,
   alreadyRegistered,
+  existingProfile,
+  existingParticipant,
 }: RegistrationFlowProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -128,19 +144,19 @@ export function RegistrationFlow({
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Step 2: Profile
+  // Step 2: Profile — pre-fill from existing data
   const [selectedType, setSelectedType] = useState<string>("");
-  const [title, setTitle] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [selectedIntents, setSelectedIntents] = useState<string[]>([]);
-  const [lookingFor, setLookingFor] = useState("");
-  const [offering, setOffering] = useState("");
+  const [title, setTitle] = useState(existingProfile?.title || "");
+  const [companyName, setCompanyName] = useState(existingProfile?.company_name || "");
+  const [selectedIntents, setSelectedIntents] = useState<string[]>(existingParticipant?.intents || []);
+  const [lookingFor, setLookingFor] = useState(existingParticipant?.looking_for || "");
+  const [offering, setOffering] = useState(existingParticipant?.offering || "");
 
-  // Step 3: Enhance
-  const [companySize, setCompanySize] = useState("");
-  const [companyWebsite, setCompanyWebsite] = useState("");
-  const [expertiseAreas, setExpertiseAreas] = useState<string[]>([]);
-  const [interests, setInterests] = useState<string[]>([]);
+  // Step 3: Enhance — pre-fill from existing data
+  const [companySize, setCompanySize] = useState(existingProfile?.company_size || "");
+  const [companyWebsite, setCompanyWebsite] = useState(existingProfile?.company_website || "");
+  const [expertiseAreas, setExpertiseAreas] = useState<string[]>(existingProfile?.expertise_areas || []);
+  const [interests, setInterests] = useState<string[]>(existingProfile?.interests || []);
 
   const dateRange = `${formatDate(event.start_date)} – ${formatDate(event.end_date)}`;
 
@@ -273,17 +289,30 @@ export function RegistrationFlow({
     setError(null);
 
     try {
-      if (isLogin && !alreadyRegistered) {
+      // Register participant if not already registered for this event
+      if (!alreadyRegistered) {
+        // For already-logged-in users (skipped Step 1) or login-mode users
+        const registerBody: any = {
+          eventId: event.id,
+          participantTypeId: selectedType || null,
+        };
+
+        if (isLoggedIn) {
+          // Already authenticated — use direct registration
+          registerBody.mode = "authenticated";
+        } else if (isLogin) {
+          registerBody.mode = "signin";
+          registerBody.email = email;
+          registerBody.password = password;
+        } else {
+          // Signup mode — already registered in Step 1, just need participant record
+          registerBody.mode = "authenticated";
+        }
+
         const res = await fetch("/api/events/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventId: event.id,
-            mode: "signin",
-            email,
-            password,
-            participantTypeId: selectedType || null,
-          }),
+          body: JSON.stringify(registerBody),
         });
         const data = await res.json();
         if (!res.ok && !data.alreadyRegistered) {

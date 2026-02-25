@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const {
     eventId,
     participantTypeId,
-    mode, // "signup" or "signin"
+    mode, // "signup", "signin", or "authenticated"
     email,
     password,
     fullName,
@@ -15,7 +15,14 @@ export async function POST(req: NextRequest) {
     companyName,
   } = body;
 
-  if (!eventId || !email || !password) {
+  if (!eventId) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
+  }
+
+  if (mode !== "authenticated" && (!email || !password)) {
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 }
@@ -86,6 +93,17 @@ export async function POST(req: NextRequest) {
       onboarding_completed: true,
     }).eq("id", userId);
 
+  } else if (mode === "authenticated") {
+    // Already logged in — get user from session
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "Not authenticated. Please sign in." },
+        { status: 401 }
+      );
+    }
+    userId = user.id;
   } else {
     // Sign in mode
     const supabase = await createClient();

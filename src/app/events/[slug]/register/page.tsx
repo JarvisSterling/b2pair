@@ -35,7 +35,22 @@ export default async function RegisterPage({ params }: PageProps) {
   const participantTypes = typesRes.data || [];
   const user = userRes.data?.user;
 
-  // If already registered, redirect
+  let alreadyRegistered = false;
+  let existingProfile: {
+    full_name: string | null;
+    title: string | null;
+    company_name: string | null;
+    company_size: string | null;
+    company_website: string | null;
+    expertise_areas: string[] | null;
+    interests: string[] | null;
+  } | null = null;
+  let existingParticipant: {
+    intents: string[] | null;
+    looking_for: string | null;
+    offering: string | null;
+  } | null = null;
+
   if (user) {
     const { data: existing } = await admin
       .from("participants")
@@ -43,16 +58,30 @@ export default async function RegisterPage({ params }: PageProps) {
       .eq("event_id", event.id)
       .eq("user_id", user.id)
       .single();
+
     if (existing) {
-      return (
-        <RegistrationFlow
-          event={event}
-          participantTypes={participantTypes}
-          isLoggedIn={true}
-          alreadyRegistered={true}
-        />
-      );
+      alreadyRegistered = true;
     }
+
+    // Fetch existing profile data for pre-fill
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("full_name, title, company_name, company_size, company_website, expertise_areas, interests")
+      .eq("id", user.id)
+      .single();
+
+    if (profile) existingProfile = profile;
+
+    // Fetch latest participant record for intents/looking_for/offering
+    const { data: latestParticipant } = await admin
+      .from("participants")
+      .select("intents, looking_for, offering")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (latestParticipant) existingParticipant = latestParticipant;
   }
 
   return (
@@ -60,7 +89,9 @@ export default async function RegisterPage({ params }: PageProps) {
       event={event}
       participantTypes={participantTypes}
       isLoggedIn={!!user}
-      alreadyRegistered={false}
+      alreadyRegistered={alreadyRegistered}
+      existingProfile={existingProfile}
+      existingParticipant={existingParticipant}
     />
   );
 }

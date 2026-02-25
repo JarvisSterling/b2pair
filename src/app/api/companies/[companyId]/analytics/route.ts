@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { canAccessCompany } from "@/lib/sponsors-helpers";
 
@@ -22,28 +23,61 @@ export async function GET(request: Request, { params }: Params) {
   const since = new Date();
   since.setDate(since.getDate() - days);
 
-  const { data, error } = await supabase
-    .from("company_analytics")
-    .select("*")
-    .eq("company_id", companyId)
-    .gte("date", since.toISOString().split("T")[0])
-    .order("date", { ascending: true });
+  const admin = createAdminClient();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Fetch analytics, company capabilities, and unique leads count in parallel
+  const [analyticsRes, companyRes, leadsCountRes] = await Promise.all([
+    supabase
+      .from("company_analytics")
+      .select("*")
+      .eq("company_id", companyId)
+      .gte("date", since.toISOString().split("T")[0])
+      .order("date", { ascending: true }),
+    admin
+      .from("companies")
+      .select("capabilities")
+      .eq("id", companyId)
+      .single(),
+    admin
+      .from("company_leads")
+      .select("*", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .gte("created_at", since.toISOString()),
+  ]);
 
-  // Compute totals
-  const totals = (data || []).reduce(
-    (acc, row) => ({
-      profile_views: acc.profile_views + (row.profile_views || 0),
-      unique_visitors: acc.unique_visitors + (row.unique_visitors || 0),
-      resource_downloads: acc.resource_downloads + (row.resource_downloads || 0),
-      meeting_requests_received: acc.meeting_requests_received + (row.meeting_requests_received || 0),
-      leads_captured: acc.leads_captured + (row.leads_captured || 0),
-    }),
-    { profile_views: 0, unique_visitors: 0, resource_downloads: 0, meeting_requests_received: 0, leads_captured: 0 }
+  if (analyticsRes.error) return NextResponse.json({ error: analyticsRes.error.message }, { status: 500 });
+
+  const data = analyticsRes.data || [];
+
+  // Compute totals including CTA clicks total
+  const totals = data.reduce(
+    (acc, row) => {
+      const rowCtaTotal = Object.values(row.cta_clicks || {}).reduce(
+        (s: number, v: unknown) => s + (typeof v === "number" ? v : 0),
+        0
+      );
+      return {
+        profile_views: acc.profile_views + (row.profile_views || 0),
+        unique_visitors: acc.unique_visitors + (row.unique_visitors || 0),
+        resource_downloads: acc.resource_downloads + (row.resource_downloads || 0),
+        meeting_requests_received: acc.meeting_requests_received + (row.meeting_requests_received || 0),
+        leads_captured: acc.leads_captured + (row.leads_captured || 0),
+        cta_clicks_total: acc.cta_clicks_total + rowCtaTotal,
+      };
+    },
+    { profile_views: 0, unique_visitors: 0, resource_downloads: 0, meeting_requests_received: 0, leads_captured: 0, cta_clicks_total: 0 }
   );
 
-  return NextResponse.json({ daily: data, totals });
+  // Use actual distinct lead count for unique visitors (more accurate)
+  if (leadsCountRes.count !== null) {
+    totals.unique_visitors = leadsCountRes.count;
+  }
+
+  return NextResponse.json({
+    daily: data,
+    totals,
+    capabilities: companyRes.data?.capabilities || [],
+  });
 }
 
 /**
@@ -67,7 +101,7 @@ export async function POST(request: Request, { params }: Params) {
   // Upsert today's analytics row
   const { data: existing } = await supabase
     .from("company_analytics")
-    .select("id, profile_views, resource_downloads, cta_clicks, meeting_requests_received, leads_captured")
+    .select("id, profile_views, unique_visitors, resource_downloads, cta_clicks, meeting_requests_received, leads_captured")
     .eq("company_id", companyId)
     .eq("date", today)
     .maybeSingle();

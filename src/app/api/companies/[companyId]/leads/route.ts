@@ -52,14 +52,28 @@ export async function POST(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const canAccess = await canAccessCompany(supabase, companyId, user.id, "capture_leads");
-  if (!canAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
   const body = await request.json();
   const { event_id, participant_id, source, notes, qualification, tags, resource_accessed } = body;
 
   if (!event_id || !source) {
     return NextResponse.json({ error: "event_id and source required" }, { status: 400 });
+  }
+
+  // Allow self-capture (visitor auto-captured when viewing a company profile)
+  // Otherwise require capture_leads permission on the company
+  let isSelfCapture = false;
+  if (participant_id) {
+    const { data: part } = await supabase
+      .from("participants")
+      .select("user_id")
+      .eq("id", participant_id)
+      .single();
+    isSelfCapture = part?.user_id === user.id;
+  }
+
+  if (!isSelfCapture) {
+    const canAccess = await canAccessCompany(supabase, companyId, user.id, "capture_leads");
+    if (!canAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Upsert: if lead already exists for this company+participant, update

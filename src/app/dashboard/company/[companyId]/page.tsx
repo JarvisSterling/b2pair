@@ -19,6 +19,7 @@ import {
   XCircle,
   Send,
   ExternalLink,
+  MousePointerClick,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
 
@@ -49,7 +50,8 @@ export default function CompanyDashboardPage() {
   const companyId = params.companyId as string;
 
   const [company, setCompany] = useState<CompanyInfo | null>(null);
-  const [stats, setStats] = useState({ profile_views: 0, unique_visitors: 0, resource_downloads: 0, meeting_requests_received: 0, leads_captured: 0 });
+  const [stats, setStats] = useState({ profile_views: 0, unique_visitors: 0, resource_downloads: 0, meeting_requests_received: 0, leads_captured: 0, cta_clicks_total: 0 });
+  const [capabilities, setCapabilities] = useState<string[]>([]);
   const [memberCount, setMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -79,6 +81,7 @@ export default function CompanyDashboardPage() {
 
     const analyticsData = await analyticsRes.json();
     setStats(analyticsData.totals || stats);
+    setCapabilities(analyticsData.capabilities || []);
 
     const membersData = await membersRes.json();
     setMemberCount(Array.isArray(membersData) ? membersData.length : (membersData.members || []).length);
@@ -142,15 +145,32 @@ export default function CompanyDashboardPage() {
         </div>
       </div>
 
-      {/* Stats overview */}
+      {/* Stats overview - ordered by company type */}
       <div className="grid gap-3 sm:grid-cols-5 mb-8">
-        {[
-          { label: "Profile Views", value: stats.profile_views, icon: Eye },
-          { label: "Unique Visitors", value: stats.unique_visitors, icon: Users },
-          { label: "Downloads", value: stats.resource_downloads, icon: Download },
-          { label: "Meeting Requests", value: stats.meeting_requests_received, icon: Calendar },
-          { label: "Leads", value: stats.leads_captured, icon: Target },
-        ].map((stat) => (
+        {(capabilities.includes("exhibitor") && !capabilities.includes("sponsor")
+          ? [
+              { label: "Leads", value: stats.leads_captured, icon: Target },
+              { label: "Meeting Requests", value: stats.meeting_requests_received, icon: Calendar },
+              { label: "Profile Views", value: stats.profile_views, icon: Eye },
+              { label: "Downloads", value: stats.resource_downloads, icon: Download },
+              { label: "Unique Visitors", value: stats.unique_visitors, icon: Users },
+            ]
+          : capabilities.includes("sponsor") && !capabilities.includes("exhibitor")
+          ? [
+              { label: "Profile Views", value: stats.profile_views, icon: Eye },
+              { label: "Unique Visitors", value: stats.unique_visitors, icon: Users },
+              { label: "CTA Clicks", value: stats.cta_clicks_total, icon: MousePointerClick },
+              { label: "Downloads", value: stats.resource_downloads, icon: Download },
+              { label: "Leads", value: stats.leads_captured, icon: Target },
+            ]
+          : [
+              { label: "Profile Views", value: stats.profile_views, icon: Eye },
+              { label: "Leads", value: stats.leads_captured, icon: Target },
+              { label: "CTA Clicks", value: stats.cta_clicks_total, icon: MousePointerClick },
+              { label: "Meeting Requests", value: stats.meeting_requests_received, icon: Calendar },
+              { label: "Downloads", value: stats.resource_downloads, icon: Download },
+            ]
+        ).map((stat) => (
           <Card key={stat.label}>
             <CardContent className="pt-5 pb-5 text-center">
               <stat.icon className="h-5 w-5 text-primary mx-auto mb-1" />

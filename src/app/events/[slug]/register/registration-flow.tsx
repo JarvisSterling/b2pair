@@ -619,7 +619,7 @@ export function RegistrationFlow({
                       <p className="text-xs text-muted-foreground mb-3">
                         Select up to 3. This helps us find the right people for you.
                       </p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {INTENTS.map((intent) => {
                           const selected = selectedIntents.includes(intent.key);
                           return (
@@ -636,15 +636,15 @@ export function RegistrationFlow({
                                 );
                               }}
                               className={cn(
-                                "rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
+                                "rounded-lg border px-2.5 py-2 text-left transition-all",
                                 selected
-                                  ? "border-primary bg-primary/5 text-primary ring-1 ring-primary/20"
-                                  : "border-border text-foreground hover:border-primary/30",
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                  : "border-border hover:border-primary/30",
                                 !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
                               )}
                             >
-                              {selected && <Check className="mr-1 inline h-3 w-3" />}
-                              {intent.label}
+                              <span className="font-medium text-xs">{intent.label}</span>
+                              <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{intent.desc}</p>
                             </button>
                           );
                         })}

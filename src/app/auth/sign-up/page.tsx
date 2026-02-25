@@ -12,7 +12,8 @@ import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function SignUpPage() {
     }
 
     const supabase = createClient();
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -74,19 +76,34 @@ export default function SignUpPage() {
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSignUp} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-caption font-medium">
-                  Full name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label htmlFor="firstName" className="text-caption font-medium">
+                    First name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="Jane"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="lastName" className="text-caption font-medium">
+                    Last name
+                  </label>
                   <Input
-                    id="name"
+                    id="lastName"
                     type="text"
-                    placeholder="Jane Smith"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10"
+                    placeholder="Smith"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                     required
                   />
                 </div>

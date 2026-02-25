@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -83,6 +84,26 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
       }
     }
   }
+
+  // Check profile completion for nudge
+  const { data: myParticipantFull } = await admin
+    .from("participants")
+    .select("looking_for, offering")
+    .eq("id", myParticipant.id)
+    .single();
+
+  const { data: myProfile } = await admin
+    .from("profiles")
+    .select("company_size, company_website")
+    .eq("id", user.id)
+    .single();
+
+  const profileCompletion = {
+    hasLookingFor: !!myParticipantFull?.looking_for,
+    hasOffering: !!myParticipantFull?.offering,
+    hasCompanySize: !!myProfile?.company_size,
+    hasCompanyWebsite: !!myProfile?.company_website,
+  };
 
   // Fetch stats
   const [matchRes, meetingRes, upcomingRes, msgRes, participantCountRes] =
@@ -210,6 +231,16 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Profile completion nudge */}
+      <ProfileCompletionBanner
+        eventId={id}
+        participantId={myParticipant.id}
+        hasLookingFor={profileCompletion.hasLookingFor}
+        hasOffering={profileCompletion.hasOffering}
+        hasCompanySize={profileCompletion.hasCompanySize}
+        hasCompanyWebsite={profileCompletion.hasCompanyWebsite}
+      />
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-4 mb-8">

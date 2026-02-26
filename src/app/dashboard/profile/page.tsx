@@ -24,6 +24,13 @@ const EXPERTISE_AREAS = [
   "Engineering", "Research", "Legal & Compliance", "AI & Machine Learning",
 ];
 
+const INTEREST_OPTIONS = [
+  "Sustainability", "Digital Transformation", "Growth Strategy",
+  "International Expansion", "Innovation & R&D", "Talent Acquisition",
+  "Fundraising", "Market Research", "Brand Building",
+  "Process Automation", "Cybersecurity", "E-commerce",
+];
+
 interface Profile {
   id: string;
   full_name: string;
@@ -290,7 +297,7 @@ export default function ProfilePage() {
             <p className="text-caption font-medium mb-3">Interests</p>
             {editing ? (
               <div className="flex flex-wrap gap-2">
-                {EXPERTISE_AREAS.map((area) => (
+                {INTEREST_OPTIONS.map((area) => (
                   <button
                     key={area}
                     type="button"

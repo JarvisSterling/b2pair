@@ -42,6 +42,8 @@ export default async function RegisterPage({ params }: PageProps) {
     company_name: string | null;
     company_size: string | null;
     company_website: string | null;
+    industry: string | null;
+    bio: string | null;
     expertise_areas: string[] | null;
     interests: string[] | null;
   } | null = null;
@@ -66,7 +68,7 @@ export default async function RegisterPage({ params }: PageProps) {
     // Fetch existing profile data for pre-fill
     const { data: profile } = await admin
       .from("profiles")
-      .select("full_name, title, company_name, company_size, company_website, expertise_areas, interests")
+      .select("full_name, title, company_name, company_size, company_website, industry, bio, expertise_areas, interests")
       .eq("id", user.id)
       .single();
 

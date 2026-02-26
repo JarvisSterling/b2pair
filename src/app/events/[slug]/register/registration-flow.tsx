@@ -47,6 +47,8 @@ interface RegistrationFlowProps {
     company_name: string | null;
     company_size: string | null;
     company_website: string | null;
+    industry: string | null;
+    bio: string | null;
     expertise_areas: string[] | null;
     interests: string[] | null;
   } | null;
@@ -56,6 +58,12 @@ interface RegistrationFlowProps {
     offering: string | null;
   } | null;
 }
+
+const INDUSTRIES = [
+  "Technology", "Healthcare", "Finance", "Manufacturing", "Retail",
+  "Education", "Real Estate", "Energy", "Consulting", "Media",
+  "Logistics", "Agriculture", "Legal", "Hospitality", "Non-profit", "Other",
+];
 
 const INTENTS = [
   { key: "buying", label: "Buy / Source", emoji: "🛒", desc: "Find products or services" },
@@ -130,9 +138,9 @@ export function RegistrationFlow({
   const supabase = createClient();
 
   const startAsLogin = searchParams.get("mode") === "signin";
-  // Skip Step 1 (account creation) if already logged in
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(
-    isLoggedIn ? 2 : 1
+  // Skip Steps 1-2 (account + profile) if already logged in (returning user)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(
+    isLoggedIn ? 3 : 1
   );
   const [isLogin, setIsLogin] = useState(startAsLogin);
   const [showPassword, setShowPassword] = useState(false);
@@ -146,15 +154,19 @@ export function RegistrationFlow({
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Step 2: Profile — pre-fill from existing data
-  const [selectedType, setSelectedType] = useState<string>("");
+  // Step 2: Profile basics — pre-fill from existing data
   const [title, setTitle] = useState(existingProfile?.title || "");
   const [companyName, setCompanyName] = useState(existingProfile?.company_name || "");
+  const [industry, setIndustry] = useState(existingProfile?.industry || "");
+  const [bio, setBio] = useState(existingProfile?.bio || "");
+
+  // Step 3: Event-specific — pre-fill from existing data
+  const [selectedType, setSelectedType] = useState<string>("");
   const [selectedIntents, setSelectedIntents] = useState<string[]>(existingParticipant?.intents || []);
   const [lookingFor, setLookingFor] = useState(existingParticipant?.looking_for || "");
   const [offering, setOffering] = useState(existingParticipant?.offering || "");
 
-  // Step 3: Enhance — pre-fill from existing data
+  // Step 4: Enhance — pre-fill from existing data
   const [companySize, setCompanySize] = useState(existingProfile?.company_size || "");
   const [companyWebsite, setCompanyWebsite] = useState(existingProfile?.company_website || "");
   const [expertiseAreas, setExpertiseAreas] = useState<string[]>(existingProfile?.expertise_areas || []);
@@ -162,7 +174,8 @@ export function RegistrationFlow({
 
   const dateRange = `${formatDate(event.start_date)} – ${formatDate(event.end_date)}`;
 
-  const canProceedStep2 = title.trim() && companyName.trim() && selectedIntents.length > 0;
+  const canProceedStep2 = title.trim() && companyName.trim() && industry.trim();
+  const canProceedStep3 = selectedIntents.length > 0;
 
   function toggleArrayItem(
     setter: React.Dispatch<React.SetStateAction<string[]>>,
@@ -233,7 +246,8 @@ export function RegistrationFlow({
         setLoading(false);
         return;
       }
-      setCurrentStep(2);
+      // Returning user — skip profile basics, go to event-specific step
+      setCurrentStep(3);
     } else {
       if (!firstName.trim() || !lastName.trim()) {
         setError("First and last name are required");
@@ -276,7 +290,7 @@ export function RegistrationFlow({
       }
 
       await supabase.auth.signInWithPassword({ email, password });
-      setCurrentStep(2);
+      setCurrentStep(2); // New user — go to profile basics
     }
 
     setLoading(false);
@@ -285,6 +299,11 @@ export function RegistrationFlow({
   async function handleStep2Submit() {
     if (!canProceedStep2) return;
     setCurrentStep(3);
+  }
+
+  async function handleStep3Submit() {
+    if (!canProceedStep3) return;
+    setCurrentStep(4);
   }
 
   async function handleFinalSubmit() {
@@ -335,6 +354,8 @@ export function RegistrationFlow({
           participantTypeId: selectedType || null,
           title: title.trim(),
           companyName: companyName.trim(),
+          industry: industry.trim(),
+          bio: bio.trim(),
           intents: selectedIntents,
           lookingFor: lookingFor.trim(),
           offering: offering.trim(),
@@ -402,8 +423,9 @@ export function RegistrationFlow({
 
         <div className="space-y-4">
           <StepIndicator stepNumber={1} label="Create an account" active={currentStep === 1} completed={currentStep > 1} />
-          <StepIndicator stepNumber={2} label="Complete your profile" active={currentStep === 2} completed={currentStep > 2} />
-          <StepIndicator stepNumber={3} label="Enhance your matches" active={currentStep === 3} completed={false} />
+          <StepIndicator stepNumber={2} label="Your profile" active={currentStep === 2} completed={currentStep > 2} />
+          <StepIndicator stepNumber={3} label="Event details" active={currentStep === 3} completed={currentStep > 3} />
+          <StepIndicator stepNumber={4} label="Expertise & interests" active={currentStep === 4} completed={false} />
         </div>
 
         <div className="mt-auto">
@@ -421,10 +443,10 @@ export function RegistrationFlow({
         {/* Mobile step indicator */}
         <div className="md:hidden px-6 pt-6">
           <p className="text-xs text-muted-foreground text-center">
-            Step {currentStep} of 3: {currentStep === 1 ? "Create Account" : currentStep === 2 ? "Your Profile" : "Enhance Matches"}
+            Step {currentStep} of 4: {currentStep === 1 ? "Create Account" : currentStep === 2 ? "Your Profile" : currentStep === 3 ? "Event Details" : "Expertise & Interests"}
           </p>
           <div className="flex gap-1.5 mt-2">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div key={s} className={cn("h-1 flex-1 rounded-full", s <= currentStep ? "bg-primary" : "bg-border")} />
             ))}
           </div>
@@ -556,13 +578,84 @@ export function RegistrationFlow({
               </div>
             )}
 
-            {/* ── STEP 2: Profile ── */}
+            {/* ── STEP 2: Profile Basics ── */}
             {currentStep === 2 && (
               <div className="space-y-4">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">Complete your profile</h1>
+                  <h1 className="text-2xl font-bold tracking-tight">Your profile</h1>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Tell us about yourself so we can match you with the right people.
+                    Tell us about yourself. This is your identity across all B2Pair events.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      Job title <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Product Manager"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      Company <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="e.g. Acme Inc."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      Industry <span className="text-destructive">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {INDUSTRIES.map((ind) => (
+                        <button
+                          key={ind}
+                          type="button"
+                          onClick={() => setIndustry(ind)}
+                          className={cn(
+                            "rounded-sm border px-3 py-2 text-xs text-left transition-all",
+                            industry === ind
+                              ? "border-primary bg-primary/5 text-primary font-medium"
+                              : "border-border bg-background text-foreground hover:border-border-strong"
+                          )}
+                        >
+                          {ind}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Short bio</label>
+                    <Textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="A few words about what you do and what you're passionate about..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                {error && <p className="text-sm text-red-600">{error}</p>}
+              </div>
+            )}
+
+            {/* ── STEP 3: Event-Specific ── */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">Event details</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Tell us why you're attending {event.name}. This helps us find your best matches.
                   </p>
                 </div>
 
@@ -606,76 +699,47 @@ export function RegistrationFlow({
                   </div>
                 )}
 
-                {/* Required fields */}
+                {/* Intent */}
                 <div>
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
-                    Required
+                  <label className="text-sm font-medium mb-1.5 block">
+                    What are you here for? <span className="text-destructive">*</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select up to 3. This helps us find the right people for you.
                   </p>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium mb-1.5 block">
-                        Job title <span className="text-destructive">*</span>
-                      </label>
-                      <Input
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="e.g. Product Manager"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-1.5 block">
-                        Company <span className="text-destructive">*</span>
-                      </label>
-                      <Input
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        placeholder="e.g. Acme Inc."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-1.5 block">
-                        What are you here for? <span className="text-destructive">*</span>
-                      </label>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        Select up to 3. This helps us find the right people for you.
-                      </p>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {INTENTS.map((intent) => {
-                          const selected = selectedIntents.includes(intent.key);
-                          return (
-                            <button
-                              key={intent.key}
-                              type="button"
-                              onClick={() => {
-                                setSelectedIntents((prev) =>
-                                  selected
-                                    ? prev.filter((i) => i !== intent.key)
-                                    : prev.length < 3
-                                    ? [...prev, intent.key]
-                                    : prev
-                                );
-                              }}
-                              className={cn(
-                                "rounded-lg border px-2.5 py-2 text-left transition-all",
-                                selected
-                                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                                  : "border-border hover:border-primary/30",
-                                !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
-                              )}
-                            >
-                              <span className="font-medium text-xs">{intent.label}</span>
-                              <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{intent.desc}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {selectedIntents.length >= 3 && (
-                        <p className="text-xs text-muted-foreground mt-1">Maximum 3 selections.</p>
-                      )}
-                    </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {INTENTS.map((intent) => {
+                      const selected = selectedIntents.includes(intent.key);
+                      return (
+                        <button
+                          key={intent.key}
+                          type="button"
+                          onClick={() => {
+                            setSelectedIntents((prev) =>
+                              selected
+                                ? prev.filter((i) => i !== intent.key)
+                                : prev.length < 3
+                                ? [...prev, intent.key]
+                                : prev
+                            );
+                          }}
+                          className={cn(
+                            "rounded-lg border px-2.5 py-2 text-left transition-all",
+                            selected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                              : "border-border hover:border-primary/30",
+                            !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
+                          )}
+                        >
+                          <span className="font-medium text-xs">{intent.label}</span>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{intent.desc}</p>
+                        </button>
+                      );
+                    })}
                   </div>
+                  {selectedIntents.length >= 3 && (
+                    <p className="text-xs text-muted-foreground mt-1">Maximum 3 selections.</p>
+                  )}
                 </div>
 
                 {/* Optional fields */}
@@ -740,21 +804,13 @@ export function RegistrationFlow({
               </div>
             )}
 
-            {/* ── STEP 3: Enhance Matches ── */}
-            {currentStep === 3 && (
+            {/* ── STEP 4: Expertise & Interests ── */}
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">Enhance your matches</h1>
+                  <h1 className="text-2xl font-bold tracking-tight">Expertise & interests</h1>
                   <p className="text-sm text-muted-foreground mt-1">
-                    A few more details to help our matching engine connect you with the best people.
-                  </p>
-                </div>
-
-                {/* Why we collect this */}
-                <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
-                  <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <p className="text-xs text-muted-foreground">
-                    We collect this information to give you the best possible experience and match you with the right people at the event. All data is used exclusively for matching purposes.
+                    Help our AI understand your strengths and what you want to explore.
                   </p>
                 </div>
 
@@ -853,6 +909,14 @@ export function RegistrationFlow({
                   </div>
                 </div>
 
+                {/* Why we collect this */}
+                <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 border border-border p-3">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground">
+                    We collect this information to give you the best possible experience and match you with the right people at the event. All data is used exclusively for matching purposes.
+                  </p>
+                </div>
+
                 {error && <p className="text-sm text-red-600">{error}</p>}
               </div>
             )}
@@ -862,19 +926,22 @@ export function RegistrationFlow({
         {/* Bottom bar */}
         <div className="border-t px-6 md:px-8 py-4 flex items-center justify-between">
           <div>
-            {currentStep > 1 && (
+            {currentStep > 1 && !(isLoggedIn && currentStep <= 3) && (
               <Button
                 variant="ghost"
-                onClick={() => setCurrentStep((currentStep - 1) as 1 | 2 | 3)}
+                onClick={() => setCurrentStep((currentStep - 1) as 1 | 2 | 3 | 4)}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
             )}
+            {isLoggedIn && currentStep === 3 && (
+              <div /> // No back for returning users on step 3
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            {currentStep === 3 && (
+            {currentStep === 4 && (
               <Button
                 variant="outline"
                 onClick={handleFinalSubmit}
@@ -890,13 +957,15 @@ export function RegistrationFlow({
                   ? handleStep1Submit
                   : currentStep === 2
                   ? handleStep2Submit
+                  : currentStep === 3
+                  ? handleStep3Submit
                   : handleFinalSubmit
               }
-              disabled={loading || (currentStep === 2 && !canProceedStep2)}
+              disabled={loading || (currentStep === 2 && !canProceedStep2) || (currentStep === 3 && !canProceedStep3)}
               size="lg"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {currentStep === 3 ? (
+              {currentStep === 4 ? (
                 <>
                   <Check className="mr-2 h-4 w-4" />
                   Complete Registration

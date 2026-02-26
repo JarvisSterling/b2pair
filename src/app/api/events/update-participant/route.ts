@@ -18,6 +18,8 @@ export async function POST(req: NextRequest) {
       participantTypeId,
       title,
       companyName,
+      industry,
+      bio,
       intents,
       lookingFor,
       offering,
@@ -84,6 +86,8 @@ export async function POST(req: NextRequest) {
     if (companyName) profileUpdates.company_name = companyName;
     if (companySize) profileUpdates.company_size = companySize;
     if (companyWebsite) profileUpdates.company_website = companyWebsite;
+    if (industry) profileUpdates.industry = industry;
+    if (bio !== undefined) profileUpdates.bio = bio || null;
     if (expertiseAreas !== undefined) profileUpdates.expertise_areas = expertiseAreas;
     if (interests !== undefined) profileUpdates.interests = interests;
     if (Object.keys(profileUpdates).length > 0) {

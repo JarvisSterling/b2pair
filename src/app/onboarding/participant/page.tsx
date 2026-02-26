@@ -200,8 +200,6 @@ export default function ParticipantOnboardingPage() {
               bio: bio.trim() || null,
               company_size: companySize || null,
               company_website: companyWebsite.trim() || null,
-              expertise_areas: expertiseAreas,
-              interests: interests,
               onboarding_completed: true,
             }),
           });
@@ -227,6 +225,17 @@ export default function ParticipantOnboardingPage() {
               const data = await res.json();
               if (!data.alreadyRegistered) throw new Error(data.error || "Failed to register");
             }
+
+            // Save event-specific expertise/interests to participant record
+            await fetch("/api/events/update-participant", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                eventId,
+                expertiseAreas,
+                interests,
+              }),
+            });
           }
         })(),
         {

@@ -70,6 +70,14 @@ export async function POST(req: NextRequest) {
       updates.offering = offering || null;
     }
 
+    // Save expertise & interests to participant (event-specific, not profile)
+    if (expertiseAreas !== undefined) {
+      updates.expertise_areas = expertiseAreas;
+    }
+    if (interests !== undefined) {
+      updates.interests = interests;
+    }
+
     // Update participant
     const { error: updateError } = await admin
       .from("participants")
@@ -88,8 +96,6 @@ export async function POST(req: NextRequest) {
     if (companyWebsite) profileUpdates.company_website = companyWebsite;
     if (industry) profileUpdates.industry = industry;
     if (bio !== undefined) profileUpdates.bio = bio || null;
-    if (expertiseAreas !== undefined) profileUpdates.expertise_areas = expertiseAreas;
-    if (interests !== undefined) profileUpdates.interests = interests;
     if (Object.keys(profileUpdates).length > 0) {
       await admin.from("profiles").update(profileUpdates).eq("id", user.id);
     }

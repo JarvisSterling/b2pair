@@ -35,8 +35,9 @@ export async function POST(request: Request) {
     .from("participants")
     .select(`
       id, role, intent, intents, tags, looking_for, offering,
+      expertise_areas, interests,
       intent_vector, intent_confidence, ai_intent_classification,
-      profiles(full_name, title, company_name, company_size, industry, expertise_areas, interests, bio)
+      profiles(full_name, title, company_name, company_size, industry, bio)
     `)
     .eq("event_id", eventId)
     .eq("status", "approved");
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   // Ensure every participant has a profiles object (default empty fields for those missing profiles)
   const DEFAULT_PROFILE = {
     full_name: null, title: null, company_name: null, company_size: null,
-    industry: null, expertise_areas: [], interests: [], bio: null,
+    industry: null, bio: null,
   };
   const participants = rawParticipants.map((p: any) => ({
     ...p,
@@ -213,7 +214,7 @@ export async function POST(request: Request) {
       const intentScore = intentResult.final;
 
       const industryScore = computeIndustryScore(pA.profiles, pB.profiles);
-      const interestScore = computeInterestScore(pA.profiles, pB.profiles);
+      const interestScore = computeInterestScore(pA, pB);
       const complementarityScore = computeComplementarityScore(pA, pB);
       const companySizeScore = computeCompanySizeScore(pA.profiles, pB.profiles);
 
@@ -413,15 +414,15 @@ function generateReasons(
     reasons.push(`Both in ${a.profiles.industry}`);
   }
 
-  const sharedExpertise = (a.profiles.expertise_areas || []).filter(
-    (x: string) => (b.profiles.expertise_areas || []).includes(x)
+  const sharedExpertise = (a.expertise_areas || []).filter(
+    (x: string) => (b.expertise_areas || []).includes(x)
   );
   if (sharedExpertise.length > 0) {
     reasons.push(`Shared expertise: ${sharedExpertise.slice(0, 3).join(", ")}`);
   }
 
-  const aExpertiseMatchesBInterests = (a.profiles.expertise_areas || []).filter(
-    (x: string) => (b.profiles.interests || []).includes(x)
+  const aExpertiseMatchesBInterests = (a.expertise_areas || []).filter(
+    (x: string) => (b.interests || []).includes(x)
   );
   if (aExpertiseMatchesBInterests.length > 0) {
     reasons.push(`${a.profiles.full_name} has expertise ${b.profiles.full_name} is interested in`);

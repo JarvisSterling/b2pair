@@ -32,6 +32,8 @@ interface RegistrationFlowProps {
     end_date: string;
     banner_url: string | null;
     requires_approval: boolean;
+    expertise_options: string[] | null;
+    interest_options: string[] | null;
   };
   participantTypes: {
     id: string;
@@ -173,6 +175,10 @@ export function RegistrationFlow({
   const [interests, setInterests] = useState<string[]>(existingProfile?.interests || []);
 
   const dateRange = `${formatDate(event.start_date)} – ${formatDate(event.end_date)}`;
+
+  // Use event-specific options if configured, fallback to defaults
+  const activeExpertise = event.expertise_options?.length ? event.expertise_options : EXPERTISE_AREAS;
+  const activeInterests = event.interest_options?.length ? event.interest_options : INTEREST_OPTIONS;
 
   const canProceedStep2 = title.trim() && companyName.trim() && industry.trim();
   const canProceedStep3 = selectedIntents.length > 0;
@@ -857,7 +863,7 @@ export function RegistrationFlow({
                       Select areas you specialize in. This powers our matching algorithm.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {EXPERTISE_AREAS.map((area) => (
+                      {activeExpertise.map((area) => (
                         <button
                           key={area}
                           type="button"
@@ -886,7 +892,7 @@ export function RegistrationFlow({
                       What topics are you looking to explore or learn more about?
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {INTEREST_OPTIONS.map((item) => (
+                      {activeInterests.map((item) => (
                         <button
                           key={item}
                           type="button"

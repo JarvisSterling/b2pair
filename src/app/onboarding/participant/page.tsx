@@ -86,6 +86,8 @@ export default function ParticipantOnboardingPage() {
   const [eventId, setEventId] = useState<string | null>(null);
   const [eventName, setEventName] = useState("");
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [eventExpertiseOptions, setEventExpertiseOptions] = useState<string[]>([]);
+  const [eventInterestOptions, setEventInterestOptions] = useState<string[]>([]);
 
   useEffect(() => {
     async function init() {
@@ -104,6 +106,14 @@ export default function ParticipantOnboardingPage() {
         if (c.event_id) {
           setEventId(c.event_id);
           setEventName(c.event_name || "");
+          // Fetch event-specific expertise/interest options
+          const { data: eventData } = await supabase
+            .from("events")
+            .select("expertise_options, interest_options")
+            .eq("id", c.event_id)
+            .single();
+          if (eventData?.expertise_options?.length) setEventExpertiseOptions(eventData.expertise_options);
+          if (eventData?.interest_options?.length) setEventInterestOptions(eventData.interest_options);
         }
       }
 
@@ -125,6 +135,10 @@ export default function ParticipantOnboardingPage() {
     }
     init();
   }, []);
+
+  // Use event-specific options if configured, fallback to defaults
+  const activeExpertise = eventExpertiseOptions.length ? eventExpertiseOptions : EXPERTISE_AREAS;
+  const activeInterests = eventInterestOptions.length ? eventInterestOptions : INTEREST_OPTIONS;
 
   const canProceedProfile = title.trim() && companyName.trim() && industry.trim();
   const canProceedEvent = selectedIntents.length > 0;
@@ -566,7 +580,7 @@ export default function ParticipantOnboardingPage() {
                     Select areas you specialize in. This powers our matching algorithm.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {EXPERTISE_AREAS.map((area) => (
+                    {activeExpertise.map((area) => (
                       <button
                         key={area}
                         type="button"
@@ -594,7 +608,7 @@ export default function ParticipantOnboardingPage() {
                     What topics are you looking to explore or learn more about?
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {INTEREST_OPTIONS.map((item) => (
+                    {activeInterests.map((item) => (
                       <button
                         key={item}
                         type="button"

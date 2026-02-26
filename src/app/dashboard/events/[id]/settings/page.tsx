@@ -9,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Save, Loader2, Trash2, Globe, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Save, Loader2, Trash2, Globe, Check, Plus, X, Tags, Lightbulb } from "lucide-react";
+import { toast } from "sonner";
 
 interface EventSettings {
   id: string;
@@ -23,6 +25,8 @@ interface EventSettings {
   break_between_meetings: number;
   registration_open: boolean;
   primary_color: string;
+  expertise_options: string[];
+  interest_options: string[];
 }
 
 export default function EventSettingsPage() {
@@ -34,7 +38,7 @@ export default function EventSettingsPage() {
       const supabase = createClient();
       const { data } = await supabase
         .from("events")
-        .select("id, name, description, status, max_participants, requires_approval, meeting_duration_minutes, max_meetings_per_participant, break_between_meetings, registration_open, primary_color")
+        .select("id, name, description, status, max_participants, requires_approval, meeting_duration_minutes, max_meetings_per_participant, break_between_meetings, registration_open, primary_color, expertise_options, interest_options")
         .eq("id", eventId)
         .single();
       return data as EventSettings | null;
@@ -70,6 +74,8 @@ export default function EventSettingsPage() {
         break_between_meetings: event.break_between_meetings,
         registration_open: event.registration_open,
         primary_color: event.primary_color,
+        expertise_options: event.expertise_options || [],
+        interest_options: event.interest_options || [],
       })
       .eq("id", eventId);
 
@@ -209,6 +215,39 @@ export default function EventSettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Expertise & Interest Options */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Registration Options</CardTitle>
+          <p className="text-caption text-muted-foreground mt-1">
+            Define the expertise areas and interests that attendees can choose from when registering for this event.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <TagListEditor
+            label="Expertise Areas"
+            icon={<Tags className="h-4 w-4" />}
+            description="Skills and specializations attendees can select"
+            items={event.expertise_options || []}
+            onChange={(items) => setEvent({ ...event, expertise_options: items })}
+            placeholder="e.g. Software Development"
+            defaults={DEFAULT_EXPERTISE}
+          />
+
+          <Separator />
+
+          <TagListEditor
+            label="Interest Topics"
+            icon={<Lightbulb className="h-4 w-4" />}
+            description="Topics attendees want to explore or learn about"
+            items={event.interest_options || []}
+            onChange={(items) => setEvent({ ...event, interest_options: items })}
+            placeholder="e.g. Digital Transformation"
+            defaults={DEFAULT_INTERESTS}
+          />
+        </CardContent>
+      </Card>
+
       {/* Status & Danger */}
       <Card>
         <CardHeader><CardTitle>Event status</CardTitle></CardHeader>
@@ -240,6 +279,125 @@ export default function EventSettingsPage() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+const DEFAULT_EXPERTISE = [
+  "Software Development", "Product Management", "Sales & BD", "Marketing",
+  "Design & UX", "Data & Analytics", "Operations", "Finance & Accounting",
+  "Human Resources", "Strategy", "Supply Chain", "Customer Success",
+  "Engineering", "Research", "Legal & Compliance", "AI & Machine Learning",
+];
+
+const DEFAULT_INTERESTS = [
+  "Sustainability", "Digital Transformation", "Growth Strategy",
+  "International Expansion", "Innovation & R&D", "Talent Acquisition",
+  "Fundraising", "Market Research", "Brand Building",
+  "Process Automation", "Cybersecurity", "E-commerce",
+];
+
+function TagListEditor({
+  label,
+  icon,
+  description,
+  items,
+  onChange,
+  placeholder,
+  defaults,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+  items: string[];
+  onChange: (items: string[]) => void;
+  placeholder: string;
+  defaults: string[];
+}) {
+  const [newItem, setNewItem] = useState("");
+
+  function addItem() {
+    const trimmed = newItem.trim();
+    if (!trimmed || items.includes(trimmed)) {
+      if (items.includes(trimmed)) toast.error("Already exists");
+      return;
+    }
+    onChange([...items, trimmed]);
+    setNewItem("");
+  }
+
+  function removeItem(item: string) {
+    onChange(items.filter((i) => i !== item));
+  }
+
+  function loadDefaults() {
+    const merged = [...new Set([...items, ...defaults])];
+    onChange(merged);
+    toast.success(`Added ${merged.length - items.length} default options`);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon}
+          <div>
+            <p className="text-body font-medium">{label}</p>
+            <p className="text-caption text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        {items.length === 0 && (
+          <Button variant="outline" size="sm" onClick={loadDefaults}>
+            Load defaults
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {items.map((item) => (
+          <Badge key={item} variant="secondary" className="gap-1 pr-1">
+            {item}
+            <button
+              type="button"
+              onClick={() => removeItem(item)}
+              className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+        {items.length === 0 && (
+          <p className="text-caption text-muted-foreground italic">No options configured yet. Click &ldquo;Load defaults&rdquo; or add your own.</p>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          value={newItem}
+          onChange={(e) => setNewItem(e.target.value)}
+          placeholder={placeholder}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addItem(); } }}
+          className="flex-1"
+        />
+        <Button variant="outline" size="sm" onClick={addItem} disabled={!newItem.trim()}>
+          <Plus className="h-4 w-4 mr-1" />
+          Add
+        </Button>
+      </div>
+
+      {items.length > 0 && (
+        <div className="flex items-center justify-between">
+          <p className="text-caption text-muted-foreground">{items.length} options</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={loadDefaults}
+          >
+            Add missing defaults
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

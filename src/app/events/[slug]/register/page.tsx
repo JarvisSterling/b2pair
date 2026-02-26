@@ -16,7 +16,7 @@ export default async function RegisterPage({ params }: PageProps) {
 
   const { data: event } = await admin
     .from("events")
-    .select("id, name, slug, start_date, end_date, banner_url, banner_layout, banner_settings, requires_approval, registration_open, status")
+    .select("id, name, slug, start_date, end_date, banner_url, banner_layout, banner_settings, requires_approval, registration_open, status, expertise_options, interest_options")
     .eq("slug", slug)
     .in("status", ["published", "active"])
     .single();

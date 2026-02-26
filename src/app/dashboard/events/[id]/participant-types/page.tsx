@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface ParticipantType {
   id: string;
@@ -76,33 +77,51 @@ export default function ParticipantTypesPage() {
   }
 
   async function addType() {
-    if (!newType.name.trim()) return;
+    if (!newType.name.trim()) {
+      toast.error("Type name required");
+      return;
+    }
     setSaving(true);
+    const toastId = toast.loading("Adding...");
 
-    const { data, error } = await supabase
-      .from("event_participant_types")
-      .insert({
-        event_id: eventId,
-        name: newType.name.trim(),
-        description: newType.description.trim() || null,
-        color: newType.color,
-        sort_order: types.length,
-      })
-      .select()
-      .single();
-
-    if (data && !error) {
+    try {
+      const { data, error } = await supabase
+        .from("event_participant_types")
+        .insert({
+          event_id: eventId,
+          name: newType.name.trim(),
+          description: newType.description.trim() || null,
+          color: newType.color,
+          sort_order: types.length,
+        })
+        .select()
+        .single();
+      if (error || !data) throw error || new Error("Failed to add type");
+      toast.success("Type added", { id: toastId });
       setTypes((prev) => [...prev, data as ParticipantType]);
       setNewType({ name: "", description: "", color: "#6b7280" });
       setShowAdd(false);
+    } catch {
+      toast.error("Failed to add", { id: toastId });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function removeType(id: string) {
     if (!confirm("Remove this participant type? Existing participants won't be affected.")) return;
 
-    await supabase.from("event_participant_types").delete().eq("id", id);
+    await toast.promise(
+      (async () => {
+        const { error } = await supabase.from("event_participant_types").delete().eq("id", id);
+        if (error) throw error;
+      })(),
+      {
+        loading: "Removing...",
+        success: "Type removed",
+        error: "Failed to remove",
+      }
+    );
     setTypes((prev) => prev.filter((t) => t.id !== id));
   }
 
@@ -112,10 +131,20 @@ export default function ParticipantTypesPage() {
 
     const updated = { ...type.permissions, [perm]: !type.permissions[perm] };
 
-    await supabase
-      .from("event_participant_types")
-      .update({ permissions: updated })
-      .eq("id", id);
+    await toast.promise(
+      (async () => {
+        const { error } = await supabase
+          .from("event_participant_types")
+          .update({ permissions: updated })
+          .eq("id", id);
+        if (error) throw error;
+      })(),
+      {
+        loading: "Saving...",
+        success: "Permissions updated",
+        error: "Failed to save",
+      }
+    );
 
     setTypes((prev) =>
       prev.map((t) => (t.id === id ? { ...t, permissions: updated } : t))
@@ -124,6 +153,7 @@ export default function ParticipantTypesPage() {
 
   async function addDefaults() {
     setSaving(true);
+    const toastId = toast.loading("Adding defaults...");
     const inserts = DEFAULT_TYPES.map((dt, i) => ({
       event_id: eventId,
       name: dt.name,
@@ -132,15 +162,22 @@ export default function ParticipantTypesPage() {
       sort_order: types.length + i,
     }));
 
-    const { data } = await supabase
-      .from("event_participant_types")
-      .insert(inserts)
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from("event_participant_types")
+        .insert(inserts)
+        .select();
+      if (error || !data) throw error || new Error("Failed to add defaults");
+      toast.success("Defaults added", { id: toastId });
 
-    if (data) {
-      setTypes((prev) => [...prev, ...(data as ParticipantType[])]);
+      if (data) {
+        setTypes((prev) => [...prev, ...(data as ParticipantType[])]);
+      }
+    } catch {
+      toast.error("Failed to add defaults", { id: toastId });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   if (loading) {

@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const INTENTS = [
   { key: "buying", label: "Buy / Source", desc: "Find products or services" },
@@ -116,6 +117,7 @@ export default function ParticipantOnboardingPage() {
   async function handleSuggest() {
     if (selectedIntents.length === 0) return;
     setSuggesting(true);
+    const toastId = toast.loading("Generating suggestions...");
     try {
       const res = await fetch("/api/participants/suggest-profile", {
         method: "POST",
@@ -126,15 +128,16 @@ export default function ParticipantOnboardingPage() {
           intents: selectedIntents,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.lookingFor && !lookingFor.trim()) setLookingFor(data.lookingFor);
-        if (data.offering && !offering.trim()) setOffering(data.offering);
-      }
+      if (!res.ok) throw new Error("Failed to suggest");
+      const data = await res.json();
+      toast.success("Suggestions ready", { id: toastId });
+      if (data.lookingFor && !lookingFor.trim()) setLookingFor(data.lookingFor);
+      if (data.offering && !offering.trim()) setOffering(data.offering);
     } catch {
-      // Silently fail
+      toast.error("Failed to suggest", { id: toastId });
+    } finally {
+      setSuggesting(false);
     }
-    setSuggesting(false);
   }
 
   function toggleArrayItem(
@@ -147,56 +150,67 @@ export default function ParticipantOnboardingPage() {
   }
 
   async function handleSubmit() {
-    if (!canProceedStep2) return;
+    if (!canProceedStep2) {
+      toast.error("Complete required fields");
+      return;
+    }
     setSaving(true);
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/auth/sign-in"); return; }
+      await toast.promise(
+        (async () => {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) { router.push("/auth/sign-in"); throw new Error("Sign in required"); }
 
-      // Use server API to update profile (bypasses RLS via admin client)
-      await fetch("/api/profile/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          platform_role: "participant",
-          title: title.trim() || null,
-          company_name: companyName.trim() || null,
-          company_size: companySize || null,
-          company_website: companyWebsite.trim() || null,
-          expertise_areas: expertiseAreas,
-          interests: interests,
-          onboarding_completed: true,
-        }),
-      });
+          // Use server API to update profile (bypasses RLS via admin client)
+          const profileRes = await fetch("/api/profile/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              platform_role: "participant",
+              title: title.trim() || null,
+              company_name: companyName.trim() || null,
+              company_size: companySize || null,
+              company_website: companyWebsite.trim() || null,
+              expertise_areas: expertiseAreas,
+              interests: interests,
+              onboarding_completed: true,
+            }),
+          });
+          if (!profileRes.ok) throw new Error("Failed to save profile");
+
+          if (eventId) {
+            const res = await fetch("/api/events/register-participant", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                eventId,
+                title: title.trim(),
+                companyName: companyName.trim(),
+                intents: selectedIntents,
+                lookingFor: lookingFor.trim(),
+                offering: offering.trim(),
+                companySize: companySize || null,
+                companyWebsite: companyWebsite.trim() || null,
+              }),
+            });
+
+            if (!res.ok) {
+              const data = await res.json();
+              if (!data.alreadyRegistered) throw new Error(data.error || "Failed to register");
+            }
+          }
+        })(),
+        {
+          loading: "Saving...",
+          success: "Profile completed",
+          error: (error) => (error instanceof Error ? error.message : "Failed to save"),
+        }
+      );
 
       if (eventId) {
-        const res = await fetch("/api/events/register-participant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventId,
-            title: title.trim(),
-            companyName: companyName.trim(),
-            intents: selectedIntents,
-            lookingFor: lookingFor.trim(),
-            offering: offering.trim(),
-            companySize: companySize || null,
-            companyWebsite: companyWebsite.trim() || null,
-          }),
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          if (!data.alreadyRegistered) {
-            setError(data.error || "Failed to register");
-            setSaving(false);
-            return;
-          }
-        }
-
         router.push(`/dashboard/events/${eventId}`);
       } else {
         router.push("/dashboard/home");
@@ -204,6 +218,7 @@ export default function ParticipantOnboardingPage() {
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
+    } finally {
       setSaving(false);
     }
   }

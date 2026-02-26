@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import type { Company, CompanyStatus, SponsorTier, SponsorProfile, ExhibitorProfile, CompanyMember } from "@/types/sponsors";
 import { SafeImage } from "@/components/ui/safe-image";
+import { toast } from "sonner";
 
 type ActiveTab = "sponsors" | "exhibitors" | "tiers" | "settings";
 
@@ -102,99 +103,196 @@ export default function PartnersPage() {
   }, [eventId]);
 
   async function addSponsor() {
-    if (!sponsorForm.name || !sponsorForm.contact_email) return;
+    if (!sponsorForm.name || !sponsorForm.contact_email) {
+      toast.error("Company name and email required");
+      return;
+    }
     setSaving(true);
-    const res = await fetch(`/api/events/${eventId}/companies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: sponsorForm.name,
-        contact_email: sponsorForm.contact_email,
-        capabilities: ["sponsor"],
-        tier_id: sponsorForm.tier_id || undefined,
-        team_limit: sponsorForm.team_limit ? parseInt(sponsorForm.team_limit) : undefined,
-        company_size: sponsorForm.company_size || undefined,
-        website: sponsorForm.website || undefined,
-      }),
-    });
-    if (res.ok) {
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch(`/api/events/${eventId}/companies`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: sponsorForm.name,
+              contact_email: sponsorForm.contact_email,
+              capabilities: ["sponsor"],
+              tier_id: sponsorForm.tier_id || undefined,
+              team_limit: sponsorForm.team_limit ? parseInt(sponsorForm.team_limit) : undefined,
+              company_size: sponsorForm.company_size || undefined,
+              website: sponsorForm.website || undefined,
+            }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => null);
+            throw new Error(data?.error || "Failed to create sponsor");
+          }
+        })(),
+        {
+          loading: "Creating sponsor...",
+          success: "Sponsor invited",
+          error: (error) => (error instanceof Error ? error.message : "Failed to create sponsor"),
+        }
+      );
       mutateCompanies(); mutateTiers();
       setSponsorForm({ name: "", contact_email: "", tier_id: "", team_limit: "", company_size: "", website: "" });
       setShowAddSponsor(false);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function addExhibitor() {
-    if (!exhibitorForm.name || !exhibitorForm.contact_email) return;
+    if (!exhibitorForm.name || !exhibitorForm.contact_email) {
+      toast.error("Company name and email required");
+      return;
+    }
     setSaving(true);
-    const res = await fetch(`/api/events/${eventId}/companies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: exhibitorForm.name,
-        contact_email: exhibitorForm.contact_email,
-        capabilities: ["exhibitor"],
-        booth_type: exhibitorForm.booth_type || undefined,
-        booth_number: exhibitorForm.booth_number || undefined,
-        team_limit: exhibitorForm.team_limit ? parseInt(exhibitorForm.team_limit) : undefined,
-        company_size: exhibitorForm.company_size || undefined,
-        website: exhibitorForm.website || undefined,
-      }),
-    });
-    if (res.ok) {
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch(`/api/events/${eventId}/companies`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: exhibitorForm.name,
+              contact_email: exhibitorForm.contact_email,
+              capabilities: ["exhibitor"],
+              booth_type: exhibitorForm.booth_type || undefined,
+              booth_number: exhibitorForm.booth_number || undefined,
+              team_limit: exhibitorForm.team_limit ? parseInt(exhibitorForm.team_limit) : undefined,
+              company_size: exhibitorForm.company_size || undefined,
+              website: exhibitorForm.website || undefined,
+            }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => null);
+            throw new Error(data?.error || "Failed to create exhibitor");
+          }
+        })(),
+        {
+          loading: "Creating exhibitor...",
+          success: "Exhibitor invited",
+          error: (error) => (error instanceof Error ? error.message : "Failed to create exhibitor"),
+        }
+      );
       mutateCompanies(); mutateTiers();
       setExhibitorForm({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
       setShowAddExhibitor(false);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function addTier() {
-    if (!tierForm.name) return;
+    if (!tierForm.name) {
+      toast.error("Tier name required");
+      return;
+    }
     setSaving(true);
-    await fetch(`/api/events/${eventId}/sponsor-tiers`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(tierForm),
-    });
-    mutateCompanies(); mutateTiers();
-    setTierForm({ name: "", color: "#6366f1", rank: tiers.length + 1, seat_limit: 5, perks: {} });
-    setShowAddTier(false);
-    setSaving(false);
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch(`/api/events/${eventId}/sponsor-tiers`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(tierForm),
+          });
+          if (!res.ok) throw new Error("Failed to create tier");
+        })(),
+        {
+          loading: "Creating tier...",
+          success: "Tier created",
+          error: "Failed to create tier",
+        }
+      );
+      mutateCompanies(); mutateTiers();
+      setTierForm({ name: "", color: "#6366f1", rank: tiers.length + 1, seat_limit: 5, perks: {} });
+      setShowAddTier(false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function changeStatus(companyId: string, status: string, reason?: string) {
     setSaving(true);
-    await fetch(`/api/events/${eventId}/companies/${companyId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, rejection_reason: reason }),
-    });
-    mutateCompanies(); mutateTiers();
-    setShowRejectModal(null);
-    setRejectionReason("");
-    setSaving(false);
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch(`/api/events/${eventId}/companies/${companyId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status, rejection_reason: reason }),
+          });
+          if (!res.ok) throw new Error("Failed to update status");
+        })(),
+        {
+          loading: "Saving...",
+          success:
+            status === "approved"
+              ? "Company approved"
+              : status === "rejected"
+              ? "Company rejected"
+              : status === "live"
+              ? "Company published"
+              : "Status updated",
+          error: "Failed to save",
+        }
+      );
+      mutateCompanies(); mutateTiers();
+      setShowRejectModal(null);
+      setRejectionReason("");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function deleteCompany(id: string) {
     setDeleting(id);
-    await fetch(`/api/events/${eventId}/companies/${id}`, { method: "DELETE" });
-    mutateCompanies(); mutateTiers();
-    setDeleting(null);
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch(`/api/events/${eventId}/companies/${id}`, { method: "DELETE" });
+          if (!res.ok) throw new Error("Failed to delete company");
+        })(),
+        {
+          loading: "Deleting...",
+          success: "Company deleted",
+          error: "Failed to delete",
+        }
+      );
+      mutateCompanies(); mutateTiers();
+    } finally {
+      setDeleting(null);
+    }
   }
 
   async function deleteTier(id: string) {
     setDeleting(id);
-    await fetch(`/api/events/${eventId}/sponsor-tiers?id=${id}`, { method: "DELETE" });
-    mutateCompanies(); mutateTiers();
-    setDeleting(null);
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch(`/api/events/${eventId}/sponsor-tiers?id=${id}`, { method: "DELETE" });
+          if (!res.ok) throw new Error("Failed to delete tier");
+        })(),
+        {
+          loading: "Deleting...",
+          success: "Tier deleted",
+          error: "Failed to delete",
+        }
+      );
+      mutateCompanies(); mutateTiers();
+    } finally {
+      setDeleting(null);
+    }
   }
 
   function copyInviteLink(inviteCode: string, companyId: string) {
     const slug = eventSlug || eventId;
     const url = `${window.location.origin}/events/${slug}/partners/onboard/${inviteCode}`;
     navigator.clipboard.writeText(url);
+    toast.success("Invite link copied");
     setCopiedLink(companyId);
     setTimeout(() => setCopiedLink(null), 2000);
   }
@@ -202,12 +300,16 @@ export default function PartnersPage() {
   async function openCompanyDetail(companyId: string) {
     setDetailLoading(true);
     setSelectedCompany(null);
-    const res = await fetch(`/api/events/${eventId}/companies/${companyId}`);
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/events/${eventId}/companies/${companyId}`);
+      if (!res.ok) throw new Error("Failed to load company");
       const { company } = await res.json();
       setSelectedCompany(company);
+    } catch {
+      toast.error("Failed to load company");
+    } finally {
+      setDetailLoading(false);
     }
-    setDetailLoading(false);
   }
 
   if (loading) {
@@ -1001,36 +1103,45 @@ function TeamSection({ companyId, members: initialMembers }: { companyId: string
   function copyMemberInvite(member: any) {
     const url = `${window.location.origin}/partners/invite/${member.invite_code}`;
     navigator.clipboard.writeText(url);
+    toast.success("Invite link copied");
     setCopiedMemberId(member.id);
     setTimeout(() => setCopiedMemberId(null), 2000);
   }
 
   async function inviteMember() {
-    if (!inviteForm.email) return;
+    if (!inviteForm.email) {
+      toast.error("Email required");
+      return;
+    }
     setInviting(true);
     setInviteError(null);
     setNewInviteLink(null);
+    const toastId = toast.loading("Sending invite...");
+    try {
+      const res = await fetch(`/api/companies/${companyId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(inviteForm),
+      });
+      const json = await res.json();
 
-    const res = await fetch(`/api/companies/${companyId}/members`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(inviteForm),
-    });
-    const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to invite");
+      toast.success("Invite sent", { id: toastId });
 
-    if (!res.ok) {
-      setInviteError(json.error || "Failed to invite");
+      // Add new member to list
+      setMembers((prev) => [...prev, json.member]);
+      const link = `${window.location.origin}/partners/invite/${json.invite_code}`;
+      setNewInviteLink(link);
+      navigator.clipboard.writeText(link);
+      toast.success("Invite link copied");
+      setInviteForm({ email: "", name: "", role: "representative" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to invite";
+      toast.error(message, { id: toastId });
+      setInviteError(message);
+    } finally {
       setInviting(false);
-      return;
     }
-
-    // Add new member to list
-    setMembers((prev) => [...prev, json.member]);
-    const link = `${window.location.origin}/partners/invite/${json.invite_code}`;
-    setNewInviteLink(link);
-    navigator.clipboard.writeText(link);
-    setInviteForm({ email: "", name: "", role: "representative" });
-    setInviting(false);
   }
 
   return (

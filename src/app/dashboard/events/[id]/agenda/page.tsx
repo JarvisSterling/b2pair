@@ -19,6 +19,7 @@ import {
   Filter,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
+import { toast } from "sonner";
 
 interface Track {
   id: string;
@@ -77,18 +78,26 @@ export default function ParticipantAgendaPage() {
 
   async function toggleSession(sessionId: string) {
     setToggling(sessionId);
-    const res = await fetch("/api/agenda/schedule", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventId, sessionId }),
-    });
-    const { saved } = await res.json();
+    const toastId = toast.loading("Saving...");
+    try {
+      const res = await fetch("/api/agenda/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, sessionId }),
+      });
+      if (!res.ok) throw new Error("Failed to update schedule");
+      const { saved } = await res.json();
+      toast.success("Schedule updated", { id: toastId });
 
-    setLocalSavedIds((prev) => {
-      const current = prev ?? savedSessionIds;
-      return saved ? [...current, sessionId] : current.filter((id: string) => id !== sessionId);
-    });
-    setToggling(null);
+      setLocalSavedIds((prev) => {
+        const current = prev ?? savedSessionIds;
+        return saved ? [...current, sessionId] : current.filter((id: string) => id !== sessionId);
+      });
+    } catch {
+      toast.error("Failed to save", { id: toastId });
+    } finally {
+      setToggling(null);
+    }
   }
 
   // Group sessions by date

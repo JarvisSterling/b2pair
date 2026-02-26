@@ -17,6 +17,7 @@ import {
   Palette,
   Settings2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const STEPS = [
   { id: "basics", label: "Basics", icon: FileText },
@@ -120,144 +121,153 @@ export default function NewEventPage() {
   async function handleCreate() {
     setSaving(true);
     setError(null);
+    const toastId = toast.loading("Creating event...");
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/auth/sign-in");
+        throw new Error("Sign in required");
+      }
 
-    if (!user) {
-      router.push("/auth/sign-in");
-      return;
-    }
-
-    // Check if user is organizer
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("platform_role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.platform_role !== "organizer") {
-      setError("Only organizers can create events.");
-      setSaving(false);
-      return;
-    }
-
-    // Get or create organization
-    const { data: memberships } = await supabase
-      .from("organization_members")
-      .select("organization_id")
-      .eq("user_id", user.id)
-      .limit(1);
-
-    let orgId: string;
-
-    if (memberships && memberships.length > 0) {
-      orgId = memberships[0].organization_id;
-    } else {
-      // Create personal organization
+      // Check if user is organizer
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, company_name")
+        .select("platform_role")
         .eq("id", user.id)
         .single();
 
-      const orgName = profile?.company_name || `${profile?.full_name}'s Events`;
-      const orgSlug = generateSlug(orgName) + "-" + Date.now().toString(36);
+      if (profile?.platform_role !== "organizer") {
+        throw new Error("Only organizers can create events");
+      }
 
-      const { data: org, error: orgError } = await supabase
-        .from("organizations")
+      // Get or create organization
+      const { data: memberships } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      let orgId: string;
+
+      if (memberships && memberships.length > 0) {
+        orgId = memberships[0].organization_id;
+      } else {
+        // Create personal organization
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, company_name")
+          .eq("id", user.id)
+          .single();
+
+        const orgName = profile?.company_name || `${profile?.full_name}'s Events`;
+        const orgSlug = generateSlug(orgName) + "-" + Date.now().toString(36);
+
+        const { data: org, error: orgError } = await supabase
+          .from("organizations")
+          .insert({
+            name: orgName,
+            slug: orgSlug,
+            created_by: user.id,
+          })
+          .select("id")
+          .single();
+
+        if (orgError || !org) {
+          throw new Error(orgError?.message || "Failed to create organization");
+        }
+
+        // Add user as owner
+        const { error: memberError } = await supabase.from("organization_members").insert({
+          organization_id: org.id,
+          user_id: user.id,
+          role: "owner",
+        });
+        if (memberError) throw memberError;
+
+        orgId = org.id;
+      }
+
+      // Create event
+      const slug = generateSlug(data.name) + "-" + Date.now().toString(36);
+
+      const { data: event, error: eventError } = await supabase
+        .from("events")
         .insert({
-          name: orgName,
-          slug: orgSlug,
+          organization_id: orgId,
+          name: data.name,
+          slug,
+          description: data.description || null,
+          event_type: data.eventType,
+          format: data.format,
+          start_date: new Date(data.startDate).toISOString(),
+          end_date: new Date(data.endDate).toISOString(),
+          timezone: data.timezone,
+          venue_name: data.venueName || null,
+          venue_address: data.venueAddress || null,
+          city: data.city || null,
+          country: data.country || null,
+          virtual_url: data.virtualUrl || null,
+          primary_color: data.primaryColor,
+          max_participants: data.maxParticipants ? parseInt(data.maxParticipants) : null,
+          requires_approval: data.requiresApproval,
+          visibility: data.visibility,
+          meeting_duration_minutes: parseInt(data.meetingDuration),
+          max_meetings_per_participant: parseInt(data.maxMeetingsPerParticipant),
+          break_between_meetings: parseInt(data.breakBetweenMeetings),
+          banner_url: DEFAULT_BANNER_URL,
+          banner_layout: DEFAULT_BANNER_LAYOUT,
+          banner_settings: DEFAULT_BANNER_SETTINGS,
           created_by: user.id,
+          status: "draft",
         })
         .select("id")
         .single();
 
-      if (orgError || !org) {
-        console.error("Org creation error:", orgError);
-        setError(`Failed to create organization: ${orgError?.message || "unknown error"}`);
-        setSaving(false);
-        return;
+      if (eventError || !event) {
+        throw new Error(eventError?.message || "Failed to create event");
       }
 
-      // Add user as owner
-      await supabase.from("organization_members").insert({
-        organization_id: org.id,
-        user_id: user.id,
-        role: "owner",
+      // Create default matching rules
+      const { error: rulesError } = await supabase.from("matching_rules").insert({
+        event_id: event.id,
       });
+      if (rulesError) throw rulesError;
 
-      orgId = org.id;
-    }
+      // Add creator as organizer participant
+      const { error: participantError } = await supabase.from("participants").insert({
+        event_id: event.id,
+        user_id: user.id,
+        role: "organizer",
+        status: "approved",
+      });
+      if (participantError) throw participantError;
 
-    // Create event
-    const slug = generateSlug(data.name) + "-" + Date.now().toString(36);
+      // Seed default event pages and theme
+      const { getDefaultPages } = await import("@/types/event-pages");
+      const { error: pagesError } = await supabase.from("event_pages").insert(
+        getDefaultPages(data.name).map((p) => ({ ...p, event_id: event.id }))
+      );
+      if (pagesError) throw pagesError;
 
-    const { data: event, error: eventError } = await supabase
-      .from("events")
-      .insert({
-        organization_id: orgId,
-        name: data.name,
-        slug,
-        description: data.description || null,
-        event_type: data.eventType,
-        format: data.format,
-        start_date: new Date(data.startDate).toISOString(),
-        end_date: new Date(data.endDate).toISOString(),
-        timezone: data.timezone,
-        venue_name: data.venueName || null,
-        venue_address: data.venueAddress || null,
-        city: data.city || null,
-        country: data.country || null,
-        virtual_url: data.virtualUrl || null,
-        primary_color: data.primaryColor,
-        max_participants: data.maxParticipants ? parseInt(data.maxParticipants) : null,
-        requires_approval: data.requiresApproval,
-        visibility: data.visibility,
-        meeting_duration_minutes: parseInt(data.meetingDuration),
-        max_meetings_per_participant: parseInt(data.maxMeetingsPerParticipant),
-        break_between_meetings: parseInt(data.breakBetweenMeetings),
-        banner_url: DEFAULT_BANNER_URL,
-        banner_layout: DEFAULT_BANNER_LAYOUT,
-        banner_settings: DEFAULT_BANNER_SETTINGS,
-        created_by: user.id,
-        status: "draft",
-      })
-      .select("id")
-      .single();
+      const { error: themeError } = await supabase.from("event_themes").insert({
+        event_id: event.id,
+        theme_key: "light-classic",
+      });
+      if (themeError) throw themeError;
+      const eventId = event.id;
+      toast.success("Event created", { id: toastId });
 
-    if (eventError || !event) {
-      setError(eventError?.message || "Failed to create event.");
+      router.push(`/dashboard/events/${eventId}`);
+      router.refresh();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create event.";
+      toast.error(message, { id: toastId });
+      setError(message);
+    } finally {
       setSaving(false);
-      return;
     }
-
-    // Create default matching rules
-    await supabase.from("matching_rules").insert({
-      event_id: event.id,
-    });
-
-    // Add creator as organizer participant
-    await supabase.from("participants").insert({
-      event_id: event.id,
-      user_id: user.id,
-      role: "organizer",
-      status: "approved",
-    });
-
-    // Seed default event pages and theme
-    const { getDefaultPages } = await import("@/types/event-pages");
-    await supabase.from("event_pages").insert(
-      getDefaultPages(data.name).map((p) => ({ ...p, event_id: event.id }))
-    );
-    await supabase.from("event_themes").insert({
-      event_id: event.id,
-      theme_key: "light-classic",
-    });
-
-    router.push(`/dashboard/events/${event.id}`);
-    router.refresh();
   }
 
   function nextStep() {

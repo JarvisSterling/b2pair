@@ -15,6 +15,7 @@ import {
   Calendar,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Slot {
   id: string;
@@ -156,30 +157,48 @@ export default function AvailabilityPage() {
       return newStart < sEnd && newEnd > sStart;
     });
 
-    if (hasOverlap) return; // Don't create overlapping slots
+    if (hasOverlap) {
+      toast.error("Time slot overlaps");
+      return;
+    } // Don't create overlapping slots
 
     setSaving(true);
-    const { data, error } = await supabase
-      .from("availability_slots")
-      .insert({
-        participant_id: event.participant_id,
-        event_id: selectedEvent,
-        date,
-        start_time: startTime,
-        end_time: endTime,
-        is_available: true,
-      })
-      .select()
-      .single();
-
-    if (data && !error) {
+    const toastId = toast.loading("Saving...");
+    try {
+      const { data, error } = await supabase
+        .from("availability_slots")
+        .insert({
+          participant_id: event.participant_id,
+          event_id: selectedEvent,
+          date,
+          start_time: startTime,
+          end_time: endTime,
+          is_available: true,
+        })
+        .select()
+        .single();
+      if (error || !data) throw error || new Error("Failed to save");
+      toast.success("Availability saved", { id: toastId });
       setSlots((prev) => [...prev, data]);
+    } catch {
+      toast.error("Failed to save", { id: toastId });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function removeSlot(slotId: string) {
-    await supabase.from("availability_slots").delete().eq("id", slotId);
+    await toast.promise(
+      (async () => {
+        const { error } = await supabase.from("availability_slots").delete().eq("id", slotId);
+        if (error) throw error;
+      })(),
+      {
+        loading: "Removing...",
+        success: "Availability removed",
+        error: "Failed to remove",
+      }
+    );
     setSlots((prev) => prev.filter((s) => s.id !== slotId));
   }
 
@@ -208,15 +227,24 @@ export default function AvailabilityPage() {
         is_available: true,
       }));
 
-    const { data } = await supabase
-      .from("availability_slots")
-      .upsert(inserts, { onConflict: "participant_id,date,start_time,end_time" })
-      .select();
-
-    if (data) {
-      await loadSlots();
+    try {
+      await toast.promise(
+        (async () => {
+          const { error } = await supabase
+            .from("availability_slots")
+            .upsert(inserts, { onConflict: "participant_id,date,start_time,end_time" });
+          if (error) throw error;
+          await loadSlots();
+        })(),
+        {
+          loading: "Saving...",
+          success: "Availability updated",
+          error: "Failed to save",
+        }
+      );
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   function getEventDays(): Date[] {

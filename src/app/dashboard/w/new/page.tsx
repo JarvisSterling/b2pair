@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Building2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function NewWorkspacePage() {
   const [name, setName] = useState("");
@@ -15,43 +16,53 @@ export default function NewWorkspacePage() {
   const router = useRouter();
 
   async function handleCreate() {
-    if (!name.trim()) return;
-    setLoading(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 60) + "-" + Date.now().toString(36);
-
-    const { data: org, error: orgError } = await supabase
-      .from("organizations")
-      .insert({
-        name: name.trim(),
-        slug,
-        created_by: user.id,
-      })
-      .select("id")
-      .single();
-
-    if (orgError || !org) {
-      setError(orgError?.message || "Failed to create workspace");
-      setLoading(false);
+    if (!name.trim()) {
+      toast.error("Workspace name required");
       return;
     }
+    setLoading(true);
+    setError(null);
+    const toastId = toast.loading("Creating workspace...");
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in required");
 
-    await supabase.from("organization_members").insert({
-      organization_id: org.id,
-      user_id: user.id,
-      role: "owner",
-    });
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 60) + "-" + Date.now().toString(36);
 
-    router.push(`/dashboard/w/${org.id}`);
+      const { data: org, error: orgError } = await supabase
+        .from("organizations")
+        .insert({
+          name: name.trim(),
+          slug,
+          created_by: user.id,
+        })
+        .select("id")
+        .single();
+
+      if (orgError || !org) throw new Error(orgError?.message || "Failed to create workspace");
+
+      const { error: memberError } = await supabase.from("organization_members").insert({
+        organization_id: org.id,
+        user_id: user.id,
+        role: "owner",
+      });
+      if (memberError) throw memberError;
+
+      const orgId = org.id;
+      toast.success("Workspace created", { id: toastId });
+      router.push(`/dashboard/w/${orgId}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create workspace";
+      toast.error(message, { id: toastId });
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

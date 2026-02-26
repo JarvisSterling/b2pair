@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Save, Loader2, Zap, Check, Sparkles, Brain } from "lucide-react";
+import { toast } from "sonner";
 
 interface MatchingRules {
   id: string;
@@ -109,28 +110,40 @@ export default function MatchingRulesPage() {
     setSaving(true);
 
     const supabase = createClient();
-    await supabase
-      .from("matching_rules")
-      .update({
-        intent_weight: rules.intent_weight,
-        industry_weight: rules.industry_weight,
-        interest_weight: rules.interest_weight,
-        complementarity_weight: rules.complementarity_weight,
-        embedding_weight: rules.embedding_weight,
-        minimum_score: rules.minimum_score,
-        max_recommendations: rules.max_recommendations,
-        exclude_same_company: rules.exclude_same_company,
-        exclude_same_role: rules.exclude_same_role,
-        prioritize_sponsors: rules.prioritize_sponsors,
-        prioritize_vip: rules.prioritize_vip,
-        use_behavioral_intent: rules.use_behavioral_intent,
-        intent_confidence_threshold: rules.intent_confidence_threshold,
-      })
-      .eq("id", rules.id);
-
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await toast.promise(
+        (async () => {
+          const { error } = await supabase
+            .from("matching_rules")
+            .update({
+              intent_weight: rules.intent_weight,
+              industry_weight: rules.industry_weight,
+              interest_weight: rules.interest_weight,
+              complementarity_weight: rules.complementarity_weight,
+              embedding_weight: rules.embedding_weight,
+              minimum_score: rules.minimum_score,
+              max_recommendations: rules.max_recommendations,
+              exclude_same_company: rules.exclude_same_company,
+              exclude_same_role: rules.exclude_same_role,
+              prioritize_sponsors: rules.prioritize_sponsors,
+              prioritize_vip: rules.prioritize_vip,
+              use_behavioral_intent: rules.use_behavioral_intent,
+              intent_confidence_threshold: rules.intent_confidence_threshold,
+            })
+            .eq("id", rules.id);
+          if (error) throw error;
+        })(),
+        {
+          loading: "Saving...",
+          success: "Rules updated",
+          error: "Failed to save",
+        }
+      );
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading || !rules) {
@@ -289,6 +302,7 @@ export default function MatchingRulesPage() {
             onClick={async () => {
               setGeneratingEmbeddings(true);
               setEmbeddingResult(null);
+              const toastId = toast.loading("Generating embeddings...");
               try {
                 const res = await fetch("/api/embeddings/generate", {
                   method: "POST",
@@ -296,13 +310,14 @@ export default function MatchingRulesPage() {
                   body: JSON.stringify({ eventId }),
                 });
                 const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || "Failed to generate embeddings");
+                toast.success("Embeddings generated", { id: toastId });
                 if (data.success) {
                   setEmbeddingCount(data.generated);
                   setEmbeddingResult(`Generated ${data.generated} embeddings (${data.dimensions}D)`);
-                } else {
-                  setEmbeddingResult(`Error: ${data.error}`);
                 }
               } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to generate", { id: toastId });
                 setEmbeddingResult("Failed to generate embeddings");
               } finally {
                 setGeneratingEmbeddings(false);
@@ -388,16 +403,23 @@ export default function MatchingRulesPage() {
                 onClick={async () => {
                   setComputingIntents(true);
                   try {
-                    const res = await fetch("/api/intent/compute", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ eventId }),
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      // Reload stats
-                      mutate();
-                    }
+                    await toast.promise(
+                      (async () => {
+                        const res = await fetch("/api/intent/compute", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ eventId }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.success) throw new Error(data.error || "Failed to compute intents");
+                      })(),
+                      {
+                        loading: "Computing intents...",
+                        success: "Intent vectors updated",
+                        error: (error) => (error instanceof Error ? error.message : "Failed to compute intents"),
+                      }
+                    );
+                    mutate();
                   } finally {
                     setComputingIntents(false);
                   }
@@ -418,6 +440,7 @@ export default function MatchingRulesPage() {
                 onClick={async () => {
                   setClassifyingAI(true);
                   setAiResult(null);
+                  const toastId = toast.loading("Classifying intents...");
                   try {
                     const res = await fetch("/api/intent/classify", {
                       method: "POST",
@@ -425,13 +448,12 @@ export default function MatchingRulesPage() {
                       body: JSON.stringify({ eventId }),
                     });
                     const data = await res.json();
-                    if (data.success) {
-                      setAiResult(`Classified ${data.classified} of ${data.total} participants`);
-                      mutate(); // Refresh stats
-                    } else {
-                      setAiResult(`Error: ${data.error}`);
-                    }
-                  } catch {
+                    if (!res.ok || !data.success) throw new Error(data.error || "Failed to classify");
+                    toast.success("Intent classification complete", { id: toastId });
+                    setAiResult(`Classified ${data.classified} of ${data.total} participants`);
+                    mutate(); // Refresh stats
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Failed to classify", { id: toastId });
                     setAiResult("Failed to classify");
                   } finally {
                     setClassifyingAI(false);

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { DEFAULT_BANNER_URL, DEFAULT_BANNER_LAYOUT, DEFAULT_BANNER_SETTINGS } from "@/types/event-pages";
+import { toast } from "sonner";
 
 const EVENT_TYPES = [
   { value: "conference", label: "Conference", desc: "Multi-session event with speakers and panels" },
@@ -94,73 +95,83 @@ export default function NewEventInWorkspace() {
   async function handleCreate() {
     setSaving(true);
     setError(null);
+    const toastId = toast.loading("Creating event...");
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in required");
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+      const slug = generateSlug(data.name) + "-" + Date.now().toString(36);
 
-    const slug = generateSlug(data.name) + "-" + Date.now().toString(36);
+      const { data: event, error: createError } = await supabase
+        .from("events")
+        .insert({
+          organization_id: workspaceId,
+          name: data.name,
+          slug,
+          description: data.description || null,
+          event_type: data.eventType,
+          format: data.format,
+          status: "draft",
+          start_date: data.startDate,
+          end_date: data.endDate,
+          timezone: data.timezone,
+          venue_name: data.venueName || null,
+          city: data.city || null,
+          country: data.country || null,
+          virtual_url: data.virtualUrl || null,
+          max_participants: data.maxParticipants ? parseInt(data.maxParticipants) : null,
+          requires_approval: data.requiresApproval,
+          visibility: data.visibility,
+          meeting_duration_minutes: parseInt(data.meetingDuration) || 30,
+          break_between_meetings: parseInt(data.breakBetweenMeetings) || 5,
+          banner_url: DEFAULT_BANNER_URL,
+          banner_layout: DEFAULT_BANNER_LAYOUT,
+          banner_settings: DEFAULT_BANNER_SETTINGS,
+          created_by: user.id,
+        })
+        .select("id")
+        .single();
 
-    const { data: event, error: createError } = await supabase
-      .from("events")
-      .insert({
-        organization_id: workspaceId,
-        name: data.name,
-        slug,
-        description: data.description || null,
-        event_type: data.eventType,
-        format: data.format,
-        status: "draft",
-        start_date: data.startDate,
-        end_date: data.endDate,
-        timezone: data.timezone,
-        venue_name: data.venueName || null,
-        city: data.city || null,
-        country: data.country || null,
-        virtual_url: data.virtualUrl || null,
-        max_participants: data.maxParticipants ? parseInt(data.maxParticipants) : null,
-        requires_approval: data.requiresApproval,
-        visibility: data.visibility,
-        meeting_duration_minutes: parseInt(data.meetingDuration) || 30,
-        break_between_meetings: parseInt(data.breakBetweenMeetings) || 5,
-        banner_url: DEFAULT_BANNER_URL,
-        banner_layout: DEFAULT_BANNER_LAYOUT,
-        banner_settings: DEFAULT_BANNER_SETTINGS,
-        created_by: user.id,
-      })
-      .select("id")
-      .single();
+      if (createError || !event) throw new Error(createError?.message || "Failed to create event");
 
-    if (createError || !event) {
-      setError(createError?.message || "Failed to create event");
+      // Create default matching rules
+      const { error: rulesError } = await supabase.from("matching_rules").insert({
+        event_id: event.id,
+      });
+      if (rulesError) throw rulesError;
+
+      // Add creator as organizer participant
+      const { error: participantError } = await supabase.from("participants").insert({
+        event_id: event.id,
+        user_id: user.id,
+        role: "organizer",
+        status: "approved",
+      });
+      if (participantError) throw participantError;
+
+      // Seed default event pages and theme
+      const { getDefaultPages } = await import("@/types/event-pages");
+      const { error: pagesError } = await supabase.from("event_pages").insert(
+        getDefaultPages(data.name).map((p) => ({ ...p, event_id: event.id }))
+      );
+      if (pagesError) throw pagesError;
+
+      const { error: themeError } = await supabase.from("event_themes").insert({
+        event_id: event.id,
+        theme_key: "light-classic",
+      });
+      if (themeError) throw themeError;
+      const eventId = event.id;
+      toast.success("Event created", { id: toastId });
+      router.push(`/dashboard/w/${workspaceId}/events/${eventId}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create event";
+      toast.error(message, { id: toastId });
+      setError(message);
+    } finally {
       setSaving(false);
-      return;
     }
-
-    // Create default matching rules
-    await supabase.from("matching_rules").insert({
-      event_id: event.id,
-    });
-
-    // Add creator as organizer participant
-    await supabase.from("participants").insert({
-      event_id: event.id,
-      user_id: user.id,
-      role: "organizer",
-      status: "approved",
-    });
-
-    // Seed default event pages and theme
-    const { getDefaultPages } = await import("@/types/event-pages");
-    await supabase.from("event_pages").insert(
-      getDefaultPages(data.name).map((p) => ({ ...p, event_id: event.id }))
-    );
-    await supabase.from("event_themes").insert({
-      event_id: event.id,
-      theme_key: "light-classic",
-    });
-
-    router.push(`/dashboard/w/${workspaceId}/events/${event.id}`);
   }
 
   return (

@@ -22,6 +22,7 @@ import {
   Keyboard,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
+import { toast } from "sonner";
 
 interface CheckIn {
   id: string;
@@ -92,16 +93,18 @@ export default function CheckInDashboard() {
 
     setProcessing(true);
     setLastResult(null);
+    const toastId = toast.loading("Checking in...");
 
-    const res = await fetch("/api/checkin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventId, token: scanInput.trim(), method: "qr" }),
-    });
+    try {
+      const res = await fetch("/api/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, token: scanInput.trim(), method: "qr" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Invalid QR code");
+      toast.success("Check-in processed", { id: toastId });
 
-    const data = await res.json();
-
-    if (res.ok) {
       setLastResult({
         success: true,
         alreadyCheckedIn: data.alreadyCheckedIn,
@@ -111,13 +114,15 @@ export default function CheckInDashboard() {
         mutate();
         mutate();
       }
-    } else {
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Check-in failed", { id: toastId });
       setLastResult({ success: false, alreadyCheckedIn: false, participant: null });
+    } finally {
+      setProcessing(false);
+      scanInputRef.current?.focus();
     }
 
     setScanInput("");
-    setProcessing(false);
-    scanInputRef.current?.focus();
 
     // Clear result after 4 seconds
     setTimeout(() => setLastResult(null), 4000);
@@ -157,21 +162,41 @@ export default function CheckInDashboard() {
 
   async function manualCheckIn(participantId: string) {
     setProcessing(true);
-    const res = await fetch("/api/checkin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventId, participantId, method: "manual" }),
-    });
-
-    if (res.ok) {
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch("/api/checkin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ eventId, participantId, method: "manual" }),
+          });
+          if (!res.ok) throw new Error("Failed to check in");
+        })(),
+        {
+          loading: "Checking in...",
+          success: "Checked in",
+          error: "Failed to check in",
+        }
+      );
       mutate();
       handleSearch(); // Refresh search results
+    } finally {
+      setProcessing(false);
     }
-    setProcessing(false);
   }
 
   async function undoCheckIn(checkInId: string) {
-    await fetch(`/api/checkin?id=${checkInId}`, { method: "DELETE" });
+    await toast.promise(
+      (async () => {
+        const res = await fetch(`/api/checkin?id=${checkInId}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to undo");
+      })(),
+      {
+        loading: "Undoing...",
+        success: "Check-in removed",
+        error: "Failed to undo",
+      }
+    );
     mutate();
   }
 

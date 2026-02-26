@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Check, UserPlus, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   eventId: string;
@@ -90,6 +91,7 @@ export function RegisterButton({
   ) {
     setLoading(true);
     setError(null);
+    const toastId = toast.loading("Registering...");
 
     try {
       const res = await fetch("/api/events/register", {
@@ -106,22 +108,20 @@ export function RegisterButton({
           companyName: companyName.trim(),
         }),
       });
-
-      const data = await res.json();
-
+      const payload = await res.json();
       if (!res.ok) {
-        if (data.alreadyRegistered) {
-          setRegistered(true);
-        }
-        setError(data.error);
-        setLoading(false);
-        return;
+        const err = new Error(payload.error || "Failed to register") as Error & {
+          alreadyRegistered?: boolean;
+        };
+        err.alreadyRegistered = payload.alreadyRegistered;
+        throw err;
       }
+      toast.success(payload.requiresApproval ? "Registration submitted" : "Registered", { id: toastId });
 
-      setPendingApproval(data.requiresApproval);
+      setPendingApproval(payload.requiresApproval);
 
       // If profile is incomplete, redirect to complete-profile then confirmation
-      if (data.needsProfile) {
+      if (payload.needsProfile) {
         router.push(
           `/dashboard/complete-profile?redirect=/events/${eventSlug}/registered`
         );
@@ -130,31 +130,45 @@ export function RegisterButton({
 
       // Redirect to confirmation page
       router.push(`/events/${eventSlug}/registered`);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      toast.error(message, { id: toastId });
+      if (
+        error instanceof Error &&
+        "alreadyRegistered" in error &&
+        (error as Error & { alreadyRegistered?: boolean }).alreadyRegistered
+      ) {
+        setRegistered(true);
+      }
+      setError(message);
+      return;
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   function handleAuthSubmit() {
     if (isLogin) {
       if (!email || !password) {
         setError("Email and password are required");
+        toast.error("Email and password are required");
         return;
       }
       submitRegistration("signin");
     } else {
       if (!fullName.trim()) {
         setError("Full name is required");
+        toast.error("Full name is required");
         return;
       }
       if (!email || !password) {
         setError("Email and password are required");
+        toast.error("Email and password are required");
         return;
       }
       if (password.length < 6) {
         setError("Password must be at least 6 characters");
+        toast.error("Password must be at least 6 characters");
         return;
       }
       submitRegistration("signup");

@@ -19,6 +19,12 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+const INDUSTRIES = [
+  "Technology", "Healthcare", "Finance", "Manufacturing", "Retail",
+  "Education", "Real Estate", "Energy", "Consulting", "Media",
+  "Logistics", "Agriculture", "Legal", "Hospitality", "Non-profit", "Other",
+];
+
 const INTENTS = [
   { key: "buying", label: "Buy / Source", desc: "Find products or services" },
   { key: "selling", label: "Sell / Promote", desc: "Showcase your offerings" },
@@ -57,16 +63,21 @@ export default function ParticipantOnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // 0 = Step 2, 1 = Step 3
+  // 0 = Profile basics (Step 2), 1 = Event-specific (Step 3), 2 = Expertise (Step 4)
+  const [currentStep, setCurrentStep] = useState(0);
 
-  // Step 2 fields
+  // Step 2: Profile basics
   const [title, setTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [bio, setBio] = useState("");
+
+  // Step 3: Event-specific
   const [selectedIntents, setSelectedIntents] = useState<string[]>([]);
   const [lookingFor, setLookingFor] = useState("");
   const [offering, setOffering] = useState("");
 
-  // Step 3 fields
+  // Step 4: Expertise & enhance
   const [companySize, setCompanySize] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [expertiseAreas, setExpertiseAreas] = useState<string[]>([]);
@@ -98,10 +109,13 @@ export default function ParticipantOnboardingPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("title, company_size, company_website, expertise_areas, interests")
+        .select("title, company_name, industry, bio, company_size, company_website, expertise_areas, interests")
         .eq("id", user.id)
         .single();
       if (profile?.title) setTitle(profile.title);
+      if (profile?.company_name && !companyName) setCompanyName(profile.company_name);
+      if (profile?.industry) setIndustry(profile.industry);
+      if (profile?.bio) setBio(profile.bio);
       if (profile?.company_size) setCompanySize(profile.company_size);
       if (profile?.company_website) setCompanyWebsite(profile.company_website);
       if (profile?.expertise_areas?.length) setExpertiseAreas(profile.expertise_areas);
@@ -112,7 +126,8 @@ export default function ParticipantOnboardingPage() {
     init();
   }, []);
 
-  const canProceedStep2 = title.trim() && companyName.trim() && selectedIntents.length > 0;
+  const canProceedProfile = title.trim() && companyName.trim() && industry.trim();
+  const canProceedEvent = selectedIntents.length > 0;
 
   async function handleSuggest() {
     if (selectedIntents.length === 0) return;
@@ -150,10 +165,6 @@ export default function ParticipantOnboardingPage() {
   }
 
   async function handleSubmit() {
-    if (!canProceedStep2) {
-      toast.error("Complete required fields");
-      return;
-    }
     setSaving(true);
     setError(null);
 
@@ -164,7 +175,6 @@ export default function ParticipantOnboardingPage() {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) { router.push("/auth/sign-in"); throw new Error("Sign in required"); }
 
-          // Use server API to update profile (bypasses RLS via admin client)
           const profileRes = await fetch("/api/profile/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -172,6 +182,8 @@ export default function ParticipantOnboardingPage() {
               platform_role: "participant",
               title: title.trim() || null,
               company_name: companyName.trim() || null,
+              industry: industry.trim() || null,
+              bio: bio.trim() || null,
               company_size: companySize || null,
               company_website: companyWebsite.trim() || null,
               expertise_areas: expertiseAreas,
@@ -231,13 +243,15 @@ export default function ParticipantOnboardingPage() {
     );
   }
 
+  const stepLabels = ["Your Profile", "Event Details", "Expertise & Interests"];
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-lg">
         {/* Step indicator */}
         <div className="mb-6">
           <div className="flex items-center justify-center gap-2 mb-2">
-            {[0, 1].map((step) => (
+            {[0, 1, 2].map((step) => (
               <div key={step} className="flex items-center">
                 <div
                   className={cn(
@@ -251,28 +265,15 @@ export default function ParticipantOnboardingPage() {
                 >
                   {step < currentStep ? <Check className="h-4 w-4" /> : step + 2}
                 </div>
-                {step < 1 && (
+                {step < 2 && (
                   <div className={cn("mx-3 h-px w-16", step < currentStep ? "bg-primary" : "bg-border")} />
                 )}
               </div>
             ))}
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            Step {currentStep + 2} of 3: {currentStep === 0 ? "Your Profile" : "Enhance Your Matches"}
+            Step {currentStep + 2} of 4: {stepLabels[currentStep]}
           </p>
-        </div>
-
-        {/* Match Quality Meter */}
-        <div className="mb-4">
-          <MatchQualityMeter
-            title={title}
-            companyName={companyName}
-            intents={selectedIntents}
-            lookingFor={lookingFor}
-            offering={offering}
-            companySize={companySize}
-            companyWebsite={companyWebsite}
-          />
         </div>
 
         {/* ── STEP 2: Profile Basics ── */}
@@ -280,91 +281,158 @@ export default function ParticipantOnboardingPage() {
           <Card>
             <CardContent className="pt-6 space-y-4">
               <div>
-                <h2 className="text-lg font-semibold">Complete your profile</h2>
+                <h2 className="text-lg font-semibold">Your profile</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {eventName
-                    ? `Set up your networking profile for ${eventName}.`
-                    : "Set up your networking profile to start connecting."}
+                    ? `Tell us about yourself for ${eventName}.`
+                    : "Tell us about yourself to start connecting."}
                 </p>
               </div>
 
-              {/* Required fields */}
-              <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
-                  Required
-                </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Job title <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Product Manager"
+                  />
+                </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">
-                      Job title <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Product Manager"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">
-                      Company <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="e.g. Acme Inc."
-                      disabled={!!companyId}
-                    />
-                    {companyId && (
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Auto-filled from your company profile
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">
-                      What are you here for? <span className="text-destructive">*</span>
-                    </label>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Select up to 3. This helps us find the right people for you.
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Company <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="e.g. Acme Inc."
+                    disabled={!!companyId}
+                  />
+                  {companyId && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Auto-filled from your company profile
                     </p>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {INTENTS.map((intent) => {
-                        const selected = selectedIntents.includes(intent.key);
-                        return (
-                          <button
-                            key={intent.key}
-                            type="button"
-                            onClick={() => {
-                              setSelectedIntents((prev) =>
-                                selected
-                                  ? prev.filter((i) => i !== intent.key)
-                                  : prev.length < 3
-                                  ? [...prev, intent.key]
-                                  : prev
-                              );
-                            }}
-                            className={cn(
-                              "rounded-lg border px-2.5 py-2 text-left transition-all",
-                              selected
-                                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                                : "border-border hover:border-primary/30",
-                              !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
-                            )}
-                          >
-                            <span className="font-medium text-xs">{intent.label}</span>
-                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{intent.desc}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {selectedIntents.length >= 3 && (
-                      <p className="text-xs text-muted-foreground mt-1">Maximum 3 selections.</p>
-                    )}
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Industry <span className="text-destructive">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {INDUSTRIES.map((ind) => (
+                      <button
+                        key={ind}
+                        type="button"
+                        onClick={() => setIndustry(ind)}
+                        className={cn(
+                          "rounded-sm border px-3 py-2 text-xs text-left transition-all",
+                          industry === ind
+                            ? "border-primary bg-primary/5 text-primary font-medium"
+                            : "border-border bg-background text-foreground hover:border-border-strong"
+                        )}
+                      >
+                        {ind}
+                      </button>
+                    ))}
                   </div>
                 </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Short bio</label>
+                  <Textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="A few words about what you do and what you're passionate about..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {error && <p className="text-sm text-red-600">{error}</p>}
+
+              <div className="flex items-center justify-end pt-2">
+                <Button
+                  onClick={() => { if (canProceedProfile) setCurrentStep(1); }}
+                  disabled={!canProceedProfile}
+                  size="lg"
+                >
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── STEP 3: Event-Specific ── */}
+        {currentStep === 1 && (
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">Event details</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {eventName
+                    ? `Tell us why you're attending ${eventName}.`
+                    : "Tell us what you're looking for at this event."}
+                </p>
+              </div>
+
+              {/* Match Quality Meter */}
+              <MatchQualityMeter
+                title={title}
+                companyName={companyName}
+                intents={selectedIntents}
+                lookingFor={lookingFor}
+                offering={offering}
+                companySize={companySize}
+                companyWebsite={companyWebsite}
+              />
+
+              {/* Intent */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">
+                  What are you here for? <span className="text-destructive">*</span>
+                </label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Select up to 3. This helps us find the right people for you.
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {INTENTS.map((intent) => {
+                    const selected = selectedIntents.includes(intent.key);
+                    return (
+                      <button
+                        key={intent.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedIntents((prev) =>
+                            selected
+                              ? prev.filter((i) => i !== intent.key)
+                              : prev.length < 3
+                              ? [...prev, intent.key]
+                              : prev
+                          );
+                        }}
+                        className={cn(
+                          "rounded-lg border px-2.5 py-2 text-left transition-all",
+                          selected
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                            : "border-border hover:border-primary/30",
+                          !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
+                        )}
+                      >
+                        <span className="font-medium text-xs">{intent.label}</span>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{intent.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedIntents.length >= 3 && (
+                  <p className="text-xs text-muted-foreground mt-1">Maximum 3 selections.</p>
+                )}
               </div>
 
               {/* Optional fields */}
@@ -427,10 +495,14 @@ export default function ParticipantOnboardingPage() {
 
               {error && <p className="text-sm text-red-600">{error}</p>}
 
-              <div className="flex items-center justify-end pt-2">
+              <div className="flex items-center justify-between pt-2">
+                <Button variant="ghost" onClick={() => setCurrentStep(0)}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
                 <Button
-                  onClick={() => { if (canProceedStep2) setCurrentStep(1); }}
-                  disabled={!canProceedStep2}
+                  onClick={() => { if (canProceedEvent) setCurrentStep(2); }}
+                  disabled={!canProceedEvent}
                   size="lg"
                 >
                   Continue
@@ -441,16 +513,27 @@ export default function ParticipantOnboardingPage() {
           </Card>
         )}
 
-        {/* ── STEP 3: Company Details + Expertise ── */}
-        {currentStep === 1 && (
+        {/* ── STEP 4: Expertise & Interests ── */}
+        {currentStep === 2 && (
           <Card>
             <CardContent className="pt-6 space-y-4">
               <div>
-                <h2 className="text-lg font-semibold">Enhance your matches</h2>
+                <h2 className="text-lg font-semibold">Expertise & interests</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  A few more details to help our matching engine connect you with the best people.
+                  Help our AI understand your strengths and what you want to explore.
                 </p>
               </div>
+
+              {/* Match Quality Meter */}
+              <MatchQualityMeter
+                title={title}
+                companyName={companyName}
+                intents={selectedIntents}
+                lookingFor={lookingFor}
+                offering={offering}
+                companySize={companySize}
+                companyWebsite={companyWebsite}
+              />
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -545,7 +628,7 @@ export default function ParticipantOnboardingPage() {
               {error && <p className="text-sm text-red-600">{error}</p>}
 
               <div className="flex items-center justify-between pt-2">
-                <Button variant="ghost" onClick={() => setCurrentStep(0)}>
+                <Button variant="ghost" onClick={() => setCurrentStep(1)}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>

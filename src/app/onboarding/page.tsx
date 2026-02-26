@@ -12,7 +12,6 @@ import {
   Loader2,
   Building2,
   Target,
-  Tags,
   Calendar,
   Check,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import {
 const STEPS = [
   { id: "role", label: "Your Role", icon: Target },
   { id: "company", label: "Company", icon: Building2 },
-  { id: "interests", label: "Interests", icon: Tags },
   { id: "availability", label: "Availability", icon: Calendar },
 ] as const;
 
@@ -43,32 +41,6 @@ const INDUSTRIES = [
   "Other",
 ];
 
-const EXPERTISE_AREAS = [
-  "Software Development",
-  "Product Management",
-  "Sales & BD",
-  "Marketing",
-  "Design & UX",
-  "Data & Analytics",
-  "Operations",
-  "Finance & Accounting",
-  "Human Resources",
-  "Strategy",
-  "Supply Chain",
-  "Customer Success",
-  "Engineering",
-  "Research",
-  "Legal & Compliance",
-  "AI & Machine Learning",
-];
-
-const INTEREST_OPTIONS = [
-  "Sustainability", "Digital Transformation", "Growth Strategy",
-  "International Expansion", "Innovation & R&D", "Talent Acquisition",
-  "Fundraising", "Market Research", "Brand Building",
-  "Process Automation", "Cybersecurity", "E-commerce",
-];
-
 const COMPANY_SIZES = [
   { value: "1-10", label: "1-10 employees" },
   { value: "11-50", label: "11-50 employees" },
@@ -87,8 +59,6 @@ interface OnboardingData {
   companySize: string;
   companyWebsite: string;
   industry: string;
-  expertiseAreas: string[];
-  interests: string[];
   linkedinUrl: string;
 }
 
@@ -96,7 +66,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [isParticipantMode, setIsParticipantMode] = useState(false);
+  const [isParticipantMode] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     platformRole: "organizer",
     title: "",
@@ -105,8 +75,6 @@ export default function OnboardingPage() {
     companySize: "",
     companyWebsite: "",
     industry: "",
-    expertiseAreas: [],
-    interests: [],
     linkedinUrl: "",
   });
 
@@ -152,24 +120,12 @@ export default function OnboardingPage() {
     setData((prev) => ({ ...prev, ...updates }));
   }
 
-  function toggleArrayItem(field: "expertiseAreas" | "interests", item: string) {
-    setData((prev) => {
-      const current = prev[field];
-      const updated = current.includes(item)
-        ? current.filter((i) => i !== item)
-        : [...current, item];
-      return { ...prev, [field]: updated };
-    });
-  }
-
   function canProceed(): boolean {
     switch (STEPS[currentStep].id) {
       case "role":
         return data.title.length > 0;
       case "company":
         return data.companyName.length > 0 && data.industry.length > 0;
-      case "interests":
-        return data.expertiseAreas.length > 0;
       case "availability":
         return true;
       default:
@@ -200,8 +156,6 @@ export default function OnboardingPage() {
         company_size: data.companySize || null,
         company_website: data.companyWebsite || null,
         industry: data.industry,
-        expertise_areas: data.expertiseAreas,
-        interests: data.interests,
         linkedin_url: data.linkedinUrl || null,
         onboarding_completed: true,
       })
@@ -283,12 +237,6 @@ export default function OnboardingPage() {
               )}
               {STEPS[currentStep].id === "company" && (
                 <CompanyStep data={data} updateData={updateData} />
-              )}
-              {STEPS[currentStep].id === "interests" && (
-                <InterestsStep
-                  data={data}
-                  toggleArrayItem={toggleArrayItem}
-                />
               )}
               {STEPS[currentStep].id === "availability" && (
                 <AvailabilityStep data={data} updateData={updateData} />
@@ -482,90 +430,6 @@ function CompanyStep({
             value={data.companyWebsite}
             onChange={(e) => updateData({ companyWebsite: e.target.value })}
           />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function InterestsStep({
-  data,
-  toggleArrayItem,
-}: {
-  data: OnboardingData;
-  toggleArrayItem: (field: "expertiseAreas" | "interests", item: string) => void;
-}) {
-  return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-h2 font-semibold">Your expertise</h2>
-        <p className="mt-1 text-body text-muted-foreground">
-          Select areas you specialize in. This powers our matching algorithm.
-        </p>
-      </div>
-
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <label className="text-caption font-medium">
-            Expertise areas <span className="text-destructive">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {EXPERTISE_AREAS.map((area) => (
-              <button
-                key={area}
-                type="button"
-                onClick={() => toggleArrayItem("expertiseAreas", area)}
-                className={`
-                  rounded-full border px-3 py-1.5 text-caption
-                  transition-all duration-150 ease-out
-                  ${
-                    data.expertiseAreas.includes(area)
-                      ? "border-primary bg-primary/5 text-primary font-medium"
-                      : "border-border bg-background text-foreground hover:border-border-strong hover:bg-secondary"
-                  }
-                `}
-              >
-                {data.expertiseAreas.includes(area) && (
-                  <Check className="mr-1 inline h-3 w-3" />
-                )}
-                {area}
-              </button>
-            ))}
-          </div>
-          {data.expertiseAreas.length > 0 && (
-            <p className="text-small text-muted-foreground">
-              {data.expertiseAreas.length} selected
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <label className="text-caption font-medium">
-            Interests (what are you looking to learn or explore?)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {INTEREST_OPTIONS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => toggleArrayItem("interests", item)}
-                className={`
-                  rounded-full border px-3 py-1.5 text-caption
-                  transition-all duration-150 ease-out
-                  ${
-                    data.interests.includes(item)
-                      ? "border-primary/50 bg-primary/5 text-primary font-medium"
-                      : "border-border bg-background text-muted-foreground hover:border-border-strong hover:bg-secondary hover:text-foreground"
-                  }
-                `}
-              >
-                {data.interests.includes(item) && (
-                  <Check className="mr-1 inline h-3 w-3" />
-                )}
-                {item}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>

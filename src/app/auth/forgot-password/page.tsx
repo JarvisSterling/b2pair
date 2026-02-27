@@ -35,68 +35,50 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-12">
+    <main className="flex min-h-screen items-center justify-center px-6 py-12 bg-gradient-hero">
       <div className="w-full max-w-sm animate-scale-in">
-        <div className="mb-8 text-center">
-          <h1 className="text-h1 font-semibold tracking-tight">Reset password</h1>
+        <div className="mb-10 text-center">
+          <Link href="/" className="inline-flex items-center gap-2.5 mb-8">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-[13px] shadow-sm">
+              B2
+            </div>
+            <span className="text-[20px] font-bold tracking-tight">B2Pair</span>
+          </Link>
+          <h1 className="text-h1 tracking-tight">Reset password</h1>
           <p className="mt-2 text-body text-muted-foreground">
-            {sent
-              ? "Check your email for a reset link"
-              : "Enter your email and we'll send you a reset link"}
+            {sent ? "Check your email for a reset link" : "Enter your email and we'll send you a reset link"}
           </p>
         </div>
 
-        <Card>
+        <Card className="shadow-md border-border">
           <CardContent className="pt-6">
             {sent ? (
               <div className="flex flex-col items-center gap-4 py-4 animate-fade-in">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
-                  <Check className="h-6 w-6 text-success" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-success/10">
+                  <Check className="h-7 w-7 text-success" />
                 </div>
                 <p className="text-center text-body text-muted-foreground">
                   We sent a password reset link to{" "}
                   <span className="font-medium text-foreground">{email}</span>
                 </p>
-                <Button
-                  variant="ghost"
-                  className="mt-2"
-                  onClick={() => setSent(false)}
-                >
+                <Button variant="ghost" className="mt-2" onClick={() => setSent(false)}>
                   Try a different email
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleReset} className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="email" className="text-caption font-medium">
-                    Email
-                  </label>
+                  <label htmlFor="email" className="text-caption font-medium">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                    <Input id="email" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 h-11 rounded-xl" required />
                   </div>
                 </div>
 
-                {error && (
-                  <p className="text-caption text-destructive animate-fade-in">
-                    {error}
-                  </p>
-                )}
+                {error && <p className="text-caption text-destructive animate-fade-in">{error}</p>}
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Mail className="mr-2 h-4 w-4" />
-                  )}
+                <Button type="submit" className="w-full h-11 rounded-xl shadow-sm" disabled={loading}>
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
                   Send reset link
                 </Button>
               </form>
@@ -104,10 +86,7 @@ export default function ForgotPasswordPage() {
           </CardContent>
 
           <CardFooter className="justify-center pb-6">
-            <Link
-              href="/auth/sign-in"
-              className="inline-flex items-center gap-1 text-caption text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Link href="/auth/sign-in" className="inline-flex items-center gap-1 text-caption text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-3 w-3" />
               Back to sign in
             </Link>

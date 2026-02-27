@@ -28,7 +28,7 @@ export default async function Home() {
           <div className="flex items-center gap-3">
             {user ? (
               <Link href="/dashboard">
-                <Button size="sm" className="rounded-lg h-9 px-4 text-[13px]">
+                <Button variant="outline" size="sm" className="rounded-lg h-9 px-4 text-[13px]">
                   Dashboard
                 </Button>
               </Link>
@@ -38,7 +38,7 @@ export default async function Home() {
                   <Button variant="ghost" size="sm" className="text-[13px] text-muted-foreground">Sign In</Button>
                 </Link>
                 <Link href="/auth/sign-up">
-                  <Button size="sm" className="rounded-lg h-9 px-4 text-[13px]">
+                  <Button variant="outline" size="sm" className="rounded-lg h-9 px-4 text-[13px]">
                     Get Started
                   </Button>
                 </Link>
@@ -76,7 +76,7 @@ export default async function Home() {
 
           <div className="mt-10 flex items-center justify-center gap-3 animate-slide-up" style={{ animationDelay: "160ms" }}>
             <Link href="/auth/sign-up">
-              <Button size="lg" className="rounded-lg h-12 px-8 text-[15px] font-medium">
+              <Button variant="outline" size="lg" className="rounded-lg h-12 px-8 text-[15px] font-medium">
                 Start Building
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -196,7 +196,7 @@ export default async function Home() {
           </p>
           <div className="mt-10 flex items-center justify-center gap-3">
             <Link href="/auth/sign-up">
-              <Button size="lg" className="rounded-lg h-12 px-8 text-[15px] font-medium">
+              <Button variant="outline" size="lg" className="rounded-lg h-12 px-8 text-[15px] font-medium">
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

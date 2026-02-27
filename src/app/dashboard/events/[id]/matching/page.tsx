@@ -366,12 +366,12 @@ export default function MatchingRulesPage() {
             <div className="rounded-sm border border-border p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-body font-medium">Intent data quality</p>
-                <span className={`text-caption font-medium px-2 py-0.5 rounded-full ${
+                <span className={`text-[10px] font-medium px-2 py-px rounded-full border ${
                   intentStats.highConfidence / Math.max(intentStats.total, 1) >= 0.6
-                    ? "bg-emerald-500/10 text-emerald-600"
+                    ? "bg-emerald-950 text-emerald-400 border-emerald-800"
                     : intentStats.highConfidence / Math.max(intentStats.total, 1) >= 0.3
-                    ? "bg-amber-500/10 text-amber-600"
-                    : "bg-red-500/10 text-red-600"
+                    ? "bg-amber-950 text-amber-400 border-amber-800"
+                    : "bg-red-950 text-red-400 border-red-800"
                 }`}>
                   {intentStats.total === 0 ? "No data" :
                     `${Math.round((intentStats.highConfidence / intentStats.total) * 100)}% high confidence`}

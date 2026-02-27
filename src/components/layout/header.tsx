@@ -55,41 +55,23 @@ export function Header({ profile }: { profile: Profile }) {
     async function fetchUnread() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       const { count } = await supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("read", false);
-
       setUnreadCount(count || 0);
     }
 
     fetchUnread();
 
-    // Subscribe to new notifications for live badge updates
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-
       const channel = supabase
         .channel("header-notifications")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            fetchUnread();
-          }
-        )
+        .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchUnread())
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      return () => { supabase.removeChannel(channel); };
     });
   }, []);
 
@@ -114,30 +96,28 @@ export function Header({ profile }: { profile: Profile }) {
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between border-b border-border bg-background px-6 lg:justify-end">
-        {/* Mobile menu button */}
+      <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 lg:justify-end">
         <button
           onClick={() => setMobileOpen(true)}
-          className="lg:hidden flex h-10 w-10 items-center justify-center rounded text-muted-foreground hover:bg-secondary transition-colors"
+          className="lg:hidden flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-surface transition-colors"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4 w-4" />
         </button>
 
-        {/* Mobile logo */}
         <Link href="/dashboard" className="lg:hidden flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-small font-bold">
-            B2
-          </div>
-          <span className="text-h3 font-semibold">B2Pair</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-foreground">
+            <rect width="24" height="24" rx="6" fill="currentColor" />
+            <text x="4" y="17" fill="hsl(var(--primary-foreground))" fontSize="12" fontWeight="700" fontFamily="var(--font-geist-sans)">B2</text>
+          </svg>
+          <span className="text-[14px] font-semibold">B2Pair</span>
         </Link>
 
-        {/* Right side */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link href="/dashboard/notifications">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-[18px] w-[18px]" strokeWidth={1.5} />
+            <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-md">
+              <Bell className="h-4 w-4" strokeWidth={1.5} />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+                <span className="absolute -top-0.5 -right-0.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-foreground text-background px-0.5 text-[9px] font-medium">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
@@ -146,9 +126,9 @@ export function Header({ profile }: { profile: Profile }) {
 
           <Link href="/dashboard/settings" className="hidden lg:block">
             {profile.avatar_url ? (
-              <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
+              <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-7 w-7 rounded-full object-cover" width={32} height={32} />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background text-[11px] font-medium">
                 {initials}
               </div>
             )}
@@ -160,26 +140,27 @@ export function Header({ profile }: { profile: Profile }) {
       {mobileOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm animate-fade-in lg:hidden"
+            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm animate-fade-in lg:hidden"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-72 bg-background border-r border-border shadow-elevated animate-slide-right lg:hidden">
-            <div className="flex h-16 items-center justify-between px-6 border-b border-border">
+          <div className="fixed inset-y-0 left-0 z-50 w-[280px] bg-background border-r border-border shadow-elevated animate-slide-right lg:hidden">
+            <div className="flex h-14 items-center justify-between px-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-small font-bold">
-                  B2
-                </div>
-                <span className="text-h3 font-semibold">B2Pair</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-foreground">
+                  <rect width="24" height="24" rx="6" fill="currentColor" />
+                  <text x="4" y="17" fill="hsl(var(--primary-foreground))" fontSize="12" fontWeight="700" fontFamily="var(--font-geist-sans)">B2</text>
+                </svg>
+                <span className="text-[14px] font-semibold">B2Pair</span>
               </div>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:bg-secondary"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-surface"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <nav className="px-3 py-4 space-y-1">
+            <nav className="px-2 py-3 space-y-px">
               {filteredNav.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -189,39 +170,39 @@ export function Header({ profile }: { profile: Profile }) {
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
-                      "transition-all duration-150",
+                      "flex items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px]",
+                      "transition-colors duration-100",
                       active
-                        ? "bg-primary/5 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        ? "bg-surface text-foreground font-medium"
+                        : "text-muted-foreground hover:bg-surface hover:text-foreground"
                     )}
                   >
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+                    <Icon className="h-4 w-4" strokeWidth={active ? 2 : 1.5} />
                     {item.label}
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
-              <div className="flex items-center gap-3 mb-3 px-2">
+            <div className="absolute bottom-0 left-0 right-0 border-t border-border p-3">
+              <div className="flex items-center gap-2.5 mb-2 px-2">
                 {profile.avatar_url ? (
-                  <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-9 w-9 rounded-full object-cover" width={400} height={200} />
+                  <SafeImage src={profile.avatar_url} alt={profile.full_name} className="h-7 w-7 rounded-full object-cover" width={400} height={200} />
                 ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background text-[11px] font-medium">
                     {initials}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-body font-medium">{profile.full_name}</p>
-                  <p className="truncate text-caption text-muted-foreground">{profile.email}</p>
+                  <p className="truncate text-[13px] font-medium">{profile.full_name}</p>
+                  <p className="truncate text-[12px] text-muted-foreground">{profile.email}</p>
                 </div>
               </div>
               <button
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-body text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-150"
+                className="flex w-full items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px] text-muted-foreground hover:bg-surface hover:text-foreground transition-colors duration-100"
               >
-                <LogOut className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                <LogOut className="h-4 w-4" strokeWidth={1.5} />
                 Sign out
               </button>
             </div>

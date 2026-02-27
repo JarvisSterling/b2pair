@@ -57,7 +57,6 @@ export function Sidebar({ profile }: { profile: Profile }) {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
 
-      // Initial count
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
@@ -65,7 +64,6 @@ export function Sidebar({ profile }: { profile: Profile }) {
         .eq("read", false)
         .then(({ count }) => setUnreadCount(count || 0));
 
-      // Load workspaces for organizers
       if (profile.platform_role === "organizer") {
         supabase
           .from("organization_members")
@@ -78,14 +76,12 @@ export function Sidebar({ profile }: { profile: Profile }) {
           });
       }
 
-      // Real-time updates
       channel = supabase
         .channel("sidebar-notifs")
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
           setUnreadCount((prev) => prev + 1);
         })
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
-          // Re-fetch on update (mark read)
           supabase
             .from("notifications")
             .select("id", { count: "exact", head: true })
@@ -122,22 +118,22 @@ export function Sidebar({ profile }: { profile: Profile }) {
     .slice(0, 2);
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background">
+    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-surface">
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-border">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-small font-bold">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary text-white text-small font-bold">
             B2
           </div>
-          <span className="text-h3 font-semibold tracking-tight">B2Pair</span>
+          <span className="text-h3 font-bold tracking-tight">B2Pair</span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {role === "organizer" ? (
           <>
-            <p className="px-3 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <p className="px-3 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Workspaces
             </p>
             {workspaces.map((ws) => {
@@ -147,14 +143,17 @@ export function Sidebar({ profile }: { profile: Profile }) {
                   key={ws.id}
                   href={`/dashboard/w/${ws.id}`}
                   className={cn(
-                    "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-body",
                     "transition-all duration-150 ease-out",
                     active
-                      ? "bg-primary/5 text-primary font-medium"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-card hover:text-foreground"
                   )}
                 >
-                  <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
+                  <div className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-bold",
+                    active ? "gradient-primary text-white" : "bg-muted text-muted-foreground"
+                  )}>
                     {ws.name.charAt(0).toUpperCase()}
                   </div>
                   {ws.name}
@@ -163,9 +162,9 @@ export function Sidebar({ profile }: { profile: Profile }) {
             })}
             <Link
               href="/dashboard/w/new"
-              className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-body text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-150"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-body text-muted-foreground hover:bg-card hover:text-foreground transition-all duration-150"
             >
-              <div className="flex h-5 w-5 items-center justify-center rounded border border-dashed border-muted-foreground/40 text-[12px]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md border border-dashed border-muted-foreground/40 text-[12px]">
                 +
               </div>
               New workspace
@@ -181,17 +180,17 @@ export function Sidebar({ profile }: { profile: Profile }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-body",
                   "transition-all duration-150 ease-out",
                   active
-                    ? "bg-primary/5 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground"
                 )}
               >
                 <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
                 {item.label}
                 {item.label === "Notifications" && unreadCount > 0 && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full gradient-primary px-1.5 text-[10px] font-semibold text-white">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -202,7 +201,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-border px-3 py-4 space-y-1">
+      <div className="border-t border-border px-3 py-4 space-y-0.5">
         {BOTTOM_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -212,11 +211,11 @@ export function Sidebar({ profile }: { profile: Profile }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-body",
                 "transition-all duration-150 ease-out",
                 active
-                  ? "bg-primary/5 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-card hover:text-foreground"
               )}
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
@@ -227,7 +226,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
 
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-body text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-150 ease-out"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-body text-muted-foreground hover:bg-card hover:text-foreground transition-all duration-150 ease-out"
         >
           <LogOut className="h-[18px] w-[18px]" strokeWidth={1.5} />
           Sign out
@@ -238,7 +237,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
       <div className="border-t border-border p-4">
         <Link
           href="/dashboard/profile"
-          className="flex items-center gap-3 rounded-sm p-2 hover:bg-secondary transition-colors duration-150"
+          className="flex items-center gap-3 rounded-lg p-2 hover:bg-card transition-colors duration-150"
         >
           {profile.avatar_url ? (
             <SafeImage 
@@ -246,7 +245,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
               alt={profile.full_name}
               className="h-9 w-9 rounded-full object-cover" width={400} height={200} />
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full gradient-primary text-white text-small font-medium">
               {initials}
             </div>
           )}

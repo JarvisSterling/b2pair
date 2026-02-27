@@ -11,21 +11,14 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          "SF Pro Display",
-          "SF Pro Text",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "sans-serif",
-        ],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       fontSize: {
-        display: ["34px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" }],
-        h1: ["28px", { lineHeight: "1.2", letterSpacing: "-0.015em", fontWeight: "600" }],
-        h2: ["22px", { lineHeight: "1.25", letterSpacing: "-0.01em", fontWeight: "600" }],
+        display: ["56px", { lineHeight: "1.05", letterSpacing: "-0.035em", fontWeight: "800" }],
+        h1: ["36px", { lineHeight: "1.15", letterSpacing: "-0.025em", fontWeight: "700" }],
+        h2: ["24px", { lineHeight: "1.2", letterSpacing: "-0.015em", fontWeight: "600" }],
         h3: ["17px", { lineHeight: "1.3", letterSpacing: "-0.005em", fontWeight: "600" }],
-        body: ["15px", { lineHeight: "1.5", letterSpacing: "0", fontWeight: "400" }],
+        body: ["15px", { lineHeight: "1.6", letterSpacing: "0", fontWeight: "400" }],
         caption: ["13px", { lineHeight: "1.4", letterSpacing: "0.01em", fontWeight: "400" }],
         small: ["11px", { lineHeight: "1.3", letterSpacing: "0.02em", fontWeight: "500" }],
       },
@@ -78,7 +71,7 @@ const config: Config = {
         },
       },
       borderRadius: {
-        sm: "10px",
+        sm: "8px",
         DEFAULT: "12px",
         md: "14px",
         lg: "18px",
@@ -90,18 +83,13 @@ const config: Config = {
         DEFAULT: "0 2px 6px rgba(0, 0, 0, 0.05)",
         md: "0 4px 12px rgba(0, 0, 0, 0.06)",
         lg: "0 8px 30px rgba(0, 0, 0, 0.08)",
-        elevated: "0 12px 40px rgba(0, 0, 0, 0.10)",
+        elevated: "0 12px 40px rgba(0, 0, 0, 0.12)",
       },
       spacing: {
         18: "4.5rem",
         88: "22rem",
         112: "28rem",
         128: "32rem",
-      },
-      transitionDuration: {
-        "150": "150ms",
-        "200": "200ms",
-        "250": "250ms",
       },
       keyframes: {
         "fade-in": {
@@ -113,11 +101,11 @@ const config: Config = {
           to: { opacity: "0" },
         },
         "slide-up": {
-          from: { opacity: "0", transform: "translateY(8px)" },
+          from: { opacity: "0", transform: "translateY(12px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "slide-down": {
-          from: { opacity: "0", transform: "translateY(-8px)" },
+          from: { opacity: "0", transform: "translateY(-12px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "slide-right": {
@@ -129,24 +117,18 @@ const config: Config = {
           to: { opacity: "1", transform: "translateX(0)" },
         },
         "scale-in": {
-          from: { opacity: "0", transform: "scale(0.98)" },
+          from: { opacity: "0", transform: "scale(0.95)" },
           to: { opacity: "1", transform: "scale(1)" },
-        },
-        "glass-gradient": {
-          "0%": { backgroundPosition: "0% 50%" },
-          "50%": { backgroundPosition: "100% 50%" },
-          "100%": { backgroundPosition: "0% 50%" },
         },
       },
       animation: {
-        "fade-in": "fade-in 200ms ease-out",
+        "fade-in": "fade-in 300ms ease-out",
         "fade-out": "fade-out 150ms ease-out",
-        "slide-up": "slide-up 200ms ease-out",
-        "slide-down": "slide-down 200ms ease-out",
-        "slide-right": "slide-right 200ms ease-out",
+        "slide-up": "slide-up 500ms ease-out",
+        "slide-down": "slide-down 300ms ease-out",
+        "slide-right": "slide-right 300ms ease-out",
         "slide-in-right": "slide-in-right 300ms ease-out",
-        "scale-in": "scale-in 200ms ease-out",
-        "glass-gradient": "glass-gradient 8s ease infinite",
+        "scale-in": "scale-in 400ms ease-out",
       },
     },
   },

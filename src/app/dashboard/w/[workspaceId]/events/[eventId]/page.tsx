@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect } from "react";
 import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { PublishEventButton } from "@/components/events/publish-button";
 import { DuplicateEventButton } from "@/components/events/duplicate-button";
+import { prefetchEventTabs } from "@/lib/prefetch";
 
 interface PageProps {
   params: Promise<{ workspaceId: string; eventId: string }>;
@@ -36,6 +37,13 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export default function EventControlPanel({ params }: PageProps) {
   const { workspaceId, eventId } = use(params);
   const { data, isLoading } = useSWR(`/api/events/${eventId}/overview`, fetcher);
+
+  // Prefetch all tab data in the background
+  useEffect(() => {
+    if (eventId) {
+      prefetchEventTabs(eventId);
+    }
+  }, [eventId]);
 
   if (isLoading || !data?.event) {
     return <EventOverviewSkeleton />;

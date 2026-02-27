@@ -1,12 +1,13 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect } from "react";
 import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, CalendarDays, MapPin, Users, Settings } from "lucide-react";
 import Link from "next/link";
+import { prefetchEventOverviews } from "@/lib/prefetch";
 
 interface PageProps {
   params: Promise<{ workspaceId: string }>;
@@ -25,6 +26,13 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export default function WorkspacePage({ params }: PageProps) {
   const { workspaceId } = use(params);
   const { data, isLoading } = useSWR(`/api/workspaces/${workspaceId}`, fetcher);
+
+  // Prefetch all event overview data in the background
+  useEffect(() => {
+    if (data?.events?.length > 0) {
+      prefetchEventOverviews(data.events.map((e: any) => e.id));
+    }
+  }, [data?.events]);
 
   if (isLoading || !data?.workspace) {
     return <WorkspaceSkeleton />;

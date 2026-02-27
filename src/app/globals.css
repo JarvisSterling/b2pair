@@ -4,47 +4,82 @@
 
 @layer base {
   :root {
-    /* ─── Background & Surface ─── */
     --background: 0 0% 100%;
-    --foreground: 0 0% 11%;
-    --surface: 240 5% 96%;
+    --foreground: 0 0% 0%;
+    --surface: 0 0% 97%;
     --surface-elevated: 0 0% 100%;
 
-    /* ─── Card & Popover ─── */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 11%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 11%;
+    --popover-foreground: 0 0% 0%;
 
-    /* ─── Borders ─── */
-    --border: 0 0% 90%;
-    --border-strong: 0 0% 85%;
-    --input: 240 5% 96%;
-    --ring: 211 100% 45%;
+    --border: 0 0% 92%;
+    --border-strong: 0 0% 88%;
+    --input: 0 0% 97%;
+    --ring: 0 0% 0%;
 
-    /* ─── Primary (Apple Blue) ─── */
-    --primary: 211 100% 45%;
+    --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
 
-    /* ─── Secondary ─── */
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 0 0% 11%;
+    --secondary: 0 0% 97%;
+    --secondary-foreground: 0 0% 0%;
 
-    /* ─── Muted ─── */
-    --muted: 240 5% 96%;
+    --muted: 0 0% 97%;
     --muted-foreground: 0 0% 45%;
 
-    /* ─── Accent ─── */
-    --accent: 240 5% 96%;
-    --accent-foreground: 0 0% 11%;
+    --accent: 0 0% 97%;
+    --accent-foreground: 0 0% 0%;
 
-    /* ─── Semantic ─── */
-    --destructive: 0 84% 60%;
+    --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 45%;
+    --success: 145 65% 42%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 95% 52%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 37 91% 55%;
+    --warning-foreground: 0 0% 0%;
+
+    /* Vercel-specific */
+    --blue: 208 100% 47%;
+    --purple: 271 76% 53%;
+    --cyan: 191 91% 37%;
+    --pink: 330 81% 60%;
+    --orange: 24 94% 50%;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --surface: 0 0% 7%;
+    --surface-elevated: 0 0% 10%;
+
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 100%;
+
+    --border: 0 0% 15%;
+    --border-strong: 0 0% 20%;
+    --input: 0 0% 10%;
+    --ring: 0 0% 100%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 0 0% 10%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 145 65% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 37 91% 55%;
+    --warning-foreground: 0 0% 0%;
   }
 }
 
@@ -56,71 +91,94 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 }
 
-/* ─── Glass Effect Utility ─── */
 @layer utilities {
-  .glass {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  .gradient-vercel {
+    background: linear-gradient(180deg, #fff 0%, hsl(0 0% 97%) 100%);
   }
 
-  .glass-subtle {
-    background: rgba(255, 255, 255, 0.52);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  .dark .gradient-vercel {
+    background: linear-gradient(180deg, #000 0%, hsl(0 0% 5%) 100%);
+  }
+
+  .gradient-badge {
+    background: linear-gradient(to right, hsl(var(--blue)), hsl(var(--cyan)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-border {
+    background: linear-gradient(to right, hsl(var(--border)), transparent, hsl(var(--border)));
+  }
+
+  .grid-bg {
+    background-size: 96px 96px;
+    background-image:
+      linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--border)) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .glass-nav {
+    background: hsl(var(--background) / 0.8);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid hsl(var(--border));
   }
 }
 
-/* ─── Selection ─── */
 ::selection {
-  background-color: hsl(211 100% 45% / 0.15);
+  background-color: hsl(var(--primary) / 0.1);
   color: hsl(var(--foreground));
 }
 
-/* ─── Focus Ring ─── */
 @layer base {
   *:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px hsl(211 100% 45% / 0.2);
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground));
     border-radius: inherit;
   }
 }
 
-/* ─── Scrollbar ─── */
 @layer base {
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-
   ::-webkit-scrollbar-track {
     background: transparent;
   }
-
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--border-strong));
     border-radius: 3px;
   }
-
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground));
   }
 }
 
-/* Glass gradient animation for primary buttons */
-@keyframes glass-gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }

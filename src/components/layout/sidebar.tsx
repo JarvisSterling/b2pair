@@ -57,7 +57,6 @@ export function Sidebar({ profile }: { profile: Profile }) {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
 
-      // Initial count
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
@@ -65,7 +64,6 @@ export function Sidebar({ profile }: { profile: Profile }) {
         .eq("read", false)
         .then(({ count }) => setUnreadCount(count || 0));
 
-      // Load workspaces for organizers
       if (profile.platform_role === "organizer") {
         supabase
           .from("organization_members")
@@ -78,14 +76,12 @@ export function Sidebar({ profile }: { profile: Profile }) {
           });
       }
 
-      // Real-time updates
       channel = supabase
         .channel("sidebar-notifs")
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
           setUnreadCount((prev) => prev + 1);
         })
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
-          // Re-fetch on update (mark read)
           supabase
             .from("notifications")
             .select("id", { count: "exact", head: true })
@@ -122,22 +118,23 @@ export function Sidebar({ profile }: { profile: Profile }) {
     .slice(0, 2);
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background">
+    <aside className="hidden lg:flex w-[240px] flex-col border-r border-border bg-background">
       {/* Logo */}
-      <div className="flex h-16 items-center px-6 border-b border-border">
+      <div className="flex h-16 items-center px-5 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-small font-bold">
-            B2
-          </div>
-          <span className="text-h3 font-semibold tracking-tight">B2Pair</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-foreground">
+            <rect width="24" height="24" rx="6" fill="currentColor" />
+            <text x="4" y="17" fill="hsl(var(--primary-foreground))" fontSize="12" fontWeight="700" fontFamily="var(--font-geist-sans)">B2</text>
+          </svg>
+          <span className="text-[14px] font-semibold">B2Pair</span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-2 py-3 space-y-px">
         {role === "organizer" ? (
           <>
-            <p className="px-3 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <p className="px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
               Workspaces
             </p>
             {workspaces.map((ws) => {
@@ -147,14 +144,17 @@ export function Sidebar({ profile }: { profile: Profile }) {
                   key={ws.id}
                   href={`/dashboard/w/${ws.id}`}
                   className={cn(
-                    "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
-                    "transition-all duration-150 ease-out",
+                    "flex items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px]",
+                    "transition-colors duration-100",
                     active
-                      ? "bg-primary/5 text-primary font-medium"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-surface text-foreground font-medium"
+                      : "text-muted-foreground hover:bg-surface hover:text-foreground"
                   )}
                 >
-                  <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
+                  <div className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold",
+                    active ? "bg-foreground text-background" : "bg-surface border border-border text-muted-foreground"
+                  )}>
                     {ws.name.charAt(0).toUpperCase()}
                   </div>
                   {ws.name}
@@ -163,9 +163,9 @@ export function Sidebar({ profile }: { profile: Profile }) {
             })}
             <Link
               href="/dashboard/w/new"
-              className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-body text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-150"
+              className="flex items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px] text-muted-foreground hover:bg-surface hover:text-foreground transition-colors duration-100"
             >
-              <div className="flex h-5 w-5 items-center justify-center rounded border border-dashed border-muted-foreground/40 text-[12px]">
+              <div className="flex h-5 w-5 items-center justify-center rounded border border-dashed border-border text-[11px]">
                 +
               </div>
               New workspace
@@ -181,17 +181,17 @@ export function Sidebar({ profile }: { profile: Profile }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
-                  "transition-all duration-150 ease-out",
+                  "flex items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px]",
+                  "transition-colors duration-100",
                   active
-                    ? "bg-primary/5 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    ? "bg-surface text-foreground font-medium"
+                    : "text-muted-foreground hover:bg-surface hover:text-foreground"
                 )}
               >
-                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+                <Icon className="h-4 w-4" strokeWidth={active ? 2 : 1.5} />
                 {item.label}
                 {item.label === "Notifications" && unreadCount > 0 && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                  <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-foreground text-background px-1 text-[10px] font-medium">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -202,7 +202,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-border px-3 py-4 space-y-1">
+      <div className="border-t border-border px-2 py-3 space-y-px">
         {BOTTOM_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -212,14 +212,14 @@ export function Sidebar({ profile }: { profile: Profile }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
-                "transition-all duration-150 ease-out",
+                "flex items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px]",
+                "transition-colors duration-100",
                 active
-                  ? "bg-primary/5 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-surface text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-surface hover:text-foreground"
               )}
             >
-              <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+              <Icon className="h-4 w-4" strokeWidth={active ? 2 : 1.5} />
               {item.label}
             </Link>
           );
@@ -227,34 +227,31 @@ export function Sidebar({ profile }: { profile: Profile }) {
 
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-body text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-150 ease-out"
+          className="flex w-full items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px] text-muted-foreground hover:bg-surface hover:text-foreground transition-colors duration-100"
         >
-          <LogOut className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          <LogOut className="h-4 w-4" strokeWidth={1.5} />
           Sign out
         </button>
       </div>
 
       {/* Profile */}
-      <div className="border-t border-border p-4">
+      <div className="border-t border-border p-3">
         <Link
           href="/dashboard/profile"
-          className="flex items-center gap-3 rounded-sm p-2 hover:bg-secondary transition-colors duration-150"
+          className="flex items-center gap-2.5 rounded-md p-2 hover:bg-surface transition-colors duration-100"
         >
           {profile.avatar_url ? (
             <SafeImage 
               src={profile.avatar_url}
               alt={profile.full_name}
-              className="h-9 w-9 rounded-full object-cover" width={400} height={200} />
+              className="h-7 w-7 rounded-full object-cover" width={400} height={200} />
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background text-[11px] font-medium">
               {initials}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="truncate text-body font-medium">{profile.full_name}</p>
-            <p className="truncate text-caption text-muted-foreground">
-              {profile.title || profile.email}
-            </p>
+            <p className="truncate text-[13px] font-medium">{profile.full_name}</p>
           </div>
         </Link>
       </div>

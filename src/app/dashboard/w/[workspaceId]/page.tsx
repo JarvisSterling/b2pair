@@ -1,5 +1,7 @@
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { use } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,52 +20,17 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "success" | "war
   cancelled: "destructive",
 };
 
-export default async function WorkspacePage({ params }: PageProps) {
-  const { workspaceId } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/sign-in");
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-  // Verify membership
-  const { data: membership } = await supabase
-    .from("organization_members")
-    .select("role")
-    .eq("organization_id", workspaceId)
-    .eq("user_id", user.id)
-    .single();
+export default function WorkspacePage({ params }: PageProps) {
+  const { workspaceId } = use(params);
+  const { data, isLoading } = useSWR(`/api/workspaces/${workspaceId}`, fetcher);
 
-  if (!membership) notFound();
-
-  // Get workspace
-  const { data: workspace } = await supabase
-    .from("organizations")
-    .select("*")
-    .eq("id", workspaceId)
-    .single();
-
-  if (!workspace) notFound();
-
-  // Get events
-  const { data: events } = await supabase
-    .from("events")
-    .select("*")
-    .eq("organization_id", workspaceId)
-    .order("created_at", { ascending: false });
-
-  // Get participant counts per event
-  const eventIds = (events || []).map((e) => e.id);
-  let participantCounts: Record<string, number> = {};
-
-  if (eventIds.length > 0) {
-    for (const eid of eventIds) {
-      const { count } = await supabase
-        .from("participants")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eid)
-        .eq("status", "approved");
-      participantCounts[eid] = count || 0;
-    }
+  if (isLoading || !data?.workspace) {
+    return <WorkspaceSkeleton />;
   }
+
+  const { workspace, events, participantCounts } = data;
 
   return (
     <div className="mx-auto max-w-5xl animate-fade-in">
@@ -71,13 +38,13 @@ export default async function WorkspacePage({ params }: PageProps) {
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface text-foreground font-bold">
               {workspace.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <h1 className="text-h1 font-semibold tracking-tight">{workspace.name}</h1>
               <p className="text-caption text-muted-foreground">
-                {(events || []).length} event{(events || []).length !== 1 ? "s" : ""}
+                {events.length} event{events.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -99,7 +66,7 @@ export default async function WorkspacePage({ params }: PageProps) {
       </div>
 
       {/* Events grid */}
-      {(!events || events.length === 0) ? (
+      {events.length === 0 ? (
         <Card>
           <CardContent className="py-16">
             <div className="flex flex-col items-center text-center">
@@ -119,7 +86,7 @@ export default async function WorkspacePage({ params }: PageProps) {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((event) => {
+          {events.map((event: any) => {
             const start = new Date(event.start_date);
             const location = event.format === "virtual"
               ? "Virtual"
@@ -138,7 +105,7 @@ export default async function WorkspacePage({ params }: PageProps) {
                       )}
                     </div>
 
-                    <h3 className="text-body font-semibold group-hover:text-primary transition-colors">
+                    <h3 className="text-body font-semibold group-hover:text-foreground transition-colors">
                       {event.name}
                     </h3>
 
@@ -163,6 +130,42 @@ export default async function WorkspacePage({ params }: PageProps) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function WorkspaceSkeleton() {
+  return (
+    <div className="mx-auto max-w-5xl animate-pulse">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-surface" />
+          <div>
+            <div className="h-8 w-40 rounded bg-surface mb-1" />
+            <div className="h-4 w-20 rounded bg-surface" />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <div className="h-9 w-24 rounded bg-surface" />
+          <div className="h-9 w-28 rounded bg-surface" />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="pt-6">
+              <div className="h-5 w-20 rounded-full bg-surface mb-3" />
+              <div className="h-4 w-40 rounded bg-surface mb-3" />
+              <div className="space-y-2">
+                <div className="h-3 w-32 rounded bg-surface" />
+                <div className="h-3 w-24 rounded bg-surface" />
+                <div className="h-3 w-28 rounded bg-surface" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

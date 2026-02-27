@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+"use client";
+
+import { use } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +12,8 @@ import {
   Zap,
   Settings2,
   MessageSquare,
-  BarChart3,
-  Link2,
-  Clock,
   Eye,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import { PublishEventButton } from "@/components/events/publish-button";
@@ -32,78 +31,19 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "success" | "war
   cancelled: "destructive",
 };
 
-export default async function EventControlPanel({ params }: PageProps) {
-  const { workspaceId, eventId } = await params;
-  const supabase = await createClient();
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .eq("organization_id", workspaceId)
-    .single();
+export default function EventControlPanel({ params }: PageProps) {
+  const { workspaceId, eventId } = use(params);
+  const { data, isLoading } = useSWR(`/api/events/${eventId}/overview`, fetcher);
 
-  if (!event) notFound();
+  if (isLoading || !data?.event) {
+    return <EventOverviewSkeleton />;
+  }
 
-  // Admin client for aggregate queries (bypasses RLS)
-  const admin = createAdminClient();
-
-  const { count: participantCount } = await admin
-    .from("participants")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "approved");
-
-  const { count: pendingCount } = await admin
-    .from("participants")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .eq("status", "pending");
-
-  const { count: matchCount } = await admin
-    .from("matches")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  const { count: meetingCount } = await admin
-    .from("meetings")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  const { count: typeCount } = await admin
-    .from("event_participant_types")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  // Participant breakdown by type
-  const { data: typeBreakdown } = await admin
-    .from("event_participant_types")
-    .select("id, name, color")
-    .eq("event_id", eventId)
-    .order("sort_order");
-
-  const breakdownWithCounts = await Promise.all(
-    (typeBreakdown || []).map(async (t: any) => {
-      const { count } = await admin
-        .from("participants")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId)
-        .eq("participant_type_id", t.id)
-        .eq("status", "approved");
-      return { ...t, count: count || 0 };
-    })
-  );
-
-  // Count participants with no type assigned
-  const { count: noTypeCount } = await admin
-    .from("participants")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId)
-    .is("participant_type_id", null)
-    .eq("status", "approved");
+  const { event, stats, breakdownWithCounts } = data;
 
   const startDate = new Date(event.start_date);
-  const endDate = new Date(event.end_date);
   const dateFormatter = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "short",
@@ -165,11 +105,11 @@ export default async function EventControlPanel({ params }: PageProps) {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-5 mb-6">
-        <StatCard label="Participants" value={participantCount || 0} />
-        <StatCard label="Pending" value={pendingCount || 0} highlight={(pendingCount || 0) > 0} />
-        <StatCard label="Types" value={typeCount || 0} />
-        <StatCard label="Matches" value={matchCount || 0} />
-        <StatCard label="Meetings" value={meetingCount || 0} />
+        <StatCard label="Participants" value={stats.participantCount} />
+        <StatCard label="Pending" value={stats.pendingCount} highlight={stats.pendingCount > 0} />
+        <StatCard label="Types" value={stats.typeCount} />
+        <StatCard label="Matches" value={stats.matchCount} />
+        <StatCard label="Meetings" value={stats.meetingCount} />
       </div>
 
       {/* Participant breakdown by type */}
@@ -188,11 +128,11 @@ export default async function EventControlPanel({ params }: PageProps) {
                   <span className="text-caption font-semibold">{t.count}</span>
                 </div>
               ))}
-              {(noTypeCount || 0) > 0 && (
+              {stats.noTypeCount > 0 && (
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30 shrink-0" />
                   <span className="text-caption text-muted-foreground">Unassigned</span>
-                  <span className="text-caption font-semibold">{noTypeCount}</span>
+                  <span className="text-caption font-semibold">{stats.noTypeCount}</span>
                 </div>
               )}
             </div>
@@ -224,7 +164,7 @@ export default async function EventControlPanel({ params }: PageProps) {
             icon={<Users className="h-5 w-5 text-primary" />}
             title="Participants"
             description="View, approve, and manage registered participants."
-            badge={pendingCount ? `${pendingCount} pending` : undefined}
+            badge={stats.pendingCount ? `${stats.pendingCount} pending` : undefined}
           />
         </Link>
 
@@ -233,7 +173,7 @@ export default async function EventControlPanel({ params }: PageProps) {
             icon={<Users className="h-5 w-5 text-primary" />}
             title="Participant Types"
             description="Define roles like Buyer, Seller, Speaker for registration."
-            badge={typeCount ? `${typeCount} types` : undefined}
+            badge={stats.typeCount ? `${stats.typeCount} types` : undefined}
           />
         </Link>
 
@@ -260,6 +200,56 @@ export default async function EventControlPanel({ params }: PageProps) {
             description="Customize your event's public registration page."
           />
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function EventOverviewSkeleton() {
+  return (
+    <div className="mx-auto max-w-5xl animate-pulse">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-4 w-20 rounded bg-surface" />
+        <div className="h-4 w-4 rounded bg-surface" />
+        <div className="h-4 w-32 rounded bg-surface" />
+      </div>
+
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="h-10 w-64 rounded bg-surface" />
+          <div className="h-5 w-20 rounded-full bg-surface" />
+        </div>
+        <div className="flex gap-4">
+          <div className="h-4 w-36 rounded bg-surface" />
+          <div className="h-4 w-28 rounded bg-surface" />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-3 sm:grid-cols-5 mb-6">
+        {[...Array(5)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="pt-5 pb-5 text-center">
+              <div className="h-7 w-10 rounded bg-surface mx-auto mb-1" />
+              <div className="h-4 w-16 rounded bg-surface mx-auto" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Management cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-8">
+        {[...Array(5)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="pt-6">
+              <div className="h-5 w-5 rounded bg-surface mb-3" />
+              <div className="h-4 w-28 rounded bg-surface mb-2" />
+              <div className="h-3 w-full rounded bg-surface" />
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

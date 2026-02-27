@@ -5,27 +5,27 @@ import { cn } from "@/lib/utils";
 const badgeVariants = cva(
   [
     "inline-flex items-center",
-    "rounded-full border px-2.5 py-0.5",
-    "text-small font-medium",
+    "rounded-full border px-2 py-px",
+    "text-[10px] font-medium",
     "transition-colors duration-150 ease-out",
   ].join(" "),
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-emerald-950 text-emerald-400",
+          "border-emerald-800 bg-emerald-950 text-emerald-400",
         secondary:
-          "border-transparent bg-zinc-800 text-zinc-400",
+          "border-zinc-700 bg-zinc-800 text-zinc-400",
         outline:
           "border-border text-foreground",
         success:
-          "border-transparent bg-emerald-950 text-emerald-400",
+          "border-emerald-800 bg-emerald-950 text-emerald-400",
         warning:
-          "border-transparent bg-amber-950 text-amber-400",
+          "border-amber-800 bg-amber-950 text-amber-400",
         destructive:
-          "border-transparent bg-red-950 text-red-400",
+          "border-red-800 bg-red-950 text-red-400",
         blue:
-          "border-transparent bg-blue-950 text-blue-400",
+          "border-blue-800 bg-blue-950 text-blue-400",
       },
     },
     defaultVariants: {

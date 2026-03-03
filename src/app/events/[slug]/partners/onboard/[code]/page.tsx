@@ -160,11 +160,24 @@ export default function OnboardWizardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
-        setStep("brand");
+        // Don't advance step here — wait for invite data to verify email match
       }
     }
     checkAuth();
   }, []);
+
+  // Once both user and invite data are loaded, decide whether to skip auth
+  useEffect(() => {
+    if (!data || !user) return;
+    if (user.email === data.member.email) {
+      setStep("brand");
+    } else {
+      setAuthError(
+        `This invite was sent to ${data.member.email}. Please sign out and sign in with that account.`
+      );
+      // Stay on auth step so they see the message
+    }
+  }, [data, user]);
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
@@ -273,8 +286,8 @@ export default function OnboardWizardPage() {
 
     if (!res.ok) {
       setSubmitError(
-        res.status === 401
-          ? "You're not signed in as the invited contact. Please sign in with the email this invite was sent to."
+        res.status === 401 || res.status === 403
+          ? `This invite was sent to ${data?.member.email}. Please sign out and sign in with that account.`
           : json.error
       );
       setMissingFields(json.missing || []);

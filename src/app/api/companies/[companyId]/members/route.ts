@@ -80,7 +80,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const admin = createAdminClient();
 
-  // Verify admin/manager role
+  // Allow company admins/managers OR event organizers who own an event that includes this company
   const { data: membership } = await admin
     .from("company_members")
     .select("role")
@@ -89,8 +89,21 @@ export async function POST(request: Request, { params }: Params) {
     .eq("invite_status", "accepted")
     .single();
 
-  if (!membership || !["admin", "manager"].includes(membership.role)) {
-    return NextResponse.json({ error: "Only admins and managers can invite members" }, { status: 403 });
+  const isCompanyAdmin = membership && ["admin", "manager"].includes(membership.role);
+
+  if (!isCompanyAdmin) {
+    // Check if user is an organizer for an event that has this company as a partner
+    const { data: orgCheck } = await admin
+      .from("companies")
+      .select("event_id, events!inner(created_by)")
+      .eq("id", companyId)
+      .single();
+
+    const isEventOrganizer = (orgCheck as any)?.events?.created_by === user.id;
+
+    if (!isEventOrganizer) {
+      return NextResponse.json({ error: "Only admins, managers, or event organizers can invite members" }, { status: 403 });
+    }
   }
 
   const body = await request.json();

@@ -174,7 +174,9 @@ export function RegistrationFlow({
   const [expertiseAreas, setExpertiseAreas] = useState<string[]>(existingProfile?.expertise_areas || []);
   const [interests, setInterests] = useState<string[]>(existingProfile?.interests || []);
 
-  const dateRange = `${formatDate(event.start_date)} – ${formatDate(event.end_date)}`;
+  const fmtStart = formatDate(event.start_date);
+  const fmtEnd = formatDate(event.end_date);
+  const dateRange = fmtStart === fmtEnd ? fmtStart : `${fmtStart} – ${fmtEnd}`;
 
   // Use event-specific options if configured, fallback to defaults
   const activeExpertise = event.expertise_options?.length ? event.expertise_options : EXPERTISE_AREAS;
@@ -502,7 +504,7 @@ export function RegistrationFlow({
                   )}
 
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">Your email address</label>
+                    <label className="text-sm font-medium mb-1.5 block">Your email address <span className="text-destructive">*</span></label>
                     <Input
                       type="email"
                       value={email}
@@ -512,7 +514,7 @@ export function RegistrationFlow({
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">Password</label>
+                    <label className="text-sm font-medium mb-1.5 block">Password <span className="text-destructive">*</span></label>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}

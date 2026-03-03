@@ -278,7 +278,9 @@ export function BannerDisplay({
   requiresApproval = false,
   participantTypes = [],
 }: BannerDisplayProps) {
-  const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  const formattedStart = formatDate(startDate);
+  const formattedEnd = formatDate(endDate);
+  const dateRange = formattedStart === formattedEnd ? formattedStart : `${formattedStart} - ${formattedEnd}`;
   const bgOpacity = (bannerSettings.bgOpacity ?? 30) / 100;
   const blur = bannerSettings.blur ?? 4;
   const overlayOpacity = (bannerSettings.overlayOpacity ?? 50) / 100;

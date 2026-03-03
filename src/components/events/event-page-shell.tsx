@@ -120,9 +120,11 @@ export function EventPageShell({
                   <p className="text-sm mt-1" style={{ color: "var(--page-text-secondary)" }}>
                     {dateFormatter.format(startDate)}
                   </p>
-                  <p className="text-sm" style={{ color: "var(--page-text-secondary)" }}>
-                    to {dateFormatter.format(endDate)}
-                  </p>
+                  {startDate.toDateString() !== endDate.toDateString() && (
+                    <p className="text-sm" style={{ color: "var(--page-text-secondary)" }}>
+                      to {dateFormatter.format(endDate)}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

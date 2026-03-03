@@ -336,7 +336,7 @@ function SplitLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps)
         </div>
         <div className="w-[42%] flex flex-col justify-center px-8 py-10">
           <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
-          <h1 className="text-2xl font-bold tracking-tight leading-snug mb-6 break-words">{eventName}</h1>
+          <h1 className="text-xl font-bold tracking-tight leading-snug mb-6 [overflow-wrap:break-word] [word-break:break-word]">{eventName}</h1>
           <div>
             <RegisterButton />
           </div>

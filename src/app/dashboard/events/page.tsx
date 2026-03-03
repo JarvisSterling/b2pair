@@ -129,9 +129,10 @@ export default async function EventsPage() {
                       <div className="flex items-center gap-2 text-caption text-muted-foreground">
                         <CalendarDays className="h-3.5 w-3.5 shrink-0" />
                         <span>
-                          {start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          {" - "}
-                          {end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          {start.toDateString() === end.toDateString()
+                            ? end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                            : `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                          }
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-caption text-muted-foreground">

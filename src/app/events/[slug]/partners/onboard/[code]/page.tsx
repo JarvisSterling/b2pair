@@ -272,7 +272,11 @@ export default function OnboardWizardPage() {
     const json = await res.json();
 
     if (!res.ok) {
-      setSubmitError(json.error);
+      setSubmitError(
+        res.status === 401
+          ? "You're not signed in as the invited contact. Please sign in with the email this invite was sent to."
+          : json.error
+      );
       setMissingFields(json.missing || []);
       setSaving(false);
       return;
@@ -818,7 +822,7 @@ export default function OnboardWizardPage() {
                   {data.company.capabilities.includes("sponsor") && (
                     <>
                       <div className="border-t border-border my-3" />
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Sponsor</p>
+                      <p className="text-[10px] font-medium text-muted-foreground">Sponsor</p>
                       <CheckItem label="CTA buttons" done={ctaButtons.length > 0} />
                       <CheckItem label="Tagline" done={!!tagline} optional />
                       <CheckItem label="Downloadable resources" done={downloadables.length > 0} optional />
@@ -827,7 +831,7 @@ export default function OnboardWizardPage() {
                   {data.company.capabilities.includes("exhibitor") && (
                     <>
                       <div className="border-t border-border my-3" />
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Exhibitor</p>
+                      <p className="text-[10px] font-medium text-muted-foreground">Exhibitor</p>
                       <CheckItem label="Products or detailed description" done={products.length > 0 || !!descLong} />
                       <CheckItem label="Booth number" done={!!boothNumber} optional />
                       <CheckItem label="Resources" done={resources.length > 0} optional />
@@ -857,15 +861,24 @@ export default function OnboardWizardPage() {
               </Card>
             )}
 
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={prevStep}>
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={handleSubmit} disabled={saving} className="flex-1">
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                Submit for Review
-              </Button>
-            </div>
+            {(() => {
+              const isSponsor = data?.company.capabilities.includes("sponsor");
+              const isExhibitor = data?.company.capabilities.includes("exhibitor");
+              const readyToSubmit = !!logo && !!descShort &&
+                (!isSponsor || ctaButtons.length > 0) &&
+                (!isExhibitor || products.length > 0 || !!descLong);
+              return (
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={prevStep}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={saving || !readyToSubmit} className="flex-1" title={!readyToSubmit ? "Complete required fields above to submit" : undefined}>
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Submit for Review
+                  </Button>
+                </div>
+              );
+            })()}
           </div>
         )}
 

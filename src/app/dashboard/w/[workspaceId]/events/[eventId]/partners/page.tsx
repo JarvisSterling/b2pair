@@ -235,7 +235,7 @@ export default function PartnersPage() {
     }
   }
 
-  async function changeStatus(companyId: string, status: string, reason?: string) {
+  async function changeStatus(companyId: string, status: string, reason?: string, toastLabel?: string) {
     setSaving(true);
     try {
       await toast.promise(
@@ -249,14 +249,15 @@ export default function PartnersPage() {
         })(),
         {
           loading: "Saving...",
-          success:
+          success: toastLabel ?? (
             status === "approved"
               ? "Company approved"
               : status === "rejected"
               ? "Company rejected"
               : status === "live"
               ? "Company published"
-              : "Status updated",
+              : "Status updated"
+          ),
           error: "Failed to save",
         }
       );
@@ -474,6 +475,7 @@ export default function PartnersPage() {
             onApprove={(id) => changeStatus(id, "approved")}
             onReject={(id) => setShowRejectModal(id)}
             onPublish={(id) => changeStatus(id, "live")}
+            onUnpublish={(id) => changeStatus(id, "approved", undefined, "Company unpublished")}
             onDelete={deleteCompany}
             onView={openCompanyDetail}
             deleting={deleting}
@@ -577,6 +579,7 @@ export default function PartnersPage() {
             onApprove={(id) => changeStatus(id, "approved")}
             onReject={(id) => setShowRejectModal(id)}
             onPublish={(id) => changeStatus(id, "live")}
+            onUnpublish={(id) => changeStatus(id, "approved", undefined, "Company unpublished")}
             onDelete={deleteCompany}
             onView={openCompanyDetail}
             deleting={deleting}
@@ -822,6 +825,7 @@ export default function PartnersPage() {
                 onApprove={(id) => { changeStatus(id, "approved"); setSelectedCompany(null); }}
                 onReject={(id) => { setSelectedCompany(null); setShowRejectModal(id); }}
                 onPublish={(id) => { changeStatus(id, "live"); setSelectedCompany(null); }}
+                onUnpublish={(id) => { changeStatus(id, "approved", undefined, "Company unpublished"); setSelectedCompany(null); }}
               />
             )}
           </div>
@@ -840,6 +844,7 @@ function CompanyDetailPanel({
   onApprove,
   onReject,
   onPublish,
+  onUnpublish,
 }: {
   company: any;
   tiers: SponsorTier[];
@@ -848,6 +853,7 @@ function CompanyDetailPanel({
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onPublish: (id: string) => void;
+  onUnpublish: (id: string) => void;
 }) {
   const [copiedInvite, setCopiedInvite] = useState(false);
   const sponsorProfile = Array.isArray(company.sponsor_profiles) ? company.sponsor_profiles[0] : company.sponsor_profiles;
@@ -898,7 +904,7 @@ function CompanyDetailPanel({
       {/* Content */}
       <div className="flex-1 p-6 space-y-6">
         {/* Status actions */}
-        {(company.status === "submitted" || company.status === "approved") && (
+        {(company.status === "submitted" || company.status === "approved" || company.status === "live") && (
           <div className="flex gap-2">
             {company.status === "submitted" && (
               <>
@@ -913,6 +919,11 @@ function CompanyDetailPanel({
             {company.status === "approved" && (
               <Button size="sm" onClick={() => onPublish(company.id)}>
                 <Globe className="mr-1.5 h-3.5 w-3.5" /> Publish
+              </Button>
+            )}
+            {company.status === "live" && (
+              <Button size="sm" variant="outline" onClick={() => onUnpublish(company.id)}>
+                <Globe className="mr-1.5 h-3.5 w-3.5" /> Unpublish
               </Button>
             )}
           </div>
@@ -1310,6 +1321,7 @@ function CompanyList({
   onApprove,
   onReject,
   onPublish,
+  onUnpublish,
   onDelete,
   onView,
   deleting,
@@ -1322,6 +1334,7 @@ function CompanyList({
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onPublish: (id: string) => void;
+  onUnpublish: (id: string) => void;
   onDelete: (id: string) => void;
   onView: (id: string) => void;
   deleting: string | null;
@@ -1387,6 +1400,11 @@ function CompanyList({
                 {company.status === "approved" && (
                   <Button size="sm" className="text-xs h-8" onClick={() => onPublish(company.id)}>
                     <Globe className="mr-1 h-3 w-3" /> Publish
+                  </Button>
+                )}
+                {company.status === "live" && (
+                  <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => onUnpublish(company.id)}>
+                    <Globe className="mr-1 h-3 w-3" /> Unpublish
                   </Button>
                 )}
                 {(company.status === "invited" || company.status === "onboarding") && (company as any).invite_code && (

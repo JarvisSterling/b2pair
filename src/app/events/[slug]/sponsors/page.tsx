@@ -42,7 +42,7 @@ export default async function SponsorsDirectoryPage({ params }: PageProps) {
           ← Back to {event.name}
         </Link>
         <h1 className="text-3xl font-bold tracking-tight">Sponsors</h1>
-        <p className="text-muted-foreground mt-1">{(companies || []).length} sponsors at this event</p>
+        <p className="text-muted-foreground mt-1">{(companies || []).length} {(companies || []).length === 1 ? "sponsor" : "sponsors"} at this event</p>
       </div>
 
       {(tiers || []).map((tier) => {
@@ -98,10 +98,16 @@ export default async function SponsorsDirectoryPage({ params }: PageProps) {
           const sp = Array.isArray(c.sponsor_profiles) ? c.sponsor_profiles[0] : c.sponsor_profiles;
           return !sp?.tier_id;
         });
+        const hasTieredSponsors = (tiers || []).some((tier) =>
+          (companies || []).some((c: any) => {
+            const sp = Array.isArray(c.sponsor_profiles) ? c.sponsor_profiles[0] : c.sponsor_profiles;
+            return sp?.tier_id === tier.id;
+          })
+        );
         if (!untiered.length) return null;
         return (
           <div className="mb-10">
-            <h2 className="text-lg font-semibold mb-4">Other Sponsors</h2>
+            <h2 className="text-lg font-semibold mb-4">{hasTieredSponsors ? "Other Sponsors" : "Sponsors"}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               {untiered.map((company: any) => (
                 <Link

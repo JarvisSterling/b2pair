@@ -974,7 +974,7 @@ function CompanyDetailPanel({
         )}
 
         {/* Sponsor details */}
-        {sponsorProfile && (tier || sponsorProfile.tagline || sponsorProfile.cta_buttons?.length || sponsorProfile.downloadables?.length || sponsorProfile.promo_video_url || sponsorProfile.sessions?.length) && (
+        {sponsorProfile && !!(tier || sponsorProfile.tagline || sponsorProfile.cta_buttons?.length || sponsorProfile.downloadables?.length || sponsorProfile.promo_video_url || sponsorProfile.sessions?.length) && (
           <section>
             <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               <Crown className="inline h-3.5 w-3.5 mr-1" />
@@ -1034,7 +1034,7 @@ function CompanyDetailPanel({
         )}
 
         {/* Exhibitor details */}
-        {exhibitorProfile && (exhibitorProfile.booth_number || exhibitorProfile.booth_type || exhibitorProfile.product_categories?.length || exhibitorProfile.products?.length || exhibitorProfile.resources?.length) && (
+        {exhibitorProfile && !!(exhibitorProfile.booth_number || exhibitorProfile.booth_type || exhibitorProfile.product_categories?.length || exhibitorProfile.products?.length || exhibitorProfile.resources?.length) && (
           <section>
             <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               <Building2 className="inline h-3.5 w-3.5 mr-1" />

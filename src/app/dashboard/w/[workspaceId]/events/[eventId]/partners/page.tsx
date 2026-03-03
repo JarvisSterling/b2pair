@@ -702,7 +702,7 @@ export default function PartnersPage() {
                 <label className="flex items-center justify-between cursor-pointer">
                   <div>
                     <p className="text-body font-medium">Auto-publish on approval</p>
-                    <p className="text-caption text-muted-foreground">When enabled, companies go live immediately after approval instead of requiring a separate publish step.</p>
+                    <p className="text-caption text-muted-foreground">Companies go live on the event page immediately when approved, without a separate publish step.</p>
                   </div>
                   <button
                     onClick={async () => {
@@ -717,8 +717,8 @@ export default function PartnersPage() {
                 <div className="border-t border-border" />
                 <label className="flex items-center justify-between cursor-pointer">
                   <div>
-                    <p className="text-body font-medium">Enable Sponsors</p>
-                    <p className="text-caption text-muted-foreground">Show sponsor features for this event.</p>
+                    <p className="text-body font-medium">Show Sponsors section</p>
+                    <p className="text-caption text-muted-foreground">Display the Sponsors section on the public event page for attendees to browse.</p>
                   </div>
                   <button
                     onClick={() => setSponsorsEnabled(!sponsorsEnabled)}
@@ -730,8 +730,8 @@ export default function PartnersPage() {
                 <div className="border-t border-border" />
                 <label className="flex items-center justify-between cursor-pointer">
                   <div>
-                    <p className="text-body font-medium">Enable Exhibitors</p>
-                    <p className="text-caption text-muted-foreground">Show exhibitor features for this event.</p>
+                    <p className="text-body font-medium">Show Exhibitors section</p>
+                    <p className="text-caption text-muted-foreground">Display the Exhibitors section on the public event page for attendees to browse.</p>
                   </div>
                   <button
                     onClick={() => setExhibitorsEnabled(!exhibitorsEnabled)}
@@ -912,20 +912,26 @@ function CompanyDetailPanel({
             {company.description_long && (
               <p className="text-caption text-muted-foreground">{company.description_long}</p>
             )}
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              {company.website && (
-                <DetailField label="Website" value={company.website} link />
-              )}
-              {company.industry && (
-                <DetailField label="Industry" value={company.industry} />
-              )}
-              {company.hq_location && (
-                <DetailField label="Location" value={company.hq_location} />
-              )}
-              {company.contact_email && (
-                <DetailField label="Contact" value={company.contact_email} />
-              )}
-            </div>
+            {(company.website || company.industry || company.hq_location || company.contact_email) ? (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                {company.website && (
+                  <DetailField label="Website" value={company.website} link />
+                )}
+                {company.industry && (
+                  <DetailField label="Industry" value={company.industry} />
+                )}
+                {company.hq_location && (
+                  <DetailField label="Location" value={company.hq_location} />
+                )}
+                {company.contact_email && (
+                  <DetailField label="Contact" value={company.contact_email} />
+                )}
+              </div>
+            ) : !company.description_short && !company.description_long && (
+              <p className="text-caption text-muted-foreground italic">
+                Awaiting profile setup — share the invite link for them to complete their company profile.
+              </p>
+            )}
             {inviteCode && (
               <div className="mt-3">
                 <Button size="sm" variant="outline" className="text-xs" onClick={copyInvite}>
@@ -943,7 +949,7 @@ function CompanyDetailPanel({
         )}
 
         {/* Sponsor details */}
-        {sponsorProfile && (
+        {sponsorProfile && (tier || sponsorProfile.tagline || sponsorProfile.cta_buttons?.length || sponsorProfile.downloadables?.length || sponsorProfile.promo_video_url || sponsorProfile.sessions?.length) && (
           <section>
             <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               <Crown className="inline h-3.5 w-3.5 mr-1" />
@@ -1003,7 +1009,7 @@ function CompanyDetailPanel({
         )}
 
         {/* Exhibitor details */}
-        {exhibitorProfile && (
+        {exhibitorProfile && (exhibitorProfile.booth_number || exhibitorProfile.booth_type || exhibitorProfile.product_categories?.length || exhibitorProfile.products?.length || exhibitorProfile.resources?.length) && (
           <section>
             <h3 className="text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               <Building2 className="inline h-3.5 w-3.5 mr-1" />

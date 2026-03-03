@@ -5,8 +5,8 @@ import { NextResponse } from "next/server";
  * DELETE this file after running once.
  */
 export async function POST() {
-  const projectRef = "akbrlbortxvoluuzxhby";
-  const mgmtToken = "sbp_da5d8e0f7c4c74211675ef6aeaeddb78258b5e64";
+  const projectRef = "eemeremqmqsqsxioycka"; // B2Pair project
+  const mgmtToken = "sbp_2e7b5f223a191632000fd43c7d2ce6112ed0e17d";
 
   const res = await fetch(
     `https://api.supabase.com/v1/projects/${projectRef}/database/query`,

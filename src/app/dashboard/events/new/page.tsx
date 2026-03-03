@@ -428,7 +428,7 @@ function BasicsStep({
                 transition-all duration-150 ease-out
                 ${
                   data.eventType === type.value
-                    ? "border-primary bg-primary/5"
+                    ? "border-primary bg-primary/10"
                     : "border-border bg-background hover:border-border-strong hover:bg-secondary"
                 }
               `}
@@ -455,7 +455,7 @@ function BasicsStep({
                 transition-all duration-150 ease-out
                 ${
                   data.format === format.value
-                    ? "border-primary bg-primary/5 text-primary font-medium"
+                    ? "border-primary bg-primary/10 text-primary font-medium"
                     : "border-border bg-background text-foreground hover:border-border-strong hover:bg-secondary"
                 }
               `}
@@ -704,7 +704,7 @@ function SettingsStep({
               onClick={() => updateData({ visibility: opt.value })}
               className={`rounded-lg border p-3 text-left transition-all duration-150 ${
                 data.visibility === opt.value
-                  ? "border-primary bg-primary/5 ring-2 ring-ring/20"
+                  ? "border-primary bg-primary/10 ring-2 ring-ring/20"
                   : "border-border hover:border-border-strong"
               }`}
             >

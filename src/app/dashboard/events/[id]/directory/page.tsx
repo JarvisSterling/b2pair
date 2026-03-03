@@ -161,7 +161,7 @@ export default function DirectoryPage() {
       <div className="mb-8">
         <h1 className="text-h1 font-semibold tracking-tight">Participant directory</h1>
         <p className="mt-1 text-body text-muted-foreground">
-          {entries.length} participants at this event
+          {entries.length} {entries.length === 1 ? "participant" : "participants"} at this event
         </p>
       </div>
 

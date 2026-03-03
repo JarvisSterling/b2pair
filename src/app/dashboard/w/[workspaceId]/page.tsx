@@ -128,7 +128,7 @@ export default function WorkspacePage({ params }: PageProps) {
                       </div>
                       <div className="flex items-center gap-2 text-caption text-muted-foreground">
                         <Users className="h-3.5 w-3.5 shrink-0" />
-                        <span>{participantCounts[event.id] || 0} participants</span>
+                        <span>{participantCounts[event.id] || 0} {(participantCounts[event.id] || 0) === 1 ? "participant" : "participants"}</span>
                       </div>
                     </div>
                   </CardContent>

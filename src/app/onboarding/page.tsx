@@ -19,7 +19,7 @@ import {
 const STEPS = [
   { id: "role", label: "Your Role", icon: Target },
   { id: "company", label: "Company", icon: Building2 },
-  { id: "availability", label: "Availability", icon: Calendar },
+  { id: "availability", label: "Done", icon: Calendar },
 ] as const;
 
 const INDUSTRIES = [
@@ -385,7 +385,7 @@ function CompanyStep({
                   transition-all duration-150 ease-out
                   ${
                     data.industry === industry
-                      ? "border-primary bg-primary/5 text-primary font-medium"
+                      ? "border-primary bg-primary/10 text-primary font-medium"
                       : "border-border bg-background text-foreground hover:border-border-strong hover:bg-secondary"
                   }
                 `}
@@ -398,7 +398,7 @@ function CompanyStep({
 
         <div className="space-y-2">
           <label className="text-caption font-medium">Company size</label>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {COMPANY_SIZES.map((size) => (
               <button
                 key={size.value}
@@ -409,7 +409,7 @@ function CompanyStep({
                   transition-all duration-150 ease-out
                   ${
                     data.companySize === size.value
-                      ? "border-primary bg-primary/5 text-primary font-medium"
+                      ? "border-primary bg-primary/10 text-primary font-medium"
                       : "border-border bg-background text-foreground hover:border-border-strong hover:bg-secondary"
                   }
                 `}

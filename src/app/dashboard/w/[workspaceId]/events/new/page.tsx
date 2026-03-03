@@ -209,7 +209,10 @@ export default function NewEventInWorkspace() {
                 <h2 className="text-h2 font-semibold">Event basics</h2>
                 <p className="text-caption text-muted-foreground mt-1">What's your event about?</p>
               </div>
-              <Input placeholder="Event name *" value={data.name} onChange={(e) => update({ name: e.target.value })} />
+              <div className="space-y-1.5">
+                <label className="text-caption font-medium">Event name <span className="text-destructive">*</span></label>
+                <Input placeholder="e.g. Tech Connect Summit 2026" value={data.name} onChange={(e) => update({ name: e.target.value })} />
+              </div>
               <textarea
                 placeholder="Description"
                 rows={3}
@@ -302,7 +305,7 @@ export default function NewEventInWorkspace() {
                       key={opt.value}
                       onClick={() => update({ visibility: opt.value })}
                       className={`rounded-lg border p-3 text-left transition-all ${
-                        data.visibility === opt.value ? "border-primary bg-primary/5 ring-2 ring-ring/20" : "border-border hover:border-border-strong"
+                        data.visibility === opt.value ? "border-primary bg-primary/10 ring-2 ring-ring/20" : "border-border hover:border-border-strong"
                       }`}
                     >
                       <p className="text-caption font-medium">{opt.label}</p>

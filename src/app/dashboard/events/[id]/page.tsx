@@ -212,7 +212,7 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
           </span>
           <span className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            {stats.participants} participants
+            {stats.participants} {stats.participants === 1 ? "participant" : "participants"}
           </span>
         </div>
       </div>

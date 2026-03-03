@@ -140,7 +140,7 @@ export default function ParticipantsPage() {
         <div>
           <h1 className="text-h1 font-semibold tracking-tight">Participants</h1>
           <p className="mt-1 text-body text-muted-foreground">
-            {participants.length} total participants
+            {participants.length} total {participants.length === 1 ? "participant" : "participants"}
           </p>
         </div>
         <Button>

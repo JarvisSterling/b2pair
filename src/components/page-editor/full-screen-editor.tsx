@@ -533,15 +533,15 @@ export function FullScreenEditor({
           <div className="p-4 space-y-6">
             {/* Block palette */}
             <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Add Blocks
+              <h3 className="text-xs font-medium text-muted-foreground mb-3">
+                Add blocks
               </h3>
               <BlockPalette onAddBlock={(type) => addBlock(type)} />
             </div>
 
             {/* Page list */}
             <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-medium text-muted-foreground mb-3">
                 Pages
               </h3>
               <div className="space-y-1">
@@ -598,8 +598,8 @@ export function FullScreenEditor({
             {/* Page settings for selected page */}
             {selectedPage && (
               <div className="border-t pt-4 space-y-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Page Settings
+                <h3 className="text-xs font-medium text-muted-foreground">
+                  Page settings
                 </h3>
                 <Input
                   value={selectedPage.title}
@@ -608,7 +608,7 @@ export function FullScreenEditor({
                   className="h-8 text-sm"
                 />
                 <div className="space-y-2">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <p className="text-[10px] font-medium text-muted-foreground">
                     SEO
                   </p>
                   <Input

@@ -355,7 +355,7 @@ function RichTextLiveBlock({
       {block.layout === "two-column" ? (
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-lg border border-dashed border-border/60 p-4 min-h-[120px] hover:border-primary/30 transition-colors">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-2 font-medium">Left column</p>
+            <p className="text-[10px] text-muted-foreground/50 mb-2">Left column</p>
             <InlineTextEditor
               key={`${block.id}-left`}
               content={block.content}
@@ -365,7 +365,7 @@ function RichTextLiveBlock({
             />
           </div>
           <div className="rounded-lg border border-dashed border-border/60 p-4 min-h-[120px] hover:border-primary/30 transition-colors">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-2 font-medium">Right column</p>
+            <p className="text-[10px] text-muted-foreground/50 mb-2">Right column</p>
             <InlineTextEditor
               key={`${block.id}-right`}
               content={block.contentRight || ""}

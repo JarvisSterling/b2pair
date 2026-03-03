@@ -79,10 +79,11 @@ export default function PartnersPage() {
   const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Settings
+  // Settings — backed by partner_settings JSONB column on events table
   const [autoPublish, setAutoPublish] = useState(false);
   const [sponsorsEnabled, setSponsorsEnabled] = useState(false);
   const [exhibitorsEnabled, setExhibitorsEnabled] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
   const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", tier_id: "", team_limit: "", company_size: "", website: "" });
   const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
@@ -93,14 +94,33 @@ export default function PartnersPage() {
 
   // Load event slug for invite links
   useEffect(() => {
-    async function loadEventSlug() {
+    async function loadEvent() {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
-      const { data } = await supabase.from("events").select("slug").eq("id", eventId).single();
-      if (data) setEventSlug(data.slug);
+      const { data } = await supabase
+        .from("events")
+        .select("slug, partner_settings")
+        .eq("id", eventId)
+        .single();
+      if (data) {
+        setEventSlug(data.slug);
+        const ps = (data as any).partner_settings || {};
+        setAutoPublish(ps.auto_publish ?? false);
+        setSponsorsEnabled(ps.sponsors_enabled ?? false);
+        setExhibitorsEnabled(ps.exhibitors_enabled ?? false);
+      }
     }
-    loadEventSlug();
+    loadEvent();
   }, [eventId]);
+
+  async function savePartnerSettings(patch: { auto_publish?: boolean; sponsors_enabled?: boolean; exhibitors_enabled?: boolean }) {
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    const current = { auto_publish: autoPublish, sponsors_enabled: sponsorsEnabled, exhibitors_enabled: exhibitorsEnabled, ...patch };
+    await supabase.from("events").update({ partner_settings: current }).eq("id", eventId);
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 2000);
+  }
 
   async function addSponsor() {
     if (!sponsorForm.name || !sponsorForm.contact_email) {
@@ -628,7 +648,7 @@ export default function PartnersPage() {
                 </div>
                 <div className="flex gap-2 mt-5">
                   <Button onClick={addTier} disabled={saving || !tierForm.name}>
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                     Create Tier
                   </Button>
                   <Button variant="outline" onClick={() => setShowAddTier(false)}>Cancel</Button>
@@ -676,9 +696,12 @@ export default function PartnersPage() {
                           </div>
                         </div>
                         <button
-                          onClick={() => deleteTier(tier.id)}
+                          onClick={() => {
+                            if (window.confirm(`Delete the "${tier.name}" tier? This cannot be undone.`)) deleteTier(tier.id);
+                          }}
                           className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-secondary transition-opacity"
                           disabled={deleting === tier.id}
+                          title="Delete tier"
                         >
                           {deleting === tier.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 text-destructive" />}
                         </button>
@@ -705,10 +728,7 @@ export default function PartnersPage() {
                     <p className="text-caption text-muted-foreground">Companies go live on the event page immediately when approved, without a separate publish step.</p>
                   </div>
                   <button
-                    onClick={async () => {
-                      // TODO: Save to event settings
-                      setAutoPublish(!autoPublish);
-                    }}
+                    onClick={() => { const v = !autoPublish; setAutoPublish(v); savePartnerSettings({ auto_publish: v }); }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoPublish ? "bg-primary" : "bg-muted"}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${autoPublish ? "translate-x-6" : "translate-x-1"}`} />
@@ -721,7 +741,7 @@ export default function PartnersPage() {
                     <p className="text-caption text-muted-foreground">Display the Sponsors section on the public event page for attendees to browse.</p>
                   </div>
                   <button
-                    onClick={() => setSponsorsEnabled(!sponsorsEnabled)}
+                    onClick={() => { const v = !sponsorsEnabled; setSponsorsEnabled(v); savePartnerSettings({ sponsors_enabled: v }); }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${sponsorsEnabled ? "bg-primary" : "bg-muted"}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${sponsorsEnabled ? "translate-x-6" : "translate-x-1"}`} />
@@ -734,13 +754,18 @@ export default function PartnersPage() {
                     <p className="text-caption text-muted-foreground">Display the Exhibitors section on the public event page for attendees to browse.</p>
                   </div>
                   <button
-                    onClick={() => setExhibitorsEnabled(!exhibitorsEnabled)}
+                    onClick={() => { const v = !exhibitorsEnabled; setExhibitorsEnabled(v); savePartnerSettings({ exhibitors_enabled: v }); }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${exhibitorsEnabled ? "bg-primary" : "bg-muted"}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${exhibitorsEnabled ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
                 </label>
               </div>
+              {settingsSaved && (
+                <p className="text-caption text-emerald-500 mt-4 flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5" /> Settings saved
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1140,7 +1165,7 @@ function TeamSection({ companyId, members: initialMembers }: { companyId: string
       setNewInviteLink(link);
       navigator.clipboard.writeText(link);
       toast.success("Invite link copied");
-      setInviteForm({ email: "", name: "", role: "representative" });
+      setInviteForm({ name: "", email: "", role: "representative" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to invite";
       toast.error(message, { id: toastId });
@@ -1173,6 +1198,12 @@ function TeamSection({ companyId, members: initialMembers }: { companyId: string
               className="text-caption h-8"
             />
             <Input
+              value={inviteForm.name}
+              onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Full name"
+              className="text-caption h-8"
+            />
+          <Input
               value={inviteForm.email}
               onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="Email *"
@@ -1221,22 +1252,23 @@ function TeamSection({ companyId, members: initialMembers }: { companyId: string
             </div>
             <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
             {m.invite_status === "accepted" ? (
-              <span className="text-[10px] text-green-500">accepted</span>
+              <span className="text-[10px] text-emerald-500 font-medium">Joined</span>
             ) : m.invite_code ? (
               <Button
                 size="sm"
                 variant="ghost"
                 className="text-[10px] h-6 px-2"
                 onClick={() => copyMemberInvite(m)}
+                title="Copy invite link for this team member"
               >
                 {copiedMemberId === m.id ? (
                   <><Check className="mr-1 h-3 w-3 text-green-500" /> Copied!</>
                 ) : (
-                  <><Copy className="mr-1 h-3 w-3" /> Copy Link</>
+                  <><Copy className="mr-1 h-3 w-3" /> Copy Invite Link</>
                 )}
               </Button>
             ) : (
-              <span className="text-[10px] text-muted-foreground">{m.invite_status}</span>
+              <span className="text-[10px] text-muted-foreground capitalize">{m.invite_status}</span>
             )}
           </div>
         ))}
@@ -1363,7 +1395,7 @@ function CompanyList({
                     <Globe className="mr-1 h-3 w-3" /> Publish
                   </Button>
                 )}
-                {company.status === "invited" && (company as any).invite_code && (
+                {(company.status === "invited" || company.status === "onboarding") && (company as any).invite_code && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -1371,13 +1403,16 @@ function CompanyList({
                     onClick={() => copyInviteLink((company as any).invite_code, company.id)}
                   >
                     <Link2 className="mr-1 h-3 w-3" />
-                    {copiedLink === company.id ? "Copied!" : "Copy Invite"}
+                    {copiedLink === company.id ? "Copied!" : "Copy Invite Link"}
                   </Button>
                 )}
                 <button
-                  onClick={() => onDelete(company.id)}
+                  onClick={() => {
+                    if (window.confirm(`Remove ${company.name}? This cannot be undone.`)) onDelete(company.id);
+                  }}
                   className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-secondary transition-opacity"
                   disabled={deleting === company.id}
+                  title="Remove company"
                 >
                   {deleting === company.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 text-destructive" />}
                 </button>

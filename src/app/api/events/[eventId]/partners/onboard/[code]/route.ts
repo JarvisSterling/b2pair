@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: Params) {
     .select(`
       id, email, name, role, invite_status,
       company:companies(
-        id, name, slug, event_id, capabilities, status,
+        id, name, slug, event_id, capabilities, status, rejection_reason,
         logo_url, banner_url, description_short, description_long,
         website, industry, hq_location, brand_colors,
         sponsor_profiles(*),
@@ -42,7 +42,10 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   if (member.invite_status === "accepted") {
-    return NextResponse.json({ error: "This invite has already been used", alreadyAccepted: true }, { status: 409 });
+    // Rejected companies are allowed back in to fix their profile and resubmit
+    if (company?.status !== "rejected") {
+      return NextResponse.json({ error: "This invite has already been used", alreadyAccepted: true }, { status: 409 });
+    }
   }
 
   // Get event info
@@ -60,6 +63,7 @@ export async function GET(request: Request, { params }: Params) {
       slug: company.slug,
       capabilities: company.capabilities,
       status: company.status,
+      rejection_reason: (company as any).rejection_reason || null,
       logo_url: company.logo_url,
       banner_url: company.banner_url,
       description_short: company.description_short,

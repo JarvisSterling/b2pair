@@ -421,6 +421,18 @@ export default function OnboardWizardPage() {
       )}
 
       <div className="max-w-3xl mx-auto px-4 pb-12">
+        {/* REJECTION BANNER */}
+        {step !== "auth" && step !== ("done" as WizardStep) && data.company.status === "rejected" && (
+          <div className="mt-6 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3">
+            <p className="text-sm font-semibold text-red-500 mb-0.5">Your submission was rejected</p>
+            {data.company.rejection_reason ? (
+              <p className="text-sm text-red-400">{data.company.rejection_reason}</p>
+            ) : (
+              <p className="text-sm text-red-400">Please review your profile and resubmit.</p>
+            )}
+          </div>
+        )}
+
         {/* AUTH STEP */}
         {step === "auth" && (
           <Card className="mt-8">

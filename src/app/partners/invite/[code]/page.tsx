@@ -373,12 +373,12 @@ export default function TeamMemberInvitePage() {
                   </div>
                 )}
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Email</label>
+                  <label className="text-sm font-medium mb-1.5 block">Email <span className="text-destructive">*</span></label>
                   <Input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} type="email" disabled />
                   <p className="text-[10px] text-muted-foreground mt-1">Pre-filled from your invite</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Password</label>
+                  <label className="text-sm font-medium mb-1.5 block">Password <span className="text-destructive">*</span></label>
                   <div className="relative">
                     <Input
                       value={password}
@@ -424,7 +424,7 @@ export default function TeamMemberInvitePage() {
 
               {/* Required */}
               <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
+                <p className="text-xs font-medium text-primary mb-3">
                   Required
                 </p>
                 <div className="space-y-3">
@@ -471,7 +471,7 @@ export default function TeamMemberInvitePage() {
                             className={cn(
                               "rounded-lg border px-2.5 py-2 text-left transition-all",
                               selected
-                                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                ? "border-primary bg-primary/10 ring-1 ring-primary/20"
                                 : "border-border hover:border-primary/30",
                               !selected && selectedIntents.length >= 3 && "opacity-40 cursor-not-allowed"
                             )}
@@ -491,7 +491,7 @@ export default function TeamMemberInvitePage() {
 
               {/* Optional */}
               <div className="border-t border-border pt-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                <p className="text-xs font-medium text-muted-foreground mb-1">
                   Optional
                 </p>
                 <p className="text-xs text-muted-foreground mb-3">
@@ -589,7 +589,7 @@ export default function TeamMemberInvitePage() {
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-xs transition-all",
                           expertiseAreas.includes(area)
-                            ? "border-primary bg-primary/5 text-primary font-medium"
+                            ? "border-primary bg-primary/10 text-primary font-medium"
                             : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground"
                         )}
                       >
@@ -618,7 +618,7 @@ export default function TeamMemberInvitePage() {
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-xs transition-all",
                           interests.includes(item)
-                            ? "border-primary/50 bg-primary/5 text-primary font-medium"
+                            ? "border-primary/50 bg-primary/10 text-primary font-medium"
                             : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground"
                         )}
                       >

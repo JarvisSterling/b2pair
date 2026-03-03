@@ -1194,16 +1194,10 @@ function TeamSection({ companyId, members: initialMembers }: { companyId: string
             <Input
               value={inviteForm.name}
               onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Name"
-              className="text-caption h-8"
-            />
-            <Input
-              value={inviteForm.name}
-              onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Full name"
               className="text-caption h-8"
             />
-          <Input
+            <Input
               value={inviteForm.email}
               onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="Email *"

@@ -524,7 +524,7 @@ export default function EventMeetingsPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="hover:border-destructive hover:bg-destructive/10"
+                              className="hover:border-destructive hover:bg-accent"
                               onClick={() => setConfirmCancel(meeting.id)}
                             >
                               <X className="mr-1 h-3 w-3" />

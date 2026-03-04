@@ -54,6 +54,7 @@ export default function CompleteProfilePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const eventId = searchParams.get("eventId");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
@@ -75,27 +76,45 @@ export default function CompleteProfilePage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push("/auth/sign-in"); return; }
-      supabase
-        .from("profiles")
-        .select("full_name, title, company_name, company_size, company_website, expertise_areas, interests")
-        .eq("id", user.id)
-        .single()
-        .then(({ data: profile }) => {
-          if (profile) {
-            setFullName(profile.full_name || "");
-            setTitle(profile.title || "");
-            setCompanyName(profile.company_name || "");
-            setCompanySize(profile.company_size || "");
-            setCompanyWebsite(profile.company_website || "");
-            if (profile.expertise_areas?.length) setExpertiseAreas(profile.expertise_areas);
-            if (profile.interests?.length) setInterests(profile.interests);
-          }
-          setLoading(false);
-        });
+
+      const [{ data: profile }, participantRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, title, company_name, company_size, company_website, expertise_areas, interests")
+          .eq("id", user.id)
+          .single(),
+        eventId
+          ? supabase
+              .from("participants")
+              .select("intents, looking_for, offering")
+              .eq("event_id", eventId)
+              .eq("user_id", user.id)
+              .single()
+          : Promise.resolve({ data: null }),
+      ]);
+
+      if (profile) {
+        setFullName(profile.full_name || "");
+        setTitle(profile.title || "");
+        setCompanyName(profile.company_name || "");
+        setCompanySize(profile.company_size || "");
+        setCompanyWebsite(profile.company_website || "");
+        if (profile.expertise_areas?.length) setExpertiseAreas(profile.expertise_areas);
+        if (profile.interests?.length) setInterests(profile.interests);
+      }
+
+      const participant = participantRes.data;
+      if (participant) {
+        if (participant.intents?.length) setSelectedIntents(participant.intents);
+        if (participant.looking_for) setLookingFor(participant.looking_for);
+        if (participant.offering) setOffering(participant.offering);
+      }
+
+      setLoading(false);
     });
-  }, [router]);
+  }, [router, eventId]);
 
   const canProceed = fullName.trim() && title.trim() && companyName.trim() && selectedIntents.length > 0;
 

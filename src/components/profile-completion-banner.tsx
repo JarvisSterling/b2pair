@@ -74,7 +74,7 @@ export function ProfileCompletionBanner({
             />
           </div>
 
-          <Link href={`/dashboard/events/${eventId}?completeProfile=1`}>
+          <Link href={`/dashboard/complete-profile?redirect=/dashboard/events/${eventId}&eventId=${eventId}`}>
             <Button size="sm" variant="outline" className="text-xs h-8">
               Complete profile
               <ArrowRight className="ml-1.5 h-3 w-3" />

@@ -22,6 +22,7 @@ import {
   Keyboard,
   Camera,
   Maximize2,
+  BadgeCheck,
 } from "lucide-react";
 import { QrCameraScanner } from "@/components/qr-camera-scanner";
 import Link from "next/link";
@@ -288,12 +289,20 @@ export default function CheckInDashboard() {
             Real-time event check-in dashboard
           </p>
         </div>
-        <Link href={`/dashboard/w/${params.workspaceId}/events/${eventId}/check-in/kiosk`} target="_blank">
-          <Button variant="outline" className="gap-2">
-            <Maximize2 className="h-4 w-4" />
-            Kiosk mode
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href={`/dashboard/w/${params.workspaceId}/events/${eventId}/check-in/badges`}>
+            <Button variant="outline" className="gap-2">
+              <BadgeCheck className="h-4 w-4" />
+              Badges
+            </Button>
+          </Link>
+          <Link href={`/dashboard/w/${params.workspaceId}/events/${eventId}/check-in/kiosk`} target="_blank">
+            <Button variant="outline" className="gap-2">
+              <Maximize2 className="h-4 w-4" />
+              Kiosk mode
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

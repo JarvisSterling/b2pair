@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   Bell,
+  BadgeCheck,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useState, useEffect } from "react";
@@ -49,6 +50,7 @@ const EVENT_NAV = [
   { id: "matching", label: "Matching Rules", icon: Zap, path: "/matching" },
   { id: "partners", label: "Partners", icon: Building2, path: "/partners" },
   { id: "check-in", label: "Check-in", icon: QrCode, path: "/check-in" },
+  { id: "badges",   label: "Badges",   icon: BadgeCheck, path: "/check-in/badges" },
 ];
 
 export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Props) {

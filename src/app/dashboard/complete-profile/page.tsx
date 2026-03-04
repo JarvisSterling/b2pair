@@ -262,7 +262,7 @@ export default function CompleteProfilePage() {
           <Card>
             <CardContent className="pt-6 space-y-4">
               <div>
-                <h2 className="text-lg font-semibold">Complete your profile</h2>
+                <h2 className="text-lg font-semibold">{eventId ? "Update your participation" : "Complete your profile"}</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   A few details so other participants can learn about you.
                 </p>

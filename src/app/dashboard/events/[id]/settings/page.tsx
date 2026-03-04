@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Trash2, Globe, Check, Plus, X, Tags, Lightbulb } from "lucide-react";
+import { Save, Loader2, Trash2, Globe, EyeOff, Check, Plus, X, Tags, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 
 interface EventSettings {
@@ -87,12 +87,16 @@ export default function EventSettingsPage() {
   async function handlePublish() {
     if (!event) return;
     const supabase = createClient();
-    await supabase
-      .from("events")
-      .update({ status: "published" })
-      .eq("id", eventId);
-
+    await supabase.from("events").update({ status: "published" }).eq("id", eventId);
     setEvent({ ...event, status: "published" });
+  }
+
+  async function handleUnpublish() {
+    if (!event) return;
+    if (!confirm("Unpublish this event? It will be hidden from participants and registration will stop.")) return;
+    const supabase = createClient();
+    await supabase.from("events").update({ status: "draft" }).eq("id", eventId);
+    setEvent({ ...event, status: "draft" });
   }
 
   async function handleDelete() {
@@ -261,6 +265,19 @@ export default function EventSettingsPage() {
               <Button onClick={handlePublish}>
                 <Globe className="mr-2 h-4 w-4" />
                 Publish
+              </Button>
+            </div>
+          )}
+
+          {event.status === "published" && (
+            <div className="flex items-center justify-between rounded-sm border border-border p-4">
+              <div>
+                <p className="text-body font-medium">Unpublish event</p>
+                <p className="text-caption text-muted-foreground">Hide this event from participants and stop registration</p>
+              </div>
+              <Button variant="outline" onClick={handleUnpublish}>
+                <EyeOff className="mr-2 h-4 w-4" />
+                Unpublish
               </Button>
             </div>
           )}

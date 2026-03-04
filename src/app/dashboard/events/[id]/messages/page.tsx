@@ -88,6 +88,7 @@ export default function EventMessagesPage() {
 
   async function createConversationWith(participantId: string) {
     if (!myParticipantId) return;
+    if (participantId === myParticipantId) return; // can't message yourself
     const supabase = createClient();
 
     const { data: targetParticipant } = await supabase

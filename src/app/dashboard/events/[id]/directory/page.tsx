@@ -82,6 +82,7 @@ export default function DirectoryPage() {
         .eq("event_id", eventId)
         .eq("status", "approved")
         .neq("role", "organizer")
+        .neq("user_id", user?.id ?? "")
         .order("created_at", { ascending: false });
 
       if (!data) return [];

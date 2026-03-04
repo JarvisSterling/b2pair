@@ -314,28 +314,26 @@ function SplitLayout({ eventName, dateRange, bannerUrl, settings }: LayoutProps)
   const bgOpacity = (settings.bgOpacity ?? 30) / 100;
   const blur = settings.blur ?? 4;
   // Fade the gradient overlay inversely with opacity so at 100% there's no whitewash
-  const gradientOpacity = Math.max(0, 1 - bgOpacity);
-
   return (
     <div className="relative min-h-[440px] overflow-hidden">
       {bannerUrl ? (
-        <>
-          <SafeImage 
-            src={bannerUrl}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover scale-110"
-            style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
-          <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(255,255,255,${gradientOpacity * 0.4}), rgba(255,255,255,${gradientOpacity * 0.8}))` }} />
-        </>
+        <SafeImage
+          src={bannerUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover scale-110"
+          style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={800} height={400} />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
+        <div className="absolute inset-0" style={{ backgroundColor: "var(--page-bg, #f5f5f7)" }} />
       )}
-      <div className="relative z-10 flex max-w-3xl mx-auto my-12 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
+      <div
+        className="relative z-10 flex max-w-3xl mx-auto my-12 rounded-xl overflow-hidden shadow-lg"
+        style={{ backgroundColor: "var(--page-surface, white)", border: "1px solid var(--page-border, rgba(0,0,0,0.06))" }}
+      >
         <div className="w-[58%] relative min-h-[320px]">
           <BannerImage url={bannerUrl} className="w-full h-full absolute inset-0" />
         </div>
-        <div className="w-[42%] flex flex-col justify-center px-8 py-10">
-          <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
+        <div className="w-[42%] flex flex-col justify-center px-8 py-10" style={{ color: "var(--page-text)" }}>
+          <p className="text-xs mb-2" style={{ color: "var(--page-text-secondary)" }}>{dateRange}</p>
           <h1 className="text-xl font-bold tracking-tight leading-snug mb-6 [overflow-wrap:break-word] [word-break:break-word]">{eventName}</h1>
           <div>
             <RegisterButton />

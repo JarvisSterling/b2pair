@@ -286,23 +286,22 @@ export function BannerDisplay({
   const overlayOpacity = (bannerSettings.overlayOpacity ?? 50) / 100;
 
   if (bannerLayout === "split") {
-    const gradientOpacity = Math.max(0, 1 - bgOpacity);
     return (
       <div className="relative min-h-[520px] overflow-hidden">
         {bannerUrl ? (
-          <>
-            <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={1920} height={1080} />
-            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(255,255,255,${gradientOpacity * 0.4}), rgba(255,255,255,${gradientOpacity * 0.8}))` }} />
-          </>
+          <SafeImage src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover scale-110" style={{ filter: `blur(${blur}px)`, opacity: bgOpacity }} width={1920} height={1080} />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20" />
+          <div className="absolute inset-0" style={{ backgroundColor: "var(--page-bg, #f5f5f7)" }} />
         )}
-        <div className="relative z-10 flex max-w-5xl mx-auto my-14 rounded-xl overflow-hidden shadow-lg bg-background border border-border/60">
+        <div
+          className="relative z-10 flex max-w-5xl mx-auto my-14 rounded-xl overflow-hidden shadow-lg"
+          style={{ backgroundColor: "var(--page-surface, white)", border: "1px solid var(--page-border, rgba(0,0,0,0.06))" }}
+        >
           <div className="w-[58%] relative min-h-[380px]">
             <BannerImage url={bannerUrl} className="w-full h-full absolute inset-0" />
           </div>
-          <div className="w-[42%] flex flex-col justify-center px-10 py-14">
-            <p className="text-sm text-muted-foreground mb-3">{dateRange}</p>
+          <div className="w-[42%] flex flex-col justify-center px-10 py-14" style={{ color: "var(--page-text)" }}>
+            <p className="text-sm mb-3" style={{ color: "var(--page-text-secondary)" }}>{dateRange}</p>
             <h1 className="text-3xl font-bold tracking-tight mb-10">{eventName}</h1>
             <div>
               <BannerRegisterSection slug={eventSlug} isRegistered={isRegistered} isLoggedIn={isLoggedIn} eventId={eventId} requiresApproval={requiresApproval} participantTypes={participantTypes} />

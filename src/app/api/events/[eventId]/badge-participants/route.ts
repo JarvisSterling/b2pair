@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ eve
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Get all approved participants with profile + participant type
-  const { data: participants } = await admin
+  const { data: participants, error: partError } = await admin
     .from("participants")
     .select(`
       id, user_id, status,
@@ -35,6 +35,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ eve
     .eq("event_id", eventId)
     .eq("status", "approved");
 
+  if (partError) return NextResponse.json({ error: partError.message, participants: [] });
   if (!participants) return NextResponse.json({ participants: [] });
 
   // Get QR tokens for these participants

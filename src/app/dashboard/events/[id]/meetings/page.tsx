@@ -21,6 +21,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
+import { MeetingSlotPicker, SelectedSlot } from "@/components/meeting-slot-picker";
+import { cn } from "@/lib/utils";
 
 interface Meeting {
   id: string;
@@ -145,6 +147,7 @@ export default function EventMeetingsPage() {
   } | null>(null);
   const [agendaNote, setAgendaNote] = useState("");
   const [meetingType, setMeetingType] = useState("in-person");
+  const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
@@ -200,6 +203,7 @@ export default function EventMeetingsPage() {
         recipientParticipantId: requestTarget.participantId,
         agendaNote: agendaNote.trim() || null,
         meetingType,
+        startTime: selectedSlot ? `${selectedSlot.date}T${selectedSlot.startTime}:00` : null,
       }),
     });
 
@@ -210,6 +214,7 @@ export default function EventMeetingsPage() {
         setShowRequestModal(false);
         setRequestTarget(null);
         setAgendaNote("");
+        setSelectedSlot(null);
         setRequestSent(false);
       }, 1500);
     }
@@ -511,6 +516,7 @@ export default function EventMeetingsPage() {
               setShowRequestModal(false);
               setRequestTarget(null);
               setAgendaNote("");
+              setSelectedSlot(null);
             }}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
@@ -528,18 +534,63 @@ export default function EventMeetingsPage() {
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-h3 font-semibold mb-1">
-                      Request a meeting
-                    </h3>
-                    <p className="text-caption text-muted-foreground mb-5">
-                      Send a meeting request to {requestTarget.fullName}
-                      {requestTarget.title && requestTarget.companyName
-                        ? `, ${requestTarget.title} at ${requestTarget.companyName}`
-                        : ""}
-                    </p>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-h3 font-semibold">Request a meeting</h3>
+                        <p className="text-caption text-muted-foreground mt-0.5">
+                          Send a meeting request to {requestTarget.fullName}
+                          {requestTarget.title && requestTarget.companyName
+                            ? `, ${requestTarget.title} at ${requestTarget.companyName}`
+                            : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowRequestModal(false);
+                          setRequestTarget(null);
+                          setAgendaNote("");
+                          setSelectedSlot(null);
+                        }}
+                        className="p-1.5 rounded hover:bg-secondary ml-3 shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
 
                     <div className="space-y-4">
-                      <div className="space-y-2">
+                      {/* Slot Picker */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-caption font-medium">Pick a time</label>
+                          {selectedSlot && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSlot(null)}
+                              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        <MeetingSlotPicker
+                          eventId={eventId}
+                          recipientParticipantId={requestTarget.participantId}
+                          selected={selectedSlot}
+                          onSelect={setSelectedSlot}
+                        />
+                        {selectedSlot && (
+                          <p className="mt-2 text-[11px] text-primary font-medium">
+                            ✓ Requesting{" "}
+                            {new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                            at {selectedSlot.startTime.replace(/^0/, "")} – {selectedSlot.endTime.replace(/^0/, "")}
+                            {!selectedSlot.iAmFree && (
+                              <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
                         <label className="text-caption font-medium">
                           Meeting type
                         </label>
@@ -548,7 +599,7 @@ export default function EventMeetingsPage() {
                             <button
                               key={type}
                               onClick={() => setMeetingType(type)}
-                              className={`rounded-full border px-3 py-1.5 text-caption transition-all ${
+                              className={`rounded-full border px-3 py-1.5 text-caption capitalize transition-all ${
                                 meetingType === type
                                   ? "border-primary bg-primary/5 text-primary font-medium"
                                   : "border-border text-muted-foreground hover:border-border-strong"
@@ -560,7 +611,7 @@ export default function EventMeetingsPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <label className="text-caption font-medium">
                           Note (optional)
                         </label>
@@ -573,7 +624,7 @@ export default function EventMeetingsPage() {
                         />
                       </div>
 
-                      <div className="flex gap-2 pt-2">
+                      <div className="flex gap-2 pt-1">
                         <Button
                           className="flex-1"
                           onClick={sendMeetingRequest}
@@ -584,7 +635,7 @@ export default function EventMeetingsPage() {
                           ) : (
                             <Calendar className="mr-2 h-4 w-4" />
                           )}
-                          Send request
+                          {selectedSlot ? "Send request" : "Send without time"}
                         </Button>
                         <Button
                           variant="outline"
@@ -592,6 +643,7 @@ export default function EventMeetingsPage() {
                             setShowRequestModal(false);
                             setRequestTarget(null);
                             setAgendaNote("");
+                            setSelectedSlot(null);
                           }}
                         >
                           Cancel

@@ -18,6 +18,7 @@ import {
   Calendar,
   Loader2,
   X,
+  Check,
   Globe,
   Mail,
   Building2,
@@ -26,6 +27,7 @@ import {
 } from "lucide-react";
 import { useActivityTracker } from "@/hooks/use-activity-tracker";
 import { SafeImage } from "@/components/ui/safe-image";
+import { MeetingSlotPicker, SelectedSlot } from "@/components/meeting-slot-picker";
 
 interface DirectoryEntry {
   id: string;
@@ -123,6 +125,60 @@ export default function DirectoryPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [industryFilter, setIndustryFilter] = useState("all");
   const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
+
+  // Meeting request modal state
+  const [meetingTarget, setMeetingTarget] = useState<{
+    participantId: string;
+    fullName: string;
+    title: string | null;
+    companyName: string | null;
+  } | null>(null);
+  const [meetingNote, setMeetingNote] = useState("");
+  const [meetingType, setMeetingType] = useState("in-person");
+  const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
+
+  function openMeetingModal(entry: DirectoryEntry) {
+    setMeetingTarget({
+      participantId: entry.id,
+      fullName: entry.profiles.full_name,
+      title: entry.profiles.title,
+      companyName: entry.profiles.company_name,
+    });
+    setMeetingNote("");
+    setMeetingType("in-person");
+    setSelectedSlot(null);
+    setRequestSent(false);
+  }
+
+  function closeMeetingModal() {
+    setMeetingTarget(null);
+    setMeetingNote("");
+    setSelectedSlot(null);
+    setRequestSent(false);
+  }
+
+  async function sendMeetingRequest() {
+    if (!meetingTarget) return;
+    setSendingRequest(true);
+    const res = await fetch("/api/meetings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId,
+        recipientParticipantId: meetingTarget.participantId,
+        agendaNote: meetingNote.trim() || null,
+        meetingType,
+        startTime: selectedSlot ? `${selectedSlot.date}T${selectedSlot.startTime}:00` : null,
+      }),
+    });
+    if (res.ok) {
+      setRequestSent(true);
+      setTimeout(() => closeMeetingModal(), 1800);
+    }
+    setSendingRequest(false);
+  }
 
   // Real-time: refresh when participants change
   useRealtime({
@@ -320,7 +376,7 @@ export default function DirectoryPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           track("meeting_request", entry.id);
-                          router.push(`/dashboard/events/${eventId}/meetings?request=${entry.id}`);
+                          openMeetingModal(entry);
                         }}
                       >
                         <Calendar className="mr-1 h-3 w-3" />
@@ -333,6 +389,127 @@ export default function DirectoryPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Meeting Request Modal */}
+      {meetingTarget && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={closeMeetingModal} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <Card className="w-full max-w-md shadow-xl animate-fade-in">
+              <CardContent className="pt-6">
+                {requestSent ? (
+                  <div className="text-center py-6">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-4">
+                      <Check className="h-6 w-6 text-emerald-500" />
+                    </div>
+                    <h3 className="text-h3 font-semibold">Request sent!</h3>
+                    <p className="mt-1 text-caption text-muted-foreground">
+                      {meetingTarget.fullName} will be notified.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-h3 font-semibold">Request a meeting</h3>
+                        <p className="text-caption text-muted-foreground mt-0.5">
+                          Send a meeting request to {meetingTarget.fullName}
+                          {meetingTarget.title && meetingTarget.companyName
+                            ? `, ${meetingTarget.title} at ${meetingTarget.companyName}`
+                            : ""}
+                        </p>
+                      </div>
+                      <button onClick={closeMeetingModal} className="p-1.5 rounded hover:bg-secondary ml-3 shrink-0">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Slot Picker */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-caption font-medium">Pick a time</label>
+                          {selectedSlot && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSlot(null)}
+                              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        <MeetingSlotPicker
+                          eventId={eventId}
+                          recipientParticipantId={meetingTarget.participantId}
+                          selected={selectedSlot}
+                          onSelect={setSelectedSlot}
+                        />
+                        {selectedSlot && (
+                          <p className="mt-2 text-[11px] text-primary font-medium">
+                            ✓ Requesting{" "}
+                            {new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                            at {selectedSlot.startTime.replace(/^0/, "")} – {selectedSlot.endTime.replace(/^0/, "")}
+                            {!selectedSlot.iAmFree && (
+                              <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Meeting type */}
+                      <div className="space-y-1.5">
+                        <label className="text-caption font-medium">Meeting type</label>
+                        <div className="flex gap-2">
+                          {["in-person", "virtual", "hybrid"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => setMeetingType(type)}
+                              className={`rounded-full border px-3 py-1.5 text-caption capitalize transition-all ${
+                                meetingType === type
+                                  ? "border-primary bg-primary/5 text-primary font-medium"
+                                  : "border-border text-muted-foreground hover:border-border-strong"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Note */}
+                      <div className="space-y-1.5">
+                        <label className="text-caption font-medium">Note (optional)</label>
+                        <textarea
+                          rows={3}
+                          placeholder="What would you like to discuss?"
+                          value={meetingNote}
+                          onChange={(e) => setMeetingNote(e.target.value)}
+                          className="flex w-full rounded bg-input px-4 py-3 text-body text-foreground border border-border placeholder:text-muted-foreground transition-colors duration-150 hover:border-border-strong focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/20 resize-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <Button className="flex-1" onClick={sendMeetingRequest} disabled={sendingRequest}>
+                          {sendingRequest ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Calendar className="mr-2 h-4 w-4" />
+                          )}
+                          {selectedSlot ? "Send request" : "Send without time"}
+                        </Button>
+                        <Button variant="outline" onClick={closeMeetingModal}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
 
       {/* Participant Detail Panel */}
@@ -471,8 +648,9 @@ export default function DirectoryPage() {
                   <Button
                     className="flex-1"
                     onClick={() => {
+                      const entry = selectedEntry;
                       setSelectedEntry(null);
-                      router.push(`/dashboard/events/${eventId}/meetings?request=${selectedEntry.id}`);
+                      openMeetingModal(entry);
                     }}
                   >
                     <Calendar className="mr-2 h-4 w-4" />

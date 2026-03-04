@@ -33,7 +33,6 @@ import {
   User,
   Mail,
   Tag,
-  Search,
   Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

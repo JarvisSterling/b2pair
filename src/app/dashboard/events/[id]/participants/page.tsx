@@ -21,8 +21,12 @@ import {
   Briefcase,
   Mail,
   Globe,
+  Star,
+  Zap,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Participant {
   id: string;
@@ -41,6 +45,26 @@ interface Participant {
     linkedin_url: string | null;
     company_website: string | null;
     expertise_areas: string[];
+  };
+}
+
+interface MatchEntry {
+  id: string;
+  score: number;
+  match_reasons: string[];
+  status: string;
+  organizer_recommended: boolean;
+  other: {
+    id: string;
+    role: string;
+    intent: string | null;
+    profiles: {
+      full_name: string;
+      avatar_url: string | null;
+      title: string | null;
+      company_name: string | null;
+      industry: string | null;
+    };
   };
 }
 
@@ -82,6 +106,7 @@ export default function ParticipantsPage() {
   const [filter, setFilter] = useState<string>("all");
   const [updating, setUpdating] = useState<string | null>(null);
   const [selected, setSelected] = useState<Participant | null>(null);
+  const [detailTab, setDetailTab] = useState<"details" | "matches">("details");
 
   // Real-time: refresh when participants change for this event
   useRealtime({
@@ -89,6 +114,16 @@ export default function ParticipantsPage() {
     filter: { event_id: eventId },
     onChanged: () => mutate(),
   });
+
+  // Matches for selected participant
+  const { data: matchData, isLoading: matchesLoading, mutate: mutateMatches } = useSWR<{ matches: MatchEntry[] }>(
+    selected && detailTab === "matches" && eventId
+      ? `/api/events/${eventId}/participants/${selected.id}/matches`
+      : null,
+    (url: string) => fetch(url).then((r) => r.json()),
+    { revalidateOnFocus: false }
+  );
+  const matches = matchData?.matches || [];
 
   async function updateStatus(participantId: string, status: "approved" | "rejected") {
     setUpdating(participantId);
@@ -105,6 +140,30 @@ export default function ParticipantsPage() {
       { revalidate: true }
     );
     setUpdating(null);
+  }
+
+  async function toggleRecommend(matchId: string, current: boolean) {
+    const next = !current;
+    // Optimistic
+    mutateMatches(
+      { matches: matches.map((m) => (m.id === matchId ? { ...m, organizer_recommended: next } : m)) },
+      { revalidate: false }
+    );
+    const res = await fetch(`/api/events/${eventId}/matches/${matchId}/recommend`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recommended: next }),
+    });
+    if (!res.ok) {
+      // Revert
+      mutateMatches(
+        { matches: matches.map((m) => (m.id === matchId ? { ...m, organizer_recommended: current } : m)) },
+        { revalidate: false }
+      );
+      toast.error("Failed to update recommendation");
+    } else {
+      toast.success(next ? "Match recommended to attendee" : "Recommendation removed");
+    }
   }
 
   const filtered = participants.filter((p) => {
@@ -210,7 +269,7 @@ export default function ParticipantsPage() {
             return (
               <div
                 key={participant.id}
-                onClick={() => setSelected(participant)}
+                onClick={() => { setSelected(participant); setDetailTab("details"); }}
                 className="flex items-center gap-4 rounded-md border border-border bg-card p-4 transition-colors duration-150 hover:bg-secondary/30 cursor-pointer"
               >
                 {profile.avatar_url ? (
@@ -242,7 +301,7 @@ export default function ParticipantsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => updateStatus(participant.id, "rejected")}
+                        onClick={(e) => { e.stopPropagation(); updateStatus(participant.id, "rejected"); }}
                         disabled={updating === participant.id}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
@@ -250,7 +309,7 @@ export default function ParticipantsPage() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => updateStatus(participant.id, "approved")}
+                        onClick={(e) => { e.stopPropagation(); updateStatus(participant.id, "approved"); }}
                         disabled={updating === participant.id}
                       >
                         {updating === participant.id ? (
@@ -293,7 +352,7 @@ export default function ParticipantsPage() {
               </div>
 
               {/* Profile header */}
-              <div className="flex items-start gap-4 mb-6">
+              <div className="flex items-start gap-4 mb-5">
                 {selected.profiles.avatar_url ? (
                   <SafeImage 
                     src={selected.profiles.avatar_url}
@@ -325,9 +384,9 @@ export default function ParticipantsPage() {
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Approve/Reject actions */}
               {selected.status === "pending" && (
-                <div className="flex gap-2 mb-6">
+                <div className="flex gap-2 mb-5">
                   <Button
                     className="flex-1"
                     onClick={() => {
@@ -354,87 +413,199 @@ export default function ParticipantsPage() {
                 </div>
               )}
 
-              {/* Details */}
-              <div className="space-y-4">
-                {selected.profiles.email && (
-                  <div className="flex items-center gap-3 text-body">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <a href={`mailto:${selected.profiles.email}`} className="text-primary hover:underline truncate">
-                      {selected.profiles.email}
-                    </a>
-                  </div>
-                )}
-
-                {selected.profiles.company_name && (
-                  <div className="flex items-center gap-3 text-body">
-                    <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{selected.profiles.company_name}</span>
-                  </div>
-                )}
-
-                {selected.profiles.industry && (
-                  <div className="flex items-center gap-3 text-body">
-                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{selected.profiles.industry}</span>
-                  </div>
-                )}
-
-                {selected.profiles.company_website && (
-                  <div className="flex items-center gap-3 text-body">
-                    <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <a href={selected.profiles.company_website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                      {selected.profiles.company_website}
-                    </a>
-                  </div>
-                )}
-
-                {selected.profiles.linkedin_url && (
-                  <div className="flex items-center gap-3 text-body">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <a href={selected.profiles.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                      LinkedIn
-                    </a>
-                  </div>
-                )}
-
-                {selected.profiles.bio && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-caption font-medium mb-1">Bio</p>
-                    <p className="text-body text-muted-foreground">{selected.profiles.bio}</p>
-                  </div>
-                )}
-
-                {selected.profiles.expertise_areas?.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-caption font-medium mb-2">Expertise</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selected.profiles.expertise_areas.map((area) => (
-                        <Badge key={area} variant="outline">{area}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selected.intent && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-caption font-medium mb-1">Intent</p>
-                    <Badge variant="secondary">{selected.intent}</Badge>
-                  </div>
-                )}
-
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-caption font-medium mb-1">Registered</p>
-                  <p className="text-body text-muted-foreground">
-                    {new Date(selected.created_at).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
+              {/* Tabs */}
+              <div className="flex border-b border-border mb-5">
+                {(["details", "matches"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setDetailTab(tab)}
+                    className={cn(
+                      "px-4 py-2 text-caption font-medium border-b-2 -mb-px transition-colors",
+                      detailTab === tab
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {tab === "details" ? "Details" : "Matches"}
+                    {tab === "matches" && matches.length > 0 && (
+                      <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-small text-primary">
+                        {matches.length}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
+
+              {/* Details tab */}
+              {detailTab === "details" && (
+                <div className="space-y-4">
+                  {selected.profiles.email && (
+                    <div className="flex items-center gap-3 text-body">
+                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <a href={`mailto:${selected.profiles.email}`} className="text-primary hover:underline truncate">
+                        {selected.profiles.email}
+                      </a>
+                    </div>
+                  )}
+
+                  {selected.profiles.company_name && (
+                    <div className="flex items-center gap-3 text-body">
+                      <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span>{selected.profiles.company_name}</span>
+                    </div>
+                  )}
+
+                  {selected.profiles.industry && (
+                    <div className="flex items-center gap-3 text-body">
+                      <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span>{selected.profiles.industry}</span>
+                    </div>
+                  )}
+
+                  {selected.profiles.company_website && (
+                    <div className="flex items-center gap-3 text-body">
+                      <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <a href={selected.profiles.company_website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                        {selected.profiles.company_website}
+                      </a>
+                    </div>
+                  )}
+
+                  {selected.profiles.linkedin_url && (
+                    <div className="flex items-center gap-3 text-body">
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <a href={selected.profiles.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                        LinkedIn
+                      </a>
+                    </div>
+                  )}
+
+                  {selected.profiles.bio && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-caption font-medium mb-1">Bio</p>
+                      <p className="text-body text-muted-foreground">{selected.profiles.bio}</p>
+                    </div>
+                  )}
+
+                  {selected.profiles.expertise_areas?.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-caption font-medium mb-2">Expertise</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selected.profiles.expertise_areas.map((area) => (
+                          <Badge key={area} variant="outline">{area}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selected.intent && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-caption font-medium mb-1">Intent</p>
+                      <Badge variant="secondary">{selected.intent}</Badge>
+                    </div>
+                  )}
+
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-caption font-medium mb-1">Registered</p>
+                    <p className="text-body text-muted-foreground">
+                      {new Date(selected.created_at).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Matches tab */}
+              {detailTab === "matches" && (
+                <div>
+                  {matchesLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : matches.length === 0 ? (
+                    <div className="flex flex-col items-center text-center py-12">
+                      <Zap className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                      <p className="text-body text-muted-foreground">No matches yet.</p>
+                      <p className="text-caption text-muted-foreground mt-1">
+                        Run the matching engine from Matching Rules.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-caption text-muted-foreground mb-3">
+                        Star a match to push it as a recommendation to this attendee.
+                      </p>
+                      {matches.map((match) => {
+                        const other = match.other;
+                        const profile = other?.profiles;
+                        if (!profile) return null;
+                        const initials = profile.full_name
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2);
+
+                        return (
+                          <div
+                            key={match.id}
+                            className={cn(
+                              "flex items-center gap-3 rounded-md border p-3 transition-colors",
+                              match.organizer_recommended
+                                ? "border-amber-500/40 bg-amber-500/5"
+                                : "border-border bg-card"
+                            )}
+                          >
+                            {profile.avatar_url ? (
+                              <SafeImage
+                                src={profile.avatar_url}
+                                alt={profile.full_name}
+                                className="h-9 w-9 rounded-full object-cover shrink-0"
+                                width={36} height={36}
+                              />
+                            ) : (
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-caption font-medium shrink-0">
+                                {initials}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-body font-medium truncate">{profile.full_name}</p>
+                              <p className="text-caption text-muted-foreground truncate">
+                                {[profile.title, profile.company_name].filter(Boolean).join(" at ") || ""}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-caption font-medium text-muted-foreground">
+                                {Math.round(match.score)}%
+                              </span>
+                              <button
+                                onClick={() => toggleRecommend(match.id, match.organizer_recommended)}
+                                className={cn(
+                                  "p-1.5 rounded-md transition-colors",
+                                  match.organizer_recommended
+                                    ? "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                                    : "text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+                                )}
+                                title={match.organizer_recommended ? "Remove recommendation" : "Recommend to attendee"}
+                              >
+                                <Star
+                                  className="h-4 w-4"
+                                  fill={match.organizer_recommended ? "currentColor" : "none"}
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </>

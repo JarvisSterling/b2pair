@@ -1,4 +1,4 @@
-"use client";
+﻿﻿﻿﻿﻿﻿﻿﻿"use client";
 
 import { useState } from "react";
 import useSWR from "swr";
@@ -35,6 +35,7 @@ import {
   Mail,
   Tag,
   Briefcase,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActivityTracker } from "@/hooks/use-activity-tracker";
@@ -51,6 +52,7 @@ interface MatchEntry {
   embedding_score?: number;
   match_reasons: string[];
   status: string;
+  organizer_recommended: boolean;
   other_participant: {
     id: string;
     role: string;
@@ -180,7 +182,7 @@ export default function EventMatchesPage() {
         supabase
           .from("matches")
           .select(`
-            id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status,
+            id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status, organizer_recommended,
             participant_b:participants!matches_participant_b_id_fkey(
               id, role, intent,
               profiles!inner(full_name, avatar_url, title, company_name, industry, bio, expertise_areas)
@@ -192,7 +194,7 @@ export default function EventMatchesPage() {
         supabase
           .from("matches")
           .select(`
-            id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status,
+            id, score, intent_score, industry_score, interest_score, complementarity_score, embedding_score, match_reasons, status, organizer_recommended,
             participant_a:participants!matches_participant_a_id_fkey(
               id, role, intent,
               profiles!inner(full_name, avatar_url, title, company_name, industry, bio, expertise_areas)
@@ -311,20 +313,30 @@ export default function EventMatchesPage() {
 
   const activeMatches = matches.filter((m) => m.status !== "dismissed");
   const savedMatches = matches.filter((m) => m.status === "saved");
+  const recommendedMatches = activeMatches.filter((m) => m.organizer_recommended);
   const displayMatches = tab === "saved" ? savedMatches : activeMatches;
 
-  const filteredMatches = displayMatches.filter((m) => {
-    if (!search) return true;
-    const p = m.other_participant?.profiles;
-    if (!p) return false;
-    const q = search.toLowerCase();
-    return (
-      p.full_name.toLowerCase().includes(q) ||
-      (p.company_name || "").toLowerCase().includes(q) ||
-      (p.title || "").toLowerCase().includes(q) ||
-      (p.industry || "").toLowerCase().includes(q)
-    );
-  });
+  const filteredMatches = displayMatches
+    .filter((m) => {
+      if (!search) return true;
+      const p = m.other_participant?.profiles;
+      if (!p) return false;
+      const q = search.toLowerCase();
+      return (
+        p.full_name.toLowerCase().includes(q) ||
+        (p.company_name || "").toLowerCase().includes(q) ||
+        (p.title || "").toLowerCase().includes(q) ||
+        (p.industry || "").toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (tab === "all" && !search) {
+        if (a.organizer_recommended && !b.organizer_recommended) return -1;
+        if (!a.organizer_recommended && b.organizer_recommended) return 1;
+      }
+      return 0;
+    });
+  const firstNonRecommendedIdx = filteredMatches.findIndex((m) => !m.organizer_recommended);
 
   if (loading) {
     return (
@@ -419,7 +431,7 @@ export default function EventMatchesPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredMatches.map((match) => {
+          {filteredMatches.map((match, index) => {
             const p = match.other_participant?.profiles;
             if (!p) return null;
 
@@ -436,14 +448,28 @@ export default function EventMatchesPage() {
             const wasRequested = requestSent === match.other_participant?.id;
 
             return (
+              {tab === "all" && !search && match.organizer_recommended && index === 0 && (
+                <div className="flex items-center gap-2 mb-3 mt-1">
+                  <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" />
+                  <span className="text-caption font-medium text-amber-500">Recommended by organizer</span>
+                </div>
+              )}
+              {tab === "all" && !search && index === firstNonRecommendedIdx && firstNonRecommendedIdx > 0 && (
+                <div className="flex items-center gap-3 my-4">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-caption text-muted-foreground">Other matches</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+              )}
               <Card
                 key={match.id}
                 className={cn(
                   "transition-all duration-200",
-                  isSaved && "border-primary/20 bg-primary/[0.02]"
+                  isSaved && "border-primary/20 bg-primary/[0.02]",
+                  match.organizer_recommended && "border-amber-500/30 bg-amber-500/[0.03]"
                 )}
               >
-                <CardContent className="pt-6">
+<CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     {p.avatar_url ? (
@@ -460,6 +486,11 @@ export default function EventMatchesPage() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <p className="text-body font-semibold">{p.full_name}</p>
+                            {match.organizer_recommended && (
+                              <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+                                <Star className="h-2.5 w-2.5" fill="currentColor" /> Recommended
+                              </span>
+                            )}
                             {/* Score ring */}
                             <div className="relative flex items-center justify-center">
                               <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36">
@@ -520,7 +551,7 @@ export default function EventMatchesPage() {
                         ))}
                       </div>
 
-                      {/* Why matched — always visible, styled with icons */}
+                      {/* Why matched â€” always visible, styled with icons */}
                       {match.match_reasons && match.match_reasons.length > 0 && (
                         <div className="mt-3 space-y-1.5">
                           {match.match_reasons.map((reason, i) => {
@@ -634,9 +665,9 @@ export default function EventMatchesPage() {
                             />
                             {selectedSlot && (
                               <p className="mt-2 text-[11px] text-primary font-medium">
-                                ✓ Requesting{" "}
+                                âœ“ Requesting{" "}
                                 {new Date(`${selectedSlot.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
-                                at {fmtTime(selectedSlot.startTime)} – {fmtTime(selectedSlot.endTime)}
+                                at {fmtTime(selectedSlot.startTime)} â€“ {fmtTime(selectedSlot.endTime)}
                                 {!selectedSlot.iAmFree && (
                                   <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
                                 )}
@@ -906,3 +937,7 @@ export default function EventMatchesPage() {
     </div>
   );
 }
+
+
+
+

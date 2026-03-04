@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- B2Pair Database Schema
 -- AI-Powered B2B Event Matchmaking Platform
 -- ============================================================
@@ -191,6 +191,9 @@ create table public.matches (
   -- Explanation
   match_reasons jsonb default '[]',
   
+  -- Organizer
+  organizer_recommended boolean default false,
+
   -- Status
   status text not null check (status in ('suggested', 'viewed', 'saved', 'dismissed', 'connected')) default 'suggested',
   

@@ -57,6 +57,15 @@ interface DirectoryEntry {
   } | null;
 }
 
+const SPECIAL_ROLES = ["speaker", "investor", "vip", "panelist", "mentor", "sponsor", "judge", "moderator"];
+
+/** Strip AI-generated prefix: "As a X at Y, I'm looking for Z" → "Z"
+ *  Also handles "As a X at Y, I bring Z" */
+function trimAiPrefix(text: string): string {
+  const m = text.match(/^As a .+?,\s+I(?:'m looking for|'m seeking| bring|'m offering)\s+(.+)$/si);
+  return m ? m[1] : text;
+}
+
 const INTENT_LABELS: Record<string, string> = {
   buying: "Looking to buy",
   selling: "Looking to sell",
@@ -399,7 +408,7 @@ export default function DirectoryPage() {
                         {entry.company_role === "speaker" && " · Speaker"}
                       </Badge>
                     )}
-                    {entry.role && entry.role !== "participant" && entry.role !== "representative" && (
+                    {SPECIAL_ROLES.includes(entry.role) && (
                       <Badge variant="secondary" className="capitalize">{entry.role}</Badge>
                     )}
                     {p.industry && <Badge variant="secondary">{p.industry}</Badge>}
@@ -435,7 +444,7 @@ export default function DirectoryPage() {
                         <div className="flex items-start gap-1.5">
                           <Search className="h-3 w-3 mt-0.5 shrink-0 text-primary/70" />
                           <span className="text-small text-muted-foreground line-clamp-1">
-                            {entry.looking_for}
+                            {trimAiPrefix(entry.looking_for)}
                           </span>
                         </div>
                       )}
@@ -443,7 +452,7 @@ export default function DirectoryPage() {
                         <div className="flex items-start gap-1.5">
                           <Briefcase className="h-3 w-3 mt-0.5 shrink-0 text-amber-500/80" />
                           <span className="text-small text-muted-foreground line-clamp-1">
-                            {entry.offering}
+                            {trimAiPrefix(entry.offering)}
                           </span>
                         </div>
                       )}

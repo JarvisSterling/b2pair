@@ -70,7 +70,7 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
           profile={profile}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] pb-20 lg:p-8 lg:pt-8 lg:pb-8">
             {children}
           </main>
         </div>
@@ -103,7 +103,7 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
           profile={profile}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] pb-20 lg:p-8 lg:pt-8 lg:pb-8">
             {children}
           </main>
         </div>

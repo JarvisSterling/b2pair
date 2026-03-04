@@ -310,15 +310,16 @@ export default function CheckInDashboard() {
         <Button
           variant={mode === "scan" ? "default" : "outline"}
           onClick={() => setMode("scan")}
-          className="gap-2"
+          className="gap-1.5 flex-1 sm:flex-none"
         >
           <Scan className="h-4 w-4" />
-          Scan QR
+          <span className="hidden sm:inline">Scan QR</span>
+          <span className="sm:hidden">Scan</span>
         </Button>
         <Button
           variant={mode === "camera" ? "default" : "outline"}
           onClick={() => { setMode("camera"); setCameraPaused(false); setLastResult(null); }}
-          className="gap-2"
+          className="gap-1.5 flex-1 sm:flex-none"
         >
           <Camera className="h-4 w-4" />
           Camera
@@ -326,10 +327,11 @@ export default function CheckInDashboard() {
         <Button
           variant={mode === "search" ? "default" : "outline"}
           onClick={() => setMode("search")}
-          className="gap-2"
+          className="gap-1.5 flex-1 sm:flex-none"
         >
           <Keyboard className="h-4 w-4" />
-          Manual search
+          <span className="hidden sm:inline">Manual search</span>
+          <span className="sm:hidden">Search</span>
         </Button>
       </div>
 

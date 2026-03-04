@@ -413,7 +413,7 @@ export default function EventMeetingsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-1 mb-6 overflow-x-auto">
+      <div className="flex gap-1 mb-6 overflow-x-auto pb-1" style={{msOverflowStyle:'none', scrollbarWidth:'none'}}>
         {[
           { key: "all", label: "All" },
           {
@@ -507,7 +507,7 @@ export default function EventMeetingsPage() {
                           .join(" at ")}
                       </p>
 
-                      <div className="flex items-center gap-4 mt-2 text-caption text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-caption text-muted-foreground">
                         <span className="flex items-center gap-1 capitalize">
                           <Calendar className="h-3 w-3" />
                           {meeting.meeting_type}

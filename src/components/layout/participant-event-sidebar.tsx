@@ -24,6 +24,8 @@ import {
   Settings2,
   UserPlus,
   FileText,
+  Menu,
+  X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParticipantPerms } from "@/hooks/use-participant-perms";
@@ -47,6 +49,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
   const [eventName, setEventName] = useState("Event");
   const [unreadCount, setUnreadCount] = useState(0);
   const [mode, setMode] = useState<"participant" | "company">("participant");
+  const [menuOpen, setMenuOpen] = useState(false);
   const perms = useParticipantPerms(eventId);
   const { memberships } = useCompanyMemberships(eventId);
 
@@ -123,7 +126,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
     .toUpperCase()
     .slice(0, 2);
 
-  return (
+  return (<>
     <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background">
       {/* Event name header */}
       <div className="flex h-14 items-center gap-3 px-5 border-b border-border">
@@ -309,5 +312,128 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         </button>
       </div>
     </aside>
+
+    {/* ===== MOBILE HEADER ===== */}
+    <div className="fixed top-0 inset-x-0 z-30 flex lg:hidden h-14 items-center gap-3 px-4 bg-background/95 backdrop-blur-sm border-b border-border">
+      <button
+        onClick={() => setMenuOpen(true)}
+        className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary transition-colors"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      <span className="flex-1 text-sm font-semibold truncate">{eventName}</span>
+      <Link href="/dashboard/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium hover:opacity-80">
+        {initials}
+      </Link>
+    </div>
+
+    {/* ===== MOBILE DRAWER ===== */}
+    {menuOpen && (
+      <>
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMenuOpen(false)} />
+        <aside className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-background border-r border-border flex flex-col overflow-y-auto lg:hidden">
+          <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <CalendarDays className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold truncate">{eventName}</span>
+            </div>
+            <button onClick={() => setMenuOpen(false)} className="p-1.5 hover:bg-secondary rounded-md">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="px-3 pt-3 pb-1">
+            <Link href="/dashboard/home" onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-sm px-3 py-2 text-caption text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to events
+            </Link>
+          </div>
+
+          <nav className="flex-1 px-3 py-2 space-y-0.5">
+            {[
+              { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "" },
+              { id: "matches", label: "Matches", icon: Zap, path: "/matches" },
+              { id: "meetings", label: "Meetings", icon: Users, path: "/meetings", gate: perms.can_book_meetings },
+              { id: "messages", label: "Messages", icon: MessageSquare, path: "/messages", gate: perms.can_message },
+              { id: "directory", label: "Directory", icon: Search, path: "/directory", gate: perms.can_view_directory },
+              { id: "availability", label: "Availability", icon: Clock, path: "/availability", gate: perms.can_book_meetings },
+              { id: "qr-code", label: "My QR Code", icon: QrCode, path: "/qr-code" },
+            ].filter((i) => i.gate !== false).map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <Link key={item.id} href={basePath + item.path} onClick={() => setMenuOpen(false)}
+                  className={cn("flex items-center gap-3 rounded-sm px-3 py-2.5 text-body transition-all",
+                    active ? "bg-primary/5 text-primary font-medium" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+                  {item.label}
+                  {item.id === "messages" && unreadCount > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="border-t border-border p-3 shrink-0">
+            <Link href="/dashboard/profile" onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-sm hover:bg-secondary transition-colors">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium shrink-0">{initials}</div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-caption font-medium">{profile.full_name}</p>
+                <p className="truncate text-small text-muted-foreground">{profile.email}</p>
+              </div>
+            </Link>
+            <button onClick={handleSignOut} className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-caption text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
+        </aside>
+      </>
+    )}
+
+    {/* ===== MOBILE BOTTOM NAV ===== */}
+    <nav className="fixed bottom-0 inset-x-0 z-30 flex lg:hidden h-16 items-center justify-around bg-background border-t border-border px-1">
+      {[
+        { id: "overview", label: "Home", icon: LayoutDashboard, path: "" },
+        { id: "matches", label: "Matches", icon: Zap, path: "/matches" },
+        perms.can_book_meetings ? { id: "meetings", label: "Meetings", icon: Users, path: "/meetings" } : null,
+        perms.can_message ? { id: "messages", label: "Messages", icon: MessageSquare, path: "/messages" } : null,
+        perms.can_view_directory ? { id: "directory", label: "Directory", icon: Search, path: "/directory" } : null,
+      ].filter(Boolean).slice(0, 5).map((item) => {
+        if (!item) return null;
+        const Icon = item.icon;
+        const active = isActive(item.path);
+        return (
+          <Link key={item.id} href={basePath + item.path}
+            className={cn("flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[48px]",
+              active ? "text-primary" : "text-muted-foreground"
+            )}>
+            <div className="relative">
+              <Icon className="h-5 w-5" strokeWidth={active ? 2 : 1.5} />
+              {item.id === "messages" && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-primary-foreground">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] leading-tight">{item.label}</span>
+          </Link>
+        );
+      })}
+      <button onClick={() => setMenuOpen(true)}
+        className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[48px] text-muted-foreground">
+        <Menu className="h-5 w-5" strokeWidth={1.5} />
+        <span className="text-[10px] leading-tight">More</span>
+      </button>
+    </nav>
+  </>
   );
 }

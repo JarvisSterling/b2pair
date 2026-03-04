@@ -82,7 +82,7 @@ export default function EventControlPanel({ params }: PageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-display tracking-tight">{event.name}</h1>
+            <h1 className="text-[2rem] sm:text-display tracking-tight break-words">{event.name}</h1>
             <Badge variant={STATUS_VARIANTS[event.status] || "secondary"}>
               {event.status}
             </Badge>
@@ -113,7 +113,7 @@ export default function EventControlPanel({ params }: PageProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-5 mb-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 mb-6">
         <StatCard label="Participants" value={stats.participantCount} />
         <StatCard label="Pending" value={stats.pendingCount} highlight={stats.pendingCount > 0} />
         <StatCard label="Types" value={stats.typeCount} />
@@ -245,7 +245,7 @@ function EventOverviewSkeleton() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-5 mb-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 mb-6">
         {[...Array(5)].map((_, i) => (
           <Card key={i}>
             <CardContent className="pt-5 pb-5 text-center">

@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { trimAiPrefix } from "@/lib/text-utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -212,7 +213,7 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
           </Badge>
           {typeName && <Badge variant="outline">{typeName}</Badge>}
         </div>
-        <h1 className="text-display tracking-tight">{event.name}</h1>
+        <h1 className="text-[2rem] sm:text-display tracking-tight break-words">{event.name}</h1>
         <div className="flex items-center gap-4 mt-2 text-caption text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
@@ -292,7 +293,7 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
             {myParticipantFull?.looking_for ? (
               <div className="mt-3">
                 <p className="text-caption font-medium text-muted-foreground mb-0.5">Looking for</p>
-                <p className="text-caption text-foreground line-clamp-2">{myParticipantFull.looking_for}</p>
+                <p className="text-caption text-foreground line-clamp-2">{trimAiPrefix(myParticipantFull.looking_for)}</p>
               </div>
             ) : (
               <p className="mt-2 text-caption text-muted-foreground italic">
@@ -304,7 +305,7 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
             {myParticipantFull?.offering && (
               <div className="mt-2">
                 <p className="text-caption font-medium text-muted-foreground mb-0.5">Offering</p>
-                <p className="text-caption text-foreground line-clamp-2">{myParticipantFull.offering}</p>
+                <p className="text-caption text-foreground line-clamp-2">{trimAiPrefix(myParticipantFull.offering)}</p>
               </div>
             )}
           </CardContent>
@@ -312,7 +313,7 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
       )}
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-4 mb-8">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-8">
         <Card>
           <CardContent className="pt-5 pb-5 text-center">
             <Zap className="h-5 w-5 text-primary mx-auto mb-1" />

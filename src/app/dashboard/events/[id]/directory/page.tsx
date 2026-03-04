@@ -722,13 +722,13 @@ export default function DirectoryPage() {
                     {selectedEntry.looking_for && (
                       <div className="flex items-start gap-2 text-caption text-muted-foreground">
                         <Search className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/70" />
-                        <span><span className="font-medium text-foreground">Looking for:</span> {selectedEntry.looking_for}</span>
+                        <span><span className="font-medium text-foreground">Looking for:</span> {trimAiPrefix(selectedEntry.looking_for!)}</span>
                       </div>
                     )}
                     {selectedEntry.offering && (
                       <div className="flex items-start gap-2 text-caption text-muted-foreground">
                         <Briefcase className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500/80" />
-                        <span><span className="font-medium text-foreground">Offering:</span> {selectedEntry.offering}</span>
+                        <span><span className="font-medium text-foreground">Offering:</span> {trimAiPrefix(selectedEntry.offering!)}</span>
                       </div>
                     )}
                   </div>

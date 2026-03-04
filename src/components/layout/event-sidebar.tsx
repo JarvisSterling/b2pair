@@ -18,6 +18,8 @@ import {
   LogOut,
   ChevronDown,
   Building2,
+  Menu,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { SafeImage } from "@/components/ui/safe-image";
@@ -51,6 +53,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
   const pathname = usePathname();
   const router = useRouter();
   const [showWorkspaces, setShowWorkspaces] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const basePath = `/dashboard/w/${workspaceId}/events/${eventId}`;
   const currentWorkspace = workspaces.find((w) => w.id === workspaceId);
@@ -73,7 +76,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
     .toUpperCase()
     .slice(0, 2);
 
-  return (
+  return (<>
     <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background">
       {/* Workspace switcher */}
       <div className="relative">
@@ -184,5 +187,83 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
         </button>
       </div>
     </aside>
-  );
+
+    {/* ===== MOBILE HEADER ===== */}
+    <div className="fixed top-0 inset-x-0 z-30 flex lg:hidden h-14 items-center gap-3 px-4 bg-background/95 backdrop-blur-sm border-b border-border">
+      <button onClick={() => setMenuOpen(true)} className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary transition-colors">
+        <Menu className="h-5 w-5" />
+      </button>
+      <span className="flex-1 text-sm font-semibold truncate">{currentWorkspace?.name || "Event"}</span>
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">{initials}</div>
+    </div>
+
+    {/* ===== MOBILE DRAWER ===== */}
+    {menuOpen && (
+      <>
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMenuOpen(false)} />
+        <aside className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-background border-r border-border flex flex-col overflow-y-auto lg:hidden">
+          <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
+            <span className="text-sm font-semibold">{currentWorkspace?.name}</span>
+            <button onClick={() => setMenuOpen(false)} className="p-1.5 hover:bg-secondary rounded-md">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="px-3 pt-3 pb-1">
+            <Link href={`/dashboard/w/${workspaceId}`} onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-sm px-3 py-2 text-caption text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+              <ArrowLeft className="h-3.5 w-3.5" />Back to events
+            </Link>
+          </div>
+          <nav className="flex-1 px-3 py-2 space-y-0.5">
+            {EVENT_NAV.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              const href = (item as any).absolute ? `/editor/${eventId}` : basePath + item.path;
+              return (
+                <Link key={item.id} href={href} onClick={() => setMenuOpen(false)}
+                  className={cn("flex items-center gap-3 rounded-sm px-3 py-2.5 text-body transition-all",
+                    active ? "bg-primary/5 text-primary font-medium" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="border-t border-border p-3 shrink-0">
+            <button onClick={handleSignOut} className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-caption text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
+              <LogOut className="h-4 w-4" />Sign out
+            </button>
+          </div>
+        </aside>
+      </>
+    )}
+
+    {/* ===== MOBILE BOTTOM NAV ===== */}
+    <nav className="fixed bottom-0 inset-x-0 z-30 flex lg:hidden h-16 items-center justify-around bg-background border-t border-border px-1">
+      {[
+        { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "" },
+        { id: "participants", label: "People", icon: Users, path: "/participants" },
+        { id: "analytics", label: "Analytics", icon: BarChart3, path: "/analytics" },
+        { id: "partners", label: "Partners", icon: Building2, path: "/partners" },
+      ].map((item) => {
+        const Icon = item.icon;
+        const active = isActive(item.path);
+        return (
+          <Link key={item.id} href={basePath + item.path}
+            className={cn("flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[48px]",
+              active ? "text-primary" : "text-muted-foreground"
+            )}>
+            <Icon className="h-5 w-5" strokeWidth={active ? 2 : 1.5} />
+            <span className="text-[10px] leading-tight">{item.label}</span>
+          </Link>
+        );
+      })}
+      <button onClick={() => setMenuOpen(true)}
+        className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md text-muted-foreground min-w-[48px]">
+        <Menu className="h-5 w-5" strokeWidth={1.5} />
+        <span className="text-[10px] leading-tight">More</span>
+      </button>
+    </nav>
+  </>);
 }

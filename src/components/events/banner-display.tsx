@@ -302,7 +302,7 @@ export function BannerDisplay({
           </div>
           <div className="w-[42%] flex flex-col justify-center px-10 py-14" style={{ color: "var(--page-text)" }}>
             <p className="text-sm mb-3" style={{ color: "var(--page-text-secondary)" }}>{dateRange}</p>
-            <h1 className="text-3xl font-bold tracking-tight mb-10">{eventName}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-10 break-words">{eventName}</h1>
             <div>
               <BannerRegisterSection slug={eventSlug} isRegistered={isRegistered} isLoggedIn={isLoggedIn} eventId={eventId} requiresApproval={requiresApproval} participantTypes={participantTypes} />
             </div>
@@ -328,7 +328,7 @@ export function BannerDisplay({
           <div className="flex items-center justify-between mb-10 text-white">
             <div>
               <p className="text-sm text-white/60 mb-2">{dateRange}</p>
-              <h1 className="text-4xl font-bold tracking-tight">{eventName}</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight break-words">{eventName}</h1>
             </div>
             <BannerRegisterSection slug={eventSlug} isRegistered={isRegistered} isLoggedIn={isLoggedIn} eventId={eventId} requiresApproval={requiresApproval} participantTypes={participantTypes} />
           </div>
@@ -353,7 +353,7 @@ export function BannerDisplay({
           <div className="absolute inset-0 bg-slate-800" />
         )}
         <div className="relative z-10 max-w-5xl mx-auto pt-14 pb-14 px-6 text-center text-white">
-          <h1 className="text-5xl font-bold tracking-tight mb-3">{eventName}</h1>
+          <h1 className="text-2xl sm:text-5xl font-bold tracking-tight mb-3 break-words">{eventName}</h1>
           <p className="text-sm text-white/60 mb-8">{dateRange}</p>
           <BannerRegisterSection slug={eventSlug} isRegistered={isRegistered} isLoggedIn={isLoggedIn} eventId={eventId} requiresApproval={requiresApproval} participantTypes={participantTypes} />
           <div className="mt-10 rounded-xl overflow-hidden shadow-lg max-w-4xl mx-auto">
@@ -373,7 +373,7 @@ export function BannerDisplay({
       <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${overlayOpacity})` }} />
       <div className="relative z-10 text-center text-white px-10 py-16">
         <p className="text-sm text-white/70 mb-3">{dateRange}</p>
-        <h1 className="text-4xl font-bold tracking-tight mb-8">{eventName}</h1>
+        <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-8 break-words">{eventName}</h1>
         <BannerRegisterSection slug={eventSlug} isRegistered={isRegistered} isLoggedIn={isLoggedIn} eventId={eventId} requiresApproval={requiresApproval} participantTypes={participantTypes} />
       </div>
     </div>

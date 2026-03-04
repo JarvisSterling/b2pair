@@ -23,6 +23,8 @@ import {
   Building2,
   Mail,
   Tag,
+  Search,
+  Briefcase,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
 import { MeetingSlotPicker, SelectedSlot } from "@/components/meeting-slot-picker";
@@ -56,16 +58,24 @@ interface ParticipantDetail {
   role: string;
   intent: string | null;
   tags: string[];
+  looking_for: string | null;
+  offering: string | null;
   profiles: {
     full_name: string;
     email: string;
     avatar_url: string | null;
     title: string | null;
     company_name: string | null;
+    company_size: string | null;
     industry: string | null;
     bio: string | null;
     expertise_areas: string[];
   };
+}
+
+function trimAiPrefix(text: string): string {
+  const m = text.match(/^As a .+?,\s+I(?:'m looking for|'m seeking| bring|'m offering)\s+(.+)$/i);
+  return m ? m[1] : text;
 }
 
 const INTENT_LABELS: Record<string, string> = {
@@ -357,7 +367,7 @@ export default function EventMeetingsPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from("participants")
-      .select(`id, role, intent, tags, profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas)`)
+      .select(`id, role, intent, tags, looking_for, offering, profiles!inner(full_name, email, avatar_url, title, company_name, company_size, industry, bio, expertise_areas)`)
       .eq("id", meeting.other_person.id)
       .single();
     setParticipantDetail(data as unknown as ParticipantDetail);
@@ -895,6 +905,12 @@ export default function EventMeetingsPage() {
                         {participantDetail.profiles.industry}
                       </Badge>
                     )}
+                    {participantDetail.profiles.company_size && (
+                      <Badge variant="outline">
+                        <Users className="mr-1 h-3 w-3" />
+                        {participantDetail.profiles.company_size} employees
+                      </Badge>
+                    )}
                     {participantDetail.intent && (
                       <Badge variant="outline">
                         <Tag className="mr-1 h-3 w-3" />
@@ -910,6 +926,27 @@ export default function EventMeetingsPage() {
                       <p className="text-body text-muted-foreground whitespace-pre-wrap">
                         {participantDetail.profiles.bio}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Looking for / Offering */}
+                  {(participantDetail.looking_for || participantDetail.offering) && (
+                    <div className="mb-6">
+                      <h3 className="text-caption font-semibold mb-2">What they&apos;re about</h3>
+                      <div className="space-y-2">
+                        {participantDetail.looking_for && (
+                          <div className="flex items-start gap-2 text-caption text-muted-foreground">
+                            <Search className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/70" />
+                            <span><span className="font-medium text-foreground">Looking for:</span> {trimAiPrefix(participantDetail.looking_for)}</span>
+                          </div>
+                        )}
+                        {participantDetail.offering && (
+                          <div className="flex items-start gap-2 text-caption text-muted-foreground">
+                            <Briefcase className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500/80" />
+                            <span><span className="font-medium text-foreground">Offering:</span> {trimAiPrefix(participantDetail.offering)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 

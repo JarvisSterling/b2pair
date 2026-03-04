@@ -33,6 +33,8 @@ import {
   User,
   Mail,
   Tag,
+  Search,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActivityTracker } from "@/hooks/use-activity-tracker";
@@ -70,16 +72,24 @@ interface ParticipantDetail {
   role: string;
   intent: string | null;
   tags: string[];
+  looking_for: string | null;
+  offering: string | null;
   profiles: {
     full_name: string;
     email: string;
     avatar_url: string | null;
     title: string | null;
     company_name: string | null;
+    company_size: string | null;
     industry: string | null;
     bio: string | null;
     expertise_areas: string[];
   };
+}
+
+function trimAiPrefix(text: string): string {
+  const m = text.match(/^As a .+?,\s+I(?:'m looking for|'m seeking| bring|'m offering)\s+(.+)$/i);
+  return m ? m[1] : text;
 }
 
 const INTENT_LABELS: Record<string, string> = {
@@ -292,7 +302,7 @@ export default function EventMatchesPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from("participants")
-      .select(`id, role, intent, tags, profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas)`)
+      .select(`id, role, intent, tags, looking_for, offering, profiles!inner(full_name, email, avatar_url, title, company_name, company_size, industry, bio, expertise_areas)`)
       .eq("id", match.other_participant.id)
       .single();
     setPanelDetail(data as unknown as ParticipantDetail);
@@ -762,6 +772,12 @@ export default function EventMatchesPage() {
                         {panelDetail.profiles.industry}
                       </Badge>
                     )}
+                    {panelDetail.profiles.company_size && (
+                      <Badge variant="outline">
+                        <Users className="mr-1 h-3 w-3" />
+                        {panelDetail.profiles.company_size} employees
+                      </Badge>
+                    )}
                     {panelDetail.intent && (
                       <Badge variant="outline">
                         <Tag className="mr-1 h-3 w-3" />
@@ -777,6 +793,27 @@ export default function EventMatchesPage() {
                       <p className="text-body text-muted-foreground whitespace-pre-wrap">
                         {panelDetail.profiles.bio}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Looking for / Offering */}
+                  {(panelDetail.looking_for || panelDetail.offering) && (
+                    <div className="mb-6">
+                      <h3 className="text-caption font-semibold mb-2">What they&apos;re about</h3>
+                      <div className="space-y-2">
+                        {panelDetail.looking_for && (
+                          <div className="flex items-start gap-2 text-caption text-muted-foreground">
+                            <Search className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/70" />
+                            <span><span className="font-medium text-foreground">Looking for:</span> {trimAiPrefix(panelDetail.looking_for)}</span>
+                          </div>
+                        )}
+                        {panelDetail.offering && (
+                          <div className="flex items-start gap-2 text-caption text-muted-foreground">
+                            <Briefcase className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500/80" />
+                            <span><span className="font-medium text-foreground">Offering:</span> {trimAiPrefix(panelDetail.offering)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 

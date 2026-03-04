@@ -102,7 +102,7 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { meetingId, status, declineReason, rating, feedback } = body;
+  const { meetingId, status, declineReason, rating, feedback, reschedule } = body;
 
   if (!meetingId) {
     return NextResponse.json({ error: "meetingId required" }, { status: 400 });
@@ -112,6 +112,56 @@ export async function PATCH(request: Request) {
 
   if (status) updates.status = status;
   if (declineReason) updates.decline_reason = declineReason;
+
+  // Handle reschedule: update time/type and reset to pending so the other party re-confirms
+  if (reschedule) {
+    const { data: mtg } = await supabase
+      .from("meetings")
+      .select("requester_id, recipient_id, event_id, status")
+      .eq("id", meetingId)
+      .single();
+
+    if (!mtg) return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
+
+    const { data: myParticipants } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("user_id", user.id);
+    const myIds = new Set((myParticipants || []).map((p: any) => p.id));
+
+    if (!myIds.has(mtg.requester_id) && !myIds.has(mtg.recipient_id)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    updates.start_time = reschedule.startTime ?? null;
+    if (reschedule.meetingType) updates.meeting_type = reschedule.meetingType;
+    // Reset to pending so the other party must re-accept
+    updates.status = "pending";
+
+    // Notify the other party
+    const myPid = myIds.has(mtg.requester_id) ? mtg.requester_id : mtg.recipient_id;
+    const otherPid = myPid === mtg.requester_id ? mtg.recipient_id : mtg.requester_id;
+    const { data: otherParticipant } = await supabase
+      .from("participants")
+      .select("user_id")
+      .eq("id", otherPid)
+      .single();
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+    if (otherParticipant) {
+      await supabase.from("notifications").insert({
+        user_id: otherParticipant.user_id,
+        event_id: mtg.event_id,
+        type: "meeting_request",
+        title: "Meeting rescheduled",
+        body: `${myProfile?.full_name || "Someone"} proposed a new time for your meeting`,
+        link: `/dashboard/meetings`,
+      });
+    }
+  }
 
   // Handle ratings
   if (rating !== undefined) {

@@ -19,6 +19,7 @@ import {
   Calendar,
   Star,
   MessageSquare,
+  RefreshCw,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
 import { MeetingSlotPicker, SelectedSlot } from "@/components/meeting-slot-picker";
@@ -151,6 +152,17 @@ export default function EventMeetingsPage() {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
+  // Cancel state
+  const [cancellingMeeting, setCancellingMeeting] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+
+  // Reschedule modal state
+  const [rescheduleMeeting, setRescheduleMeeting] = useState<Meeting | null>(null);
+  const [rescheduleSlot, setRescheduleSlot] = useState<SelectedSlot | null>(null);
+  const [rescheduleMeetingType, setRescheduleMeetingType] = useState("in-person");
+  const [sendingReschedule, setSendingReschedule] = useState(false);
+  const [rescheduleSent, setRescheduleSent] = useState(false);
+
   // Real-time subscription for meeting updates
   useEffect(() => {
     const supabase = createClient();
@@ -250,6 +262,47 @@ export default function EventMeetingsPage() {
     setRatingMeeting(null);
     setSelectedRating(0);
     mutate();
+  }
+
+  async function handleCancel(meetingId: string) {
+    setCancellingMeeting(meetingId);
+    await fetch("/api/meetings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ meetingId, status: "cancelled" }),
+    });
+    mutate(
+      meetings.map((m) => (m.id === meetingId ? { ...m, status: "cancelled" } : m)),
+      { revalidate: true }
+    );
+    setCancellingMeeting(null);
+    setConfirmCancel(null);
+  }
+
+  async function handleReschedule() {
+    if (!rescheduleMeeting) return;
+    setSendingReschedule(true);
+    const res = await fetch("/api/meetings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        meetingId: rescheduleMeeting.id,
+        reschedule: {
+          startTime: rescheduleSlot ? `${rescheduleSlot.date}T${rescheduleSlot.startTime}:00` : null,
+          meetingType: rescheduleMeetingType,
+        },
+      }),
+    });
+    if (res.ok) {
+      setRescheduleSent(true);
+      mutate();
+      setTimeout(() => {
+        setRescheduleMeeting(null);
+        setRescheduleSlot(null);
+        setRescheduleSent(false);
+      }, 1800);
+    }
+    setSendingReschedule(false);
   }
 
   const filtered = meetings.filter((m) => {
@@ -403,64 +456,112 @@ export default function EventMeetingsPage() {
                         </p>
                       )}
 
-                      <div className="flex gap-2 mt-3">
-                        {!meeting.is_requester &&
-                          meeting.status === "pending" && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={() =>
-                                  handleResponse(meeting.id, "accepted")
-                                }
-                                disabled={updating === meeting.id}
-                              >
-                                {updating === meeting.id ? (
-                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Check className="mr-1 h-3 w-3" />
-                                )}
-                                Accept
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  handleResponse(meeting.id, "declined")
-                                }
-                                disabled={updating === meeting.id}
-                              >
-                                <X className="mr-1 h-3 w-3" />
-                                Decline
-                              </Button>
-                            </>
-                          )}
-
-                        {meeting.status === "accepted" &&
-                          perms.can_message && (
-                            <Link
-                              href={`/dashboard/events/${eventId}/messages?to=${other.id}`}
-                            >
-                              <Button size="sm" variant="outline">
-                                <MessageSquare className="mr-1 h-3 w-3" />
-                                Message
-                              </Button>
-                            </Link>
-                          )}
-
-                        {meeting.status === "completed" &&
-                          !ratingMeeting && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {/* Recipient: Accept / Decline incoming pending */}
+                        {!meeting.is_requester && meeting.status === "pending" && (
+                          <>
                             <Button
                               size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setRatingMeeting(meeting.id);
-                                setSelectedRating(0);
-                              }}
+                              onClick={() => handleResponse(meeting.id, "accepted")}
+                              disabled={updating === meeting.id}
                             >
-                              <Star className="mr-1 h-3 w-3" />
-                              Rate meeting
+                              {updating === meeting.id ? (
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="mr-1 h-3 w-3" />
+                              )}
+                              Accept
                             </Button>
-                          )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleResponse(meeting.id, "declined")}
+                              disabled={updating === meeting.id}
+                            >
+                              <X className="mr-1 h-3 w-3" />
+                              Decline
+                            </Button>
+                          </>
+                        )}
+
+                        {/* Requester: Cancel pending outgoing request */}
+                        {meeting.is_requester && meeting.status === "pending" && (
+                          confirmCancel === meeting.id ? (
+                            <>
+                              <span className="text-caption text-muted-foreground self-center">Cancel this request?</span>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleCancel(meeting.id)}
+                                disabled={cancellingMeeting === meeting.id}
+                              >
+                                {cancellingMeeting === meeting.id ? (
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                ) : null}
+                                Yes, cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setConfirmCancel(null)}
+                              >
+                                Keep it
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-destructive hover:text-destructive hover:border-destructive/50"
+                              onClick={() => setConfirmCancel(meeting.id)}
+                            >
+                              <X className="mr-1 h-3 w-3" />
+                              Cancel request
+                            </Button>
+                          )
+                        )}
+
+                        {/* Reschedule — available to both parties on pending/accepted meetings */}
+                        {(meeting.status === "pending" || meeting.status === "accepted") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setRescheduleMeeting(meeting);
+                              setRescheduleSlot(null);
+                              setRescheduleMeetingType(meeting.meeting_type || "in-person");
+                              setRescheduleSent(false);
+                            }}
+                          >
+                            <RefreshCw className="mr-1 h-3 w-3" />
+                            Reschedule
+                          </Button>
+                        )}
+
+                        {/* Message button on accepted meetings */}
+                        {meeting.status === "accepted" && perms.can_message && (
+                          <Link href={`/dashboard/events/${eventId}/messages?to=${other.id}`}>
+                            <Button size="sm" variant="outline">
+                              <MessageSquare className="mr-1 h-3 w-3" />
+                              Message
+                            </Button>
+                          </Link>
+                        )}
+
+                        {/* Rate completed meetings */}
+                        {meeting.status === "completed" && !ratingMeeting && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setRatingMeeting(meeting.id);
+                              setSelectedRating(0);
+                            }}
+                          >
+                            <Star className="mr-1 h-3 w-3" />
+                            Rate meeting
+                          </Button>
+                        )}
                       </div>
 
                       {ratingMeeting === meeting.id && (
@@ -645,6 +746,125 @@ export default function EventMeetingsPage() {
                             setAgendaNote("");
                             setSelectedSlot(null);
                           }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleMeeting && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => { setRescheduleMeeting(null); setRescheduleSlot(null); setRescheduleSent(false); }}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <Card className="w-full max-w-md shadow-xl animate-fade-in">
+              <CardContent className="pt-6">
+                {rescheduleSent ? (
+                  <div className="text-center py-6">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-4">
+                      <Check className="h-6 w-6 text-emerald-500" />
+                    </div>
+                    <h3 className="text-h3 font-semibold">Reschedule sent!</h3>
+                    <p className="mt-1 text-caption text-muted-foreground">
+                      {rescheduleMeeting.other_person.full_name} will be notified of the new time.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-h3 font-semibold">Reschedule meeting</h3>
+                        <p className="text-caption text-muted-foreground mt-0.5">
+                          Propose a new time with {rescheduleMeeting.other_person.full_name}. They&apos;ll need to re-confirm.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => { setRescheduleMeeting(null); setRescheduleSlot(null); }}
+                        className="p-1.5 rounded hover:bg-secondary ml-3 shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Slot Picker */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-caption font-medium">Pick a new time</label>
+                          {rescheduleSlot && (
+                            <button
+                              type="button"
+                              onClick={() => setRescheduleSlot(null)}
+                              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        <MeetingSlotPicker
+                          eventId={eventId}
+                          recipientParticipantId={rescheduleMeeting.other_person.id}
+                          selected={rescheduleSlot}
+                          onSelect={setRescheduleSlot}
+                        />
+                        {rescheduleSlot && (
+                          <p className="mt-2 text-[11px] text-primary font-medium">
+                            ✓ Proposing{" "}
+                            {new Date(`${rescheduleSlot.date}T${rescheduleSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                            at {rescheduleSlot.startTime.replace(/^0/, "")} – {rescheduleSlot.endTime.replace(/^0/, "")}
+                            {!rescheduleSlot.iAmFree && (
+                              <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Meeting type */}
+                      <div className="space-y-1.5">
+                        <label className="text-caption font-medium">Meeting type</label>
+                        <div className="flex gap-2">
+                          {["in-person", "virtual", "hybrid"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => setRescheduleMeetingType(type)}
+                              className={`rounded-full border px-3 py-1.5 text-caption capitalize transition-all ${
+                                rescheduleMeetingType === type
+                                  ? "border-primary bg-primary/5 text-primary font-medium"
+                                  : "border-border text-muted-foreground hover:border-border-strong"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          className="flex-1"
+                          onClick={handleReschedule}
+                          disabled={sendingReschedule}
+                        >
+                          {sendingReschedule ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                          )}
+                          {rescheduleSlot ? "Propose new time" : "Save changes"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => { setRescheduleMeeting(null); setRescheduleSlot(null); }}
                         >
                           Cancel
                         </Button>

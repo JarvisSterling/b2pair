@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { isEventOrganizer, canAccessCompany } from "@/lib/sponsors-helpers";
 import { createNotifications } from "@/lib/notifications";
@@ -123,13 +124,15 @@ export async function PATCH(request: Request, { params }: Params) {
   const finalStatus = update.status as string;
   const notifyStatuses = ["approved", "rejected", "live"];
   if (isOrganizer && notifyStatuses.includes(finalStatus)) {
-    const { data: members } = await supabase
+    const admin = createAdminClient();
+
+    const { data: members } = await admin
       .from("company_members")
       .select("user_id")
       .eq("company_id", companyId)
       .eq("invite_status", "accepted");
 
-    const { data: companyInfo } = await supabase
+    const { data: companyInfo } = await admin
       .from("companies")
       .select("name")
       .eq("id", companyId)
@@ -162,7 +165,7 @@ export async function PATCH(request: Request, { params }: Params) {
       if (notif) {
         const link = `/events/${eventId}/sponsors/${companyId}`;
         await createNotifications(
-          supabase,
+          admin,
           members.map((m) => ({
             userId: m.user_id,
             eventId,

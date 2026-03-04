@@ -60,6 +60,17 @@ const STATUS_CONFIG: Record<
   no_show: { variant: "destructive", label: "No show" },
 };
 
+function fmtTime(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+function localISOTime(date: string, time: string) {
+  return new Date(`${date}T${time}:00`).toISOString();
+}
+
 export default function EventMeetingsPage() {
   const eventId = useEventId();
   const searchParams = useSearchParams();
@@ -215,7 +226,7 @@ export default function EventMeetingsPage() {
         recipientParticipantId: requestTarget.participantId,
         agendaNote: agendaNote.trim() || null,
         meetingType,
-        startTime: selectedSlot ? `${selectedSlot.date}T${selectedSlot.startTime}:00` : null,
+        startTime: selectedSlot ? localISOTime(selectedSlot.date, selectedSlot.startTime) : null,
       }),
     });
 
@@ -288,7 +299,7 @@ export default function EventMeetingsPage() {
       body: JSON.stringify({
         meetingId: rescheduleMeeting.id,
         reschedule: {
-          startTime: rescheduleSlot ? `${rescheduleSlot.date}T${rescheduleSlot.startTime}:00` : null,
+          startTime: rescheduleSlot ? localISOTime(rescheduleSlot.date, rescheduleSlot.startTime) : null,
           meetingType: rescheduleMeetingType,
         },
       }),
@@ -511,8 +522,7 @@ export default function EventMeetingsPage() {
                           ) : (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="text-destructive hover:text-destructive hover:border-destructive/50"
+                              variant="destructive"
                               onClick={() => setConfirmCancel(meeting.id)}
                             >
                               <X className="mr-1 h-3 w-3" />
@@ -682,8 +692,8 @@ export default function EventMeetingsPage() {
                         {selectedSlot && (
                           <p className="mt-2 text-[11px] text-primary font-medium">
                             ✓ Requesting{" "}
-                            {new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
-                            at {selectedSlot.startTime.replace(/^0/, "")} – {selectedSlot.endTime.replace(/^0/, "")}
+                            {new Date(`${selectedSlot.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                            at {fmtTime(selectedSlot.startTime)} – {fmtTime(selectedSlot.endTime)}
                             {!selectedSlot.iAmFree && (
                               <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
                             )}
@@ -820,8 +830,8 @@ export default function EventMeetingsPage() {
                         {rescheduleSlot && (
                           <p className="mt-2 text-[11px] text-primary font-medium">
                             ✓ Proposing{" "}
-                            {new Date(`${rescheduleSlot.date}T${rescheduleSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
-                            at {rescheduleSlot.startTime.replace(/^0/, "")} – {rescheduleSlot.endTime.replace(/^0/, "")}
+                            {new Date(`${rescheduleSlot.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                            at {fmtTime(rescheduleSlot.startTime)} – {fmtTime(rescheduleSlot.endTime)}
                             {!rescheduleSlot.iAmFree && (
                               <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
                             )}

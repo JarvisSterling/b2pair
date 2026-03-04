@@ -86,6 +86,17 @@ function getReasonIcon(reason: string) {
   return REASON_ICONS.default;
 }
 
+function fmtTime(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+function localISOTime(date: string, time: string) {
+  return new Date(`${date}T${time}:00`).toISOString();
+}
+
 export default function EventMatchesPage() {
   const eventId = useEventId();
   const router = useRouter();
@@ -561,8 +572,8 @@ export default function EventMatchesPage() {
                             {selectedSlot && (
                               <p className="mt-2 text-[11px] text-primary font-medium">
                                 ✓ Requesting{" "}
-                                {new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
-                                at {selectedSlot.startTime.replace(/^0/, "")} – {selectedSlot.endTime.replace(/^0/, "")}
+                                {new Date(`${selectedSlot.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                                at {fmtTime(selectedSlot.startTime)} – {fmtTime(selectedSlot.endTime)}
                                 {!selectedSlot.iAmFree && (
                                   <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
                                 )}

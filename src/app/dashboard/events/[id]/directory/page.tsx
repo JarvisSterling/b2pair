@@ -63,6 +63,20 @@ const INTENT_LABELS: Record<string, string> = {
   networking: "Networking",
 };
 
+/** Convert "HH:MM" (24h) to "H:MM AM/PM" */
+function fmtTime(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+/** Build a UTC ISO string from a local date + time string.
+ *  JS treats "YYYY-MM-DDTHH:MM:SS" (no tz) as local time, so .toISOString() gives correct UTC. */
+function localISOTime(date: string, time: string) {
+  return new Date(`${date}T${time}:00`).toISOString();
+}
+
 export default function DirectoryPage() {
   const params = useParams();
   const eventId = useEventId();
@@ -211,7 +225,7 @@ export default function DirectoryPage() {
         recipientParticipantId: meetingTarget.participantId,
         agendaNote: meetingNote.trim() || null,
         meetingType,
-        startTime: selectedSlot ? `${selectedSlot.date}T${selectedSlot.startTime}:00` : null,
+        startTime: selectedSlot ? localISOTime(selectedSlot.date, selectedSlot.startTime) : null,
       }),
     });
     if (res.ok) {
@@ -515,8 +529,8 @@ export default function DirectoryPage() {
                         {selectedSlot && (
                           <p className="mt-2 text-[11px] text-primary font-medium">
                             ✓ Requesting{" "}
-                            {new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
-                            at {selectedSlot.startTime.replace(/^0/, "")} – {selectedSlot.endTime.replace(/^0/, "")}
+                            {new Date(`${selectedSlot.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                            at {fmtTime(selectedSlot.startTime)} – {fmtTime(selectedSlot.endTime)}
                             {!selectedSlot.iAmFree && (
                               <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
                             )}

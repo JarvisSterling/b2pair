@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,8 +99,16 @@ export default function EventMeetingsCalendarPage() {
     new Date().toISOString().slice(0, 10)
   );
   const [selectedMeeting, setSelectedMeeting] = useState<CalendarMeeting | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
+
+  // Scroll detail panel into view when a meeting is selected
+  useEffect(() => {
+    if (selectedMeeting && detailRef.current) {
+      detailRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedMeeting]);
 
   // Load all meetings for this event once on mount, then navigate to first meeting date
   useEffect(() => {
@@ -397,7 +405,7 @@ export default function EventMeetingsCalendarPage() {
 
       {/* Meeting detail panel */}
       {selectedMeeting && (
-        <Card className="mt-4 animate-fade-in">
+        <Card ref={detailRef} className="mt-4 animate-fade-in">
           <CardContent className="pt-5 pb-5">
             <div className="flex items-start gap-4">
               {selectedMeeting.other_person.avatar_url ? (

@@ -29,8 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ eve
     .from("participants")
     .select(`
       id, user_id, status,
-      profiles(full_name, email, company_name, title, avatar_url),
-      participant_types(name)
+      profiles(full_name, email, company_name, title, avatar_url)
     `)
     .eq("event_id", eventId)
     .eq("status", "approved");
@@ -55,7 +54,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ eve
     company_name: (p.profiles as any)?.company_name || "",
     title: (p.profiles as any)?.title || "",
     email: (p.profiles as any)?.email || "",
-    role: (p.participant_types as any)?.name || "Attendee",
+    role: "Attendee",
     qr_token: tokenMap[p.id] || p.id,
   }));
 

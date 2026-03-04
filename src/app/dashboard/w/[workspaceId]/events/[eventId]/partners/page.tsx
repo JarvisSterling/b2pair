@@ -57,11 +57,16 @@ export default function PartnersPage() {
   const tiers = tiersData?.tiers || [];
   const loading = companiesLoading || tiersLoading;
 
-  // Real-time: re-fetch when companies change for this event
+  // Real-time: re-fetch when companies or tiers change for this event
   useRealtime({
     table: "companies",
     filter: { event_id: eventId },
     onChanged: () => mutateCompanies(),
+  });
+  useRealtime({
+    table: "sponsor_tiers",
+    filter: { event_id: eventId },
+    onChanged: () => mutateTiers(),
   });
 
   const [eventSlug, setEventSlug] = useState<string | null>(null);

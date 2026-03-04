@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useSWRFetch } from "@/hooks/use-swr-fetch";
+import { useRealtimeMulti } from "@/hooks/use-realtime";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,17 @@ export default function AgendaBuilderPage() {
   const { data: agendaData, isLoading: loading, mutate: mutateAgenda } = useSWRFetch<{
     tracks: Track[]; sessions: Session[]; speakers: Speaker[]; rooms: Room[];
   }>(`/api/agenda?eventId=${eventId}`);
+
+  // Real-time: re-fetch agenda when any agenda table changes
+  useRealtimeMulti(
+    [
+      { table: "agenda_sessions", filter: { event_id: eventId } },
+      { table: "agenda_tracks", filter: { event_id: eventId } },
+      { table: "speakers", filter: { event_id: eventId } },
+      { table: "rooms", filter: { event_id: eventId } },
+    ],
+    () => mutateAgenda()
+  );
 
   const tracks = agendaData?.tracks || [];
   const sessions = agendaData?.sessions || [];

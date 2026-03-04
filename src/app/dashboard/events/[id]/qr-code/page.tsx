@@ -2,6 +2,7 @@
 
 import { useEventId } from "@/hooks/use-event-id";
 import { useSWRFetch } from "@/hooks/use-swr-fetch";
+import { useRealtime } from "@/hooks/use-realtime";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, QrCode, CheckCircle2 } from "lucide-react";
@@ -9,9 +10,16 @@ import { SafeImage } from "@/components/ui/safe-image";
 
 export default function MyQRCodePage() {
   const eventId = useEventId();
-  const { data: qrData, isLoading: loading } = useSWRFetch<{ token: string | null; checkedIn: boolean; checkedInAt: string | null }>(
+  const { data: qrData, isLoading: loading, mutate } = useSWRFetch<{ token: string | null; checkedIn: boolean; checkedInAt: string | null }>(
     eventId ? `/api/checkin?eventId=${eventId}&mode=my-qr` : null
   );
+
+  // Real-time: refresh check-in status when someone gets scanned in
+  useRealtime({
+    table: "check_ins",
+    filter: { event_id: eventId || "" },
+    onChanged: () => mutate(),
+  });
 
   const token = qrData?.token || null;
   const checkedIn = qrData?.checkedIn || false;

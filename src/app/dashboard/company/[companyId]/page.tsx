@@ -52,9 +52,9 @@ export default function CompanyDashboardPage() {
   const companyId = params.companyId as string;
 
   // Fetch all data with SWR (instant cache + background revalidation)
-  const { data: companyJson } = useSWRFetch<{ memberships: any[] }>(`/api/user/companies`);
+  const { data: companyJson, mutate: mutateCompany } = useSWRFetch<{ memberships: any[] }>(`/api/user/companies`);
   const { data: analyticsData, mutate: mutateAnalytics } = useSWRFetch<any>(`/api/companies/${companyId}/analytics?days=30`);
-  const { data: membersData } = useSWRFetch<any>(`/api/companies/${companyId}/members`);
+  const { data: membersData, mutate: mutateMembers } = useSWRFetch<any>(`/api/companies/${companyId}/members`);
 
   const membership = (companyJson?.memberships || []).find((m: any) => m.company_id === companyId);
   const company: CompanyInfo | null = membership ? {
@@ -75,11 +75,21 @@ export default function CompanyDashboardPage() {
   const memberCount = membersData ? (Array.isArray(membersData) ? membersData.length : (membersData.members || []).length) : 0;
   const loading = !companyJson;
 
-  // Real-time: refresh analytics when company_analytics changes
+  // Real-time: refresh all data when relevant tables change
   useRealtime({
     table: "company_analytics",
     filter: { company_id: companyId },
     onChanged: () => mutateAnalytics(),
+  });
+  useRealtime({
+    table: "companies",
+    filter: { id: companyId },
+    onChanged: () => mutateCompany(),
+  });
+  useRealtime({
+    table: "company_members",
+    filter: { company_id: companyId },
+    onChanged: () => mutateMembers(),
   });
 
   if (loading) {

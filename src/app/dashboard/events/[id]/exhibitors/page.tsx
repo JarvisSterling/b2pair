@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useSWRFetch } from "@/hooks/use-swr-fetch";
+import { useRealtime } from "@/hooks/use-realtime";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -50,10 +51,17 @@ export default function ParticipantExhibitorsPage() {
   if (search) queryParams.set("search", search);
   if (category) queryParams.set("category", category);
 
-  const { data: exhibitorData, isLoading: loading } = useSWRFetch<{ exhibitors: Exhibitor[]; categories: string[] }>(
+  const { data: exhibitorData, isLoading: loading, mutate } = useSWRFetch<{ exhibitors: Exhibitor[]; categories: string[] }>(
     `/api/events/${eventId}/exhibitors?${queryParams}`,
     { keepPreviousData: true }
   );
+
+  // Real-time: re-fetch when exhibitor companies change
+  useRealtime({
+    table: "companies",
+    filter: { event_id: eventId },
+    onChanged: () => mutate(),
+  });
 
   const exhibitors = exhibitorData?.exhibitors || [];
   const categories = exhibitorData?.categories || [];

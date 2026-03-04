@@ -182,7 +182,7 @@ export default function EventMatchesPage() {
     setGenerating(false);
   }
 
-  async function updateMatchStatus(matchId: string, status: "saved" | "dismissed" | "pending") {
+  async function updateMatchStatus(matchId: string, status: "suggested" | "viewed" | "saved" | "dismissed" | "connected") {
     const match = matches.find((m) => m.id === matchId);
     if (match) {
       if (status === "saved") track("match_saved", match.other_participant?.id);

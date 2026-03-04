@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿﻿import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import {
   computeParticipantVector,
@@ -313,34 +313,53 @@ function computeIndustryScore(a: any, b: any): number {
 }
 
 function computeInterestScore(a: any, b: any): number {
-  const aExpertise = new Set(a.expertise_areas || []);
-  const bExpertise = new Set(b.expertise_areas || []);
-  const aInterests = new Set(a.interests || []);
-  const bInterests = new Set(b.interests || []);
+  // Use partial/substring matching so "AI" matches "AI Startups", "SaaS" matches "B2B SaaS Growth", etc.
+  function partialMatch(setA: string[], setB: string[]): number {
+    if (!setA.length || !setB.length) return 0;
+    let hits = 0;
+    for (const a of setA) {
+      const aLow = a.toLowerCase();
+      for (const b of setB) {
+        const bLow = b.toLowerCase();
+        if (aLow === bLow || bLow.includes(aLow) || aLow.includes(bLow)) {
+          hits++;
+          break; // count each A item at most once
+        }
+      }
+    }
+    return hits / Math.max(setA.length, 1);
+  }
+
+  const aExp = (a.expertise_areas || []) as string[];
+  const bExp = (b.expertise_areas || []) as string[];
+  const aInt = (a.interests || []) as string[];
+  const bInt = (b.interests || []) as string[];
 
   let score = 0;
   let factors = 0;
 
-  if (aExpertise.size > 0 && bInterests.size > 0) {
-    const overlap = [...aExpertise].filter((x) => bInterests.has(x)).length;
-    score += (overlap / Math.max(bInterests.size, 1)) * 100;
+  // a expertise vs b interests (a can teach what b wants to learn)
+  if (aExp.length > 0 && bInt.length > 0) {
+    score += partialMatch(aExp, bInt) * 100;
+    factors++;
+  }
+  // b expertise vs a interests
+  if (bExp.length > 0 && aInt.length > 0) {
+    score += partialMatch(bExp, aInt) * 100;
+    factors++;
+  }
+  // shared expertise (peer value)
+  if (aExp.length > 0 && bExp.length > 0) {
+    const sharedCount = aExp.filter(x => bExp.some(y => {
+      const xl = x.toLowerCase(); const yl = y.toLowerCase();
+      return xl === yl || xl.includes(yl) || yl.includes(xl);
+    })).length;
+    const union = new Set([...aExp, ...bExp]).size;
+    score += (sharedCount / union) * 80;
     factors++;
   }
 
-  if (bExpertise.size > 0 && aInterests.size > 0) {
-    const overlap = [...bExpertise].filter((x) => aInterests.has(x)).length;
-    score += (overlap / Math.max(aInterests.size, 1)) * 100;
-    factors++;
-  }
-
-  if (aExpertise.size > 0 && bExpertise.size > 0) {
-    const overlap = [...aExpertise].filter((x) => bExpertise.has(x)).length;
-    const union = new Set([...aExpertise, ...bExpertise]).size;
-    score += (overlap / union) * 80;
-    factors++;
-  }
-
-  return factors > 0 ? score / factors : 50;
+  return factors > 0 ? Math.round(score / factors) : 50;
 }
 
 function computeComplementarityScore(a: any, b: any): number {
@@ -348,16 +367,25 @@ function computeComplementarityScore(a: any, b: any): number {
 
   if (a.role !== b.role) score += 20;
 
-  // Only match meaningful words (>3 chars to skip "and", "the", "for", etc.)
+  // Tokenize and use partial stemming (first 5 chars of words > 3 chars)
+  function tokenize(text: string): string[] {
+    if (!text) return [];
+    return text.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 3)
+      .map((w) => w.substring(0, 6)); // stem to 6 chars
+  }
+
   if (a.looking_for && b.offering) {
-    const aLooking = a.looking_for.toLowerCase();
-    const bOffering = b.offering.toLowerCase();
-    if (aLooking.split(" ").some((w: string) => w.length > 3 && bOffering.includes(w))) score += 15;
+    const aTokens = new Set(tokenize(a.looking_for));
+    const bTokens = tokenize(b.offering);
+    if (bTokens.some((t) => aTokens.has(t))) score += 15;
   }
   if (b.looking_for && a.offering) {
-    const bLooking = b.looking_for.toLowerCase();
-    const aOffering = a.offering.toLowerCase();
-    if (bLooking.split(" ").some((w: string) => w.length > 3 && aOffering.includes(w))) score += 15;
+    const bTokens = new Set(tokenize(b.looking_for));
+    const aTokens = tokenize(a.offering);
+    if (aTokens.some((t) => bTokens.has(t))) score += 15;
   }
 
   return Math.min(score, 100);

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSWRConfig } from "swr";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Globe, EyeOff, Loader2 } from "lucide-react";
 
 export function PublishEventButton({ eventId, currentStatus }: { eventId: string; currentStatus: string }) {
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const { mutate } = useSWRConfig();
 
   if (currentStatus !== "draft" && currentStatus !== "published") return null;
 
@@ -17,7 +17,7 @@ export function PublishEventButton({ eventId, currentStatus }: { eventId: string
     setLoading(true);
     const supabase = createClient();
     await supabase.from("events").update({ status: "published" }).eq("id", eventId);
-    router.refresh();
+    await mutate(`/api/events/${eventId}/overview`);
     setLoading(false);
   }
 
@@ -26,7 +26,7 @@ export function PublishEventButton({ eventId, currentStatus }: { eventId: string
     setLoading(true);
     const supabase = createClient();
     await supabase.from("events").update({ status: "draft" }).eq("id", eventId);
-    router.refresh();
+    await mutate(`/api/events/${eventId}/overview`);
     setLoading(false);
   }
 

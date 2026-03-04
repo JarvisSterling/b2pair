@@ -168,8 +168,8 @@ export default function TeamMemberInvitePage() {
           industry: (industry || "").trim(),
           bio: (bio || "").trim(),
           intents: selectedIntents,
-          expertiseAreas: selectedExpertise || [],
-          interests: selectedInterests || [],
+          expertiseAreas: expertiseAreas || [],
+          interests: interests || [],
         }),
       });
       if (res.ok) {

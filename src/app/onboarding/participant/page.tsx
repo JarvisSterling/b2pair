@@ -157,8 +157,8 @@ export default function ParticipantOnboardingPage() {
           industry: (industry || "").trim(),
           bio: (bio || "").trim(),
           intents: selectedIntents,
-          expertiseAreas: selectedExpertise || [],
-          interests: selectedInterests || [],
+          expertiseAreas: expertiseAreas || [],
+          interests: interests || [],
         }),
       });
       if (!res.ok) throw new Error("Failed to suggest");

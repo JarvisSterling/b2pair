@@ -36,6 +36,8 @@ interface DirectoryEntry {
   intent: string | null;
   tags: string[];
   company_role: string | null;
+  looking_for: string | null;
+  offering: string | null;
   matchScore?: number;
   profiles: {
     full_name: string;
@@ -43,6 +45,7 @@ interface DirectoryEntry {
     avatar_url: string | null;
     title: string | null;
     company_name: string | null;
+    company_size: string | null;
     industry: string | null;
     bio: string | null;
     expertise_areas: string[];
@@ -93,8 +96,8 @@ export default function DirectoryPage() {
       const { data } = await supabase
         .from("participants")
         .select(`
-          id, role, intent, tags, company_role,
-          profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas),
+          id, role, intent, tags, company_role, looking_for, offering,
+          profiles!inner(full_name, email, avatar_url, title, company_name, company_size, industry, bio, expertise_areas),
           company:companies(name, logo_url, capabilities)
         `)
         .eq("event_id", eventId)
@@ -259,7 +262,9 @@ export default function DirectoryPage() {
       p.full_name.toLowerCase().includes(search.toLowerCase()) ||
       (p.company_name || "").toLowerCase().includes(search.toLowerCase()) ||
       (p.title || "").toLowerCase().includes(search.toLowerCase()) ||
-      p.expertise_areas.some((a) => a.toLowerCase().includes(search.toLowerCase()));
+      p.expertise_areas.some((a) => a.toLowerCase().includes(search.toLowerCase())) ||
+      (entry.looking_for || "").toLowerCase().includes(search.toLowerCase()) ||
+      (entry.offering || "").toLowerCase().includes(search.toLowerCase());
 
     const matchesRole = roleFilter === "all" || entry.role === roleFilter;
     const matchesIndustry = industryFilter === "all" || p.industry === industryFilter;
@@ -386,7 +391,7 @@ export default function DirectoryPage() {
                     <p className="text-caption text-muted-foreground line-clamp-2 mb-3">{p.bio}</p>
                   )}
 
-                  <div className="flex flex-wrap gap-1 mb-4">
+                  <div className="flex flex-wrap gap-1 mb-3">
                     {entry.company && entry.company_role && (
                       <Badge variant="default" className="text-[10px] gap-1">
                         <Building2 className="h-2.5 w-2.5" />
@@ -394,14 +399,23 @@ export default function DirectoryPage() {
                         {entry.company_role === "speaker" && " · Speaker"}
                       </Badge>
                     )}
+                    {entry.role && entry.role !== "participant" && entry.role !== "representative" && (
+                      <Badge variant="secondary" className="capitalize">{entry.role}</Badge>
+                    )}
                     {p.industry && <Badge variant="secondary">{p.industry}</Badge>}
+                    {p.company_size && (
+                      <Badge variant="outline" className="gap-1 text-[10px]">
+                        <Users className="h-2.5 w-2.5" />
+                        {p.company_size}
+                      </Badge>
+                    )}
                     {entry.intent && (
                       <Badge variant="outline">{INTENT_LABELS[entry.intent] || entry.intent}</Badge>
                     )}
                   </div>
 
                   {p.expertise_areas.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-4">
+                    <div className="flex flex-wrap gap-1 mb-3">
                       {p.expertise_areas.slice(0, 3).map((area) => (
                         <span key={area} className="text-small text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
                           {area}
@@ -411,6 +425,27 @@ export default function DirectoryPage() {
                         <span className="text-small text-muted-foreground">
                           +{p.expertise_areas.length - 3}
                         </span>
+                      )}
+                    </div>
+                  )}
+
+                  {(entry.looking_for || entry.offering) && (
+                    <div className="mb-3 space-y-1">
+                      {entry.looking_for && (
+                        <div className="flex items-start gap-1.5">
+                          <Search className="h-3 w-3 mt-0.5 shrink-0 text-primary/70" />
+                          <span className="text-small text-muted-foreground line-clamp-1">
+                            {entry.looking_for}
+                          </span>
+                        </div>
+                      )}
+                      {entry.offering && (
+                        <div className="flex items-start gap-1.5">
+                          <Briefcase className="h-3 w-3 mt-0.5 shrink-0 text-amber-500/80" />
+                          <span className="text-small text-muted-foreground line-clamp-1">
+                            {entry.offering}
+                          </span>
+                        </div>
                       )}
                     </div>
                   )}
@@ -646,6 +681,12 @@ export default function DirectoryPage() {
                     {selectedEntry.profiles.industry}
                   </Badge>
                 )}
+                {selectedEntry.profiles.company_size && (
+                  <Badge variant="outline">
+                    <Users className="mr-1 h-3 w-3" />
+                    {selectedEntry.profiles.company_size} employees
+                  </Badge>
+                )}
                 {selectedEntry.intent && (
                   <Badge variant="outline">
                     <Tag className="mr-1 h-3 w-3" />
@@ -661,6 +702,27 @@ export default function DirectoryPage() {
                   <p className="text-body text-muted-foreground whitespace-pre-wrap">
                     {selectedEntry.profiles.bio}
                   </p>
+                </div>
+              )}
+
+              {/* Looking for / Offering */}
+              {(selectedEntry.looking_for || selectedEntry.offering) && (
+                <div className="mb-6">
+                  <h3 className="text-caption font-semibold mb-2">What they&apos;re about</h3>
+                  <div className="space-y-2">
+                    {selectedEntry.looking_for && (
+                      <div className="flex items-start gap-2 text-caption text-muted-foreground">
+                        <Search className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary/70" />
+                        <span><span className="font-medium text-foreground">Looking for:</span> {selectedEntry.looking_for}</span>
+                      </div>
+                    )}
+                    {selectedEntry.offering && (
+                      <div className="flex items-start gap-2 text-caption text-muted-foreground">
+                        <Briefcase className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500/80" />
+                        <span><span className="font-medium text-foreground">Offering:</span> {selectedEntry.offering}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -130,6 +130,8 @@ export default function CompleteProfilePage() {
           title: title.trim(),
           companyName: companyName.trim(),
           intents: selectedIntents,
+          expertiseAreas: expertiseAreas || [],
+          interests: interests || [],
         }),
       });
       if (!res.ok) throw new Error("Failed to suggest");

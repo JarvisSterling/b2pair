@@ -204,7 +204,11 @@ export function RegistrationFlow({
         body: JSON.stringify({
           title: title.trim(),
           companyName: companyName.trim(),
+          industry: (industry || "").trim(),
+          bio: (bio || "").trim(),
           intents: selectedIntents,
+          expertiseAreas: expertiseAreas || [],
+          interests: interests || [],
         }),
       });
       if (res.ok) {

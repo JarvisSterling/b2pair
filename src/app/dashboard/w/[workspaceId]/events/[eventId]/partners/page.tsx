@@ -114,12 +114,15 @@ export default function PartnersPage() {
   }, [eventId]);
 
   async function savePartnerSettings(patch: { auto_publish?: boolean; sponsors_enabled?: boolean; exhibitors_enabled?: boolean }) {
-    const { createClient } = await import("@/lib/supabase/client");
-    const supabase = createClient();
-    const current = { auto_publish: autoPublish, sponsors_enabled: sponsorsEnabled, exhibitors_enabled: exhibitorsEnabled, ...patch };
-    await supabase.from("events").update({ partner_settings: current }).eq("id", eventId);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 2000);
+    const res = await fetch(`/api/events/${eventId}/partner-settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (res.ok) {
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2000);
+    }
   }
 
   async function addSponsor() {

@@ -230,7 +230,7 @@ export default function CheckInDashboard() {
     }
   }
 
-  async function undoCheckIn(checkInId: string) {
+  async function undoCheckIn(checkInId: string, participantId?: string) {
     // Optimistically remove from list and decrement count
     mutate(
       (current: any) =>
@@ -243,6 +243,12 @@ export default function CheckInDashboard() {
           : current,
       { revalidate: false }
     );
+    // Also optimistically update search results if we know the participant
+    if (participantId) {
+      setSearchResults((prev) =>
+        prev.map((p) => (p.id === participantId ? { ...p, isCheckedIn: false } : p))
+      );
+    }
 
     try {
       await toast.promise(
@@ -592,7 +598,7 @@ export default function CheckInDashboard() {
                     <Badge variant="outline" className="text-[9px]">{ci.method}</Badge>
                     <span className="text-caption text-muted-foreground">{time}</span>
                     <button
-                      onClick={() => undoCheckIn(ci.id)}
+                      onClick={() => undoCheckIn(ci.id, (ci.participant as any)?.id)}
                       className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-secondary transition-opacity"
                       title="Undo check-in"
                     >

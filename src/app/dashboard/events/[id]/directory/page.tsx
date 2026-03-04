@@ -71,10 +71,11 @@ function fmtTime(t: string) {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-/** Build a UTC ISO string from a local date + time string.
- *  JS treats "YYYY-MM-DDTHH:MM:SS" (no tz) as local time, so .toISOString() gives correct UTC. */
+/** Store slot times as UTC wall-clock (append Z).
+ *  Slot times are event-local labels (e.g. "13:00" = 1 PM at the event).
+ *  We store them directly as UTC and always display with timeZone:'UTC' to avoid browser-offset shift. */
 function localISOTime(date: string, time: string) {
-  return new Date(`${date}T${time}:00`).toISOString();
+  return `${date}T${time}:00Z`;
 }
 
 export default function DirectoryPage() {

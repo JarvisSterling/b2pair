@@ -68,7 +68,7 @@ function fmtTime(t: string) {
 }
 
 function localISOTime(date: string, time: string) {
-  return new Date(`${date}T${time}:00`).toISOString();
+  return `${date}T${time}:00Z`;
 }
 
 export default function EventMeetingsPage() {
@@ -455,6 +455,7 @@ export default function EventMeetingsPage() {
                                 day: "numeric",
                                 hour: "numeric",
                                 minute: "2-digit",
+                                timeZone: "UTC",
                               }
                             )}
                           </span>

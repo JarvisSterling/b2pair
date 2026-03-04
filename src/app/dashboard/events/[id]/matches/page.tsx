@@ -94,7 +94,7 @@ function fmtTime(t: string) {
 }
 
 function localISOTime(date: string, time: string) {
-  return new Date(`${date}T${time}:00`).toISOString();
+  return `${date}T${time}:00Z`;
 }
 
 export default function EventMatchesPage() {
@@ -221,12 +221,10 @@ export default function EventMatchesPage() {
     setSendingRequest(true);
     track("meeting_request", participantId, { source: "matches" });
 
-    // Build ISO timestamps if a slot was selected
+    // Build ISO timestamps if a slot was selected (stored as UTC wall-clock, displayed with timeZone:'UTC')
     let startTime: string | null = null;
-    let endTime: string | null = null;
     if (selectedSlot) {
-      startTime = new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toISOString();
-      endTime   = new Date(`${selectedSlot.date}T${selectedSlot.endTime}:00`).toISOString();
+      startTime = localISOTime(selectedSlot.date, selectedSlot.startTime);
     }
 
     const res = await fetch("/api/meetings", {
@@ -238,7 +236,6 @@ export default function EventMatchesPage() {
         agendaNote: meetingNote.trim() || null,
         meetingType,
         startTime,
-        endTime,
       }),
     });
 

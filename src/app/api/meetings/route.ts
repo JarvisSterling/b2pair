@@ -63,29 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Create notification for recipient
-  const { data: recipientParticipant } = await supabase
-    .from("participants")
-    .select("user_id")
-    .eq("id", recipientParticipantId)
-    .single();
-
-  if (recipientParticipant) {
-    const { data: requesterProfile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
-
-    await createNotification(supabase, {
-      userId: recipientParticipant.user_id,
-      eventId,
-      type: "meeting_request",
-      title: "New meeting request",
-      body: `${requesterProfile?.full_name || "Someone"} wants to meet with you`,
-      link: `/dashboard/events/${eventId}/meetings`,
-    });
-  }
+  // NOTE: meeting_request notification is handled by the DB trigger `notify_meeting_change`
 
   return NextResponse.json({ success: true, meetingId: meeting.id });
 }
@@ -191,13 +169,6 @@ export async function PATCH(request: Request) {
     }
   }
 
-  // Fetch meeting details before update (for notification routing)
-  const { data: meetingForNotif } = await supabase
-    .from("meetings")
-    .select("requester_id, recipient_id, event_id")
-    .eq("id", meetingId)
-    .single();
-
   const { error } = await supabase
     .from("meetings")
     .update(updates)
@@ -207,68 +178,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // ── Send notifications for status changes ──
-  if (status && meetingForNotif && !reschedule) {
-    const { data: myParticipants } = await supabase
-      .from("participants")
-      .select("id")
-      .eq("user_id", user.id);
-    const myIds = new Set((myParticipants || []).map((p: any) => p.id));
-
-    const myPid = myIds.has(meetingForNotif.requester_id)
-      ? meetingForNotif.requester_id
-      : meetingForNotif.recipient_id;
-    const otherPid = myPid === meetingForNotif.requester_id
-      ? meetingForNotif.recipient_id
-      : meetingForNotif.requester_id;
-
-    const { data: otherParticipant } = await supabase
-      .from("participants")
-      .select("user_id")
-      .eq("id", otherPid)
-      .single();
-
-    const { data: myProfile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
-
-    const name = myProfile?.full_name || "Someone";
-    const evtId = meetingForNotif.event_id;
-    const link = `/dashboard/events/${evtId}/meetings`;
-
-    if (otherParticipant) {
-      if (status === "accepted") {
-        await createNotification(supabase, {
-          userId: otherParticipant.user_id,
-          eventId: evtId,
-          type: "meeting_accepted",
-          title: "Meeting request accepted",
-          body: `${name} accepted your meeting request`,
-          link,
-        });
-      } else if (status === "declined") {
-        await createNotification(supabase, {
-          userId: otherParticipant.user_id,
-          eventId: evtId,
-          type: "meeting_declined",
-          title: "Meeting request declined",
-          body: `${name} declined your meeting request`,
-          link,
-        });
-      } else if (status === "cancelled") {
-        await createNotification(supabase, {
-          userId: otherParticipant.user_id,
-          eventId: evtId,
-          type: "meeting_cancelled",
-          title: "Meeting cancelled",
-          body: `${name} cancelled your upcoming meeting`,
-          link,
-        });
-      }
-    }
-  }
+  // NOTE: meeting_accepted / meeting_declined / meeting_cancelled notifications
+  // are handled by the DB trigger `notify_meeting_change` to avoid duplicates.
 
   // ── Outcome feedback loop for intent engine ──
   // Record activity signals when meetings are accepted or rated

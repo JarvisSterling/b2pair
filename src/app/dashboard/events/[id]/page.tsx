@@ -117,7 +117,8 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
         .eq("event_id", id)
         .or(
           `participant_a_id.eq.${myParticipant.id},participant_b_id.eq.${myParticipant.id}`
-        ),
+        )
+        .neq("status", "dismissed"),
       supabase
         .from("meetings")
         .select("*", { count: "exact", head: true })

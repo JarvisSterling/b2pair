@@ -215,26 +215,50 @@ export default function CheckInDashboard() {
           error: "Failed to check in",
         }
       );
-      mutate();
-      handleSearch(); // Refresh search results
+      // Optimistically update search results immediately
+      setSearchResults((prev) =>
+        prev.map((p) => (p.id === participantId ? { ...p, isCheckedIn: true } : p))
+      );
+      // Optimistically bump stats, then revalidate in background
+      mutate(
+        (current: any) =>
+          current ? { ...current, checkedInCount: (current.checkedInCount || 0) + 1 } : current,
+        { revalidate: true }
+      );
     } finally {
       setProcessing(false);
     }
   }
 
   async function undoCheckIn(checkInId: string) {
-    await toast.promise(
-      (async () => {
-        const res = await fetch(`/api/checkin?id=${checkInId}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("Failed to undo");
-      })(),
-      {
-        loading: "Undoing...",
-        success: "Check-in removed",
-        error: "Failed to undo",
-      }
+    // Optimistically remove from list and decrement count
+    mutate(
+      (current: any) =>
+        current
+          ? {
+              ...current,
+              checkedInCount: Math.max(0, (current.checkedInCount || 0) - 1),
+              checkIns: current.checkIns.filter((ci: any) => ci.id !== checkInId),
+            }
+          : current,
+      { revalidate: false }
     );
-    mutate();
+
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch(`/api/checkin?id=${checkInId}`, { method: "DELETE" });
+          if (!res.ok) throw new Error("Failed to undo");
+        })(),
+        {
+          loading: "Undoing...",
+          success: "Check-in removed",
+          error: "Failed to undo",
+        }
+      );
+    } finally {
+      mutate(); // Revalidate to sync with server
+    }
   }
 
   const checkedInPct = totalParticipants > 0

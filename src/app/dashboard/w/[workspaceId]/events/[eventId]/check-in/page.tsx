@@ -20,7 +20,11 @@ import {
   Undo2,
   Scan,
   Keyboard,
+  Camera,
+  Maximize2,
 } from "lucide-react";
+import { QrCameraScanner } from "@/components/qr-camera-scanner";
+import Link from "next/link";
 import { SafeImage } from "@/components/ui/safe-image";
 import { toast } from "sonner";
 
@@ -43,6 +47,7 @@ interface CheckIn {
 export default function CheckInDashboard() {
   const params = useParams();
   const eventId = params.eventId as string;
+  const workspaceId = params.workspaceId as string;
 
   const { data: checkinData, isLoading: loading, mutate } = useSWRFetch<{
     totalParticipants: number; checkedInCount: number; checkIns: CheckIn[];
@@ -53,7 +58,8 @@ export default function CheckInDashboard() {
   const checkIns = checkinData?.checkIns || [];
 
   // Scan mode
-  const [mode, setMode] = useState<"scan" | "search">("scan");
+  const [mode, setMode] = useState<"scan" | "camera" | "search">("scan");
+  const [cameraPaused, setCameraPaused] = useState(false);
   const [scanInput, setScanInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -126,6 +132,37 @@ export default function CheckInDashboard() {
 
     // Clear result after 4 seconds
     setTimeout(() => setLastResult(null), 4000);
+  }
+
+  async function handleCameraScan(token: string) {
+    if (cameraPaused) return;
+    setCameraPaused(true);
+    setLastResult(null);
+
+    try {
+      const res = await fetch("/api/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, token, method: "qr" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Invalid QR code");
+
+      setLastResult({
+        success: true,
+        alreadyCheckedIn: data.alreadyCheckedIn,
+        participant: data.participant,
+      });
+      if (!data.alreadyCheckedIn) mutate();
+    } catch {
+      setLastResult({ success: false, alreadyCheckedIn: false, participant: null });
+    }
+
+    // Resume scanner after 3 seconds
+    setTimeout(() => {
+      setLastResult(null);
+      setCameraPaused(false);
+    }, 3000);
   }
 
   async function handleSearch() {
@@ -221,6 +258,12 @@ export default function CheckInDashboard() {
             Real-time event check-in dashboard
           </p>
         </div>
+        <Link href={`/dashboard/w/${params.workspaceId}/events/${eventId}/check-in/kiosk`} target="_blank">
+          <Button variant="outline" className="gap-2">
+            <Maximize2 className="h-4 w-4" />
+            Kiosk mode
+          </Button>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -271,6 +314,14 @@ export default function CheckInDashboard() {
         >
           <Scan className="h-4 w-4" />
           Scan QR
+        </Button>
+        <Button
+          variant={mode === "camera" ? "default" : "outline"}
+          onClick={() => { setMode("camera"); setCameraPaused(false); setLastResult(null); }}
+          className="gap-2"
+        >
+          <Camera className="h-4 w-4" />
+          Camera
         </Button>
         <Button
           variant={mode === "search" ? "default" : "outline"}
@@ -341,6 +392,51 @@ export default function CheckInDashboard() {
                       <p className="text-body font-medium text-red-600">
                         Invalid QR code
                       </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Camera mode */}
+      {mode === "camera" && (
+        <Card className="mb-8">
+          <CardContent className="pt-6">
+            <p className="text-caption text-muted-foreground mb-4">
+              Point the camera at an attendee&apos;s QR code to check them in instantly.
+            </p>
+            <QrCameraScanner onScan={handleCameraScan} paused={cameraPaused} />
+
+            {/* Camera scan result */}
+            {lastResult && (
+              <div className={`mt-4 p-4 rounded-lg animate-fade-in ${
+                lastResult.success
+                  ? lastResult.alreadyCheckedIn
+                    ? "bg-amber-500/10 border border-amber-500/30"
+                    : "bg-emerald-500/10 border border-emerald-500/30"
+                  : "bg-red-500/10 border border-red-500/30"
+              }`}>
+                <div className="flex items-center gap-3">
+                  {lastResult.success ? (
+                    lastResult.alreadyCheckedIn
+                      ? <Clock className="h-6 w-6 text-amber-500 shrink-0" />
+                      : <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />
+                  ) : (
+                    <XCircle className="h-6 w-6 text-red-500 shrink-0" />
+                  )}
+                  <div>
+                    {lastResult.success ? (
+                      <>
+                        <p className="text-body font-semibold">{lastResult.participant?.full_name}</p>
+                        <p className="text-caption text-muted-foreground">
+                          {lastResult.alreadyCheckedIn ? "Already checked in" : "Successfully checked in!"}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-body font-medium text-red-600">Invalid QR code</p>
                     )}
                   </div>
                 </div>

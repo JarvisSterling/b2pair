@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Eye,
   Link2,
+  ScanLine,
 } from "lucide-react";
 import Link from "next/link";
 import { PublishEventButton } from "@/components/events/publish-button";
@@ -206,6 +207,14 @@ export default function EventControlPanel({ params }: PageProps) {
             icon={<MessageSquare className="h-5 w-5 text-primary" />}
             title="Page Editor"
             description="Customize your event's public registration page."
+          />
+        </Link>
+
+        <Link href={`${basePath}/check-in`}>
+          <ManageCard
+            icon={<ScanLine className="h-5 w-5 text-primary" />}
+            title="Check-in"
+            description="Scan QR codes, manually check in attendees, and track arrivals in real-time."
           />
         </Link>
       </div>

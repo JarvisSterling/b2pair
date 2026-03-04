@@ -127,6 +127,11 @@ const config: Config = {
           from: { opacity: "0", transform: "scale(0.97)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        "scan-line": {
+          "0%": { top: "0%" },
+          "50%": { top: "calc(100% - 2px)" },
+          "100%": { top: "0%" },
+        },
       },
       animation: {
         "fade-in": "fade-in 300ms ease",
@@ -136,6 +141,7 @@ const config: Config = {
         "slide-right": "slide-right 300ms ease",
         "slide-in-right": "slide-in-right 300ms ease",
         "scale-in": "scale-in 400ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "scan-line": "scan-line 2s ease-in-out infinite",
       },
     },
   },

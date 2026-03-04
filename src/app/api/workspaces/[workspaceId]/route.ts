@@ -48,3 +48,41 @@ export async function GET(
 
   return NextResponse.json({ workspace, events: events || [], participantCounts });
 }
+
+type Params = { params: Promise<{ workspaceId: string }> };
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const { workspaceId } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Only owner/admin can update workspace settings
+  const { data: membership } = await supabase
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", workspaceId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || !["owner", "admin"].includes(membership.role))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = await request.json();
+  const allowed: Record<string, unknown> = {};
+  if (typeof body.name === "string" && body.name.trim()) allowed.name = body.name.trim();
+  if (typeof body.description === "string") allowed.description = body.description;
+
+  if (Object.keys(allowed).length === 0)
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+
+  const { data, error } = await supabase
+    .from("organizations")
+    .update({ ...allowed, updated_at: new Date().toISOString() })
+    .eq("id", workspaceId)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ workspace: data });
+}

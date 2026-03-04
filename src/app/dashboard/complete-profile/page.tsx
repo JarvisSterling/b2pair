@@ -198,8 +198,8 @@ export default function CompleteProfilePage() {
           error: (error) => (error instanceof Error ? error.message : "Failed to save"),
         }
       );
-      router.push(redirectTo);
-      router.refresh();
+      // Force full page reload to bust Next.js server component cache
+      window.location.href = redirectTo;
     } finally {
       setSaving(false);
     }

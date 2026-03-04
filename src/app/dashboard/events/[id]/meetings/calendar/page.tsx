@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,16 +99,30 @@ export default function EventMeetingsCalendarPage() {
     new Date().toISOString().slice(0, 10)
   );
   const [selectedMeeting, setSelectedMeeting] = useState<CalendarMeeting | null>(null);
-  const detailRef = useRef<HTMLDivElement>(null);
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
 
-  // Scroll detail panel into view when a meeting is selected
+  // Close popover on outside click or Escape key
+  const closePopover = useCallback(() => {
+    setSelectedMeeting(null);
+    setPopoverPos(null);
+  }, []);
+
   useEffect(() => {
-    if (selectedMeeting && detailRef.current) {
-      detailRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (!selectedMeeting) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") closePopover(); }
+    function onOutside(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) closePopover();
     }
-  }, [selectedMeeting]);
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onOutside);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onOutside);
+    };
+  }, [selectedMeeting, closePopover]);
 
   // Load all meetings for this event once on mount, then navigate to first meeting date
   useEffect(() => {
@@ -379,7 +393,16 @@ export default function EventMeetingsCalendarPage() {
                         return (
                           <button
                             key={meeting.id}
-                            onClick={() => setSelectedMeeting(selectedMeeting?.id === meeting.id ? null : meeting)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (selectedMeeting?.id === meeting.id) {
+                                closePopover();
+                              } else {
+                                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                setSelectedMeeting(meeting);
+                                setPopoverPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 });
+                              }
+                            }}
                             className={`absolute left-1 right-1 rounded-lg border p-2 text-left transition-shadow hover:shadow-md z-20 ${colors}`}
                             style={{ top: Math.max(0, top), height: Math.max(height, 28) }}
                           >
@@ -403,67 +426,95 @@ export default function EventMeetingsCalendarPage() {
         </Card>
       )}
 
-      {/* Meeting detail panel */}
-      {selectedMeeting && (
-        <Card ref={detailRef} className="mt-4 animate-fade-in">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-start gap-4">
-              {selectedMeeting.other_person.avatar_url ? (
-                <SafeImage
-                  src={selectedMeeting.other_person.avatar_url}
-                  alt=""
-                  className="h-11 w-11 rounded-full object-cover"
-                  width={44}
-                  height={44}
-                />
-              ) : (
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-medium shrink-0">
-                  {(selectedMeeting.other_person.full_name || "?").charAt(0)}
+      {/* Meeting detail popover */}
+      {selectedMeeting && popoverPos && (() => {
+        const POP_W = 320;
+        const POP_H = 160; // estimated
+        const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+        const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+
+        // Horizontal: center on click, clamp to viewport
+        let left = popoverPos.x - POP_W / 2;
+        if (left + POP_W > vw - 12) left = vw - POP_W - 12;
+        if (left < 12) left = 12;
+
+        // Vertical: below block by default, flip above if near bottom
+        let top = popoverPos.y;
+        const flipUp = top + POP_H > vh - 12;
+        if (flipUp) top = popoverPos.y - POP_H - 60;
+
+        return (
+          <div
+            ref={popoverRef}
+            className="fixed z-50 animate-fade-in"
+            style={{ left, top, width: POP_W }}
+          >
+            <Card className="shadow-2xl border-border/80">
+              <CardContent className="pt-4 pb-4 px-4">
+                <div className="flex items-start gap-3">
+                  {selectedMeeting.other_person.avatar_url ? (
+                    <SafeImage
+                      src={selectedMeeting.other_person.avatar_url}
+                      alt=""
+                      className="h-10 w-10 rounded-full object-cover shrink-0"
+                      width={40}
+                      height={40}
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold shrink-0">
+                      {(selectedMeeting.other_person.full_name || "?").charAt(0)}
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="font-semibold truncate">{selectedMeeting.other_person.full_name}</p>
+                        <Badge
+                          variant={selectedMeeting.status === "accepted" ? "default" : "secondary"}
+                          className="capitalize shrink-0 text-[10px]"
+                        >
+                          {selectedMeeting.status}
+                        </Badge>
+                      </div>
+                      <button
+                        onClick={closePopover}
+                        className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0"
+                      >
+                        &times;
+                      </button>
+                    </div>
+
+                    {selectedMeeting.other_person.title && (
+                      <p className="text-caption text-muted-foreground truncate mt-0.5">
+                        {[selectedMeeting.other_person.title, selectedMeeting.other_person.company_name]
+                          .filter(Boolean)
+                          .join(" at ")}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-3 mt-2.5 text-caption text-muted-foreground flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatTimeShort(selectedMeeting.start_time)} · {selectedMeeting.duration_minutes ?? 30} min
+                      </span>
+                      <Badge variant="outline" className="capitalize text-[10px]">
+                        {selectedMeeting.meeting_type}
+                      </Badge>
+                    </div>
+
+                    {selectedMeeting.agenda_note && (
+                      <p className="mt-2 text-caption text-muted-foreground italic line-clamp-2">
+                        &ldquo;{selectedMeeting.agenda_note}&rdquo;
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold">{selectedMeeting.other_person.full_name}</p>
-                  <Badge
-                    variant={selectedMeeting.status === "accepted" ? "default" : "secondary"}
-                    className="capitalize"
-                  >
-                    {selectedMeeting.status}
-                  </Badge>
-                </div>
-                {selectedMeeting.other_person.title && (
-                  <p className="text-sm text-muted-foreground">
-                    {[selectedMeeting.other_person.title, selectedMeeting.other_person.company_name]
-                      .filter(Boolean)
-                      .join(" at ")}
-                  </p>
-                )}
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {formatTimeShort(selectedMeeting.start_time)} · {selectedMeeting.duration_minutes ?? 30} min
-                  </span>
-                  {selectedMeeting.location && <span>{selectedMeeting.location}</span>}
-                  <Badge variant="outline" className="capitalize text-xs">
-                    {selectedMeeting.meeting_type}
-                  </Badge>
-                </div>
-                {selectedMeeting.agenda_note && (
-                  <p className="mt-2 text-sm text-muted-foreground italic">
-                    &ldquo;{selectedMeeting.agenda_note}&rdquo;
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => setSelectedMeeting(null)}
-                className="text-muted-foreground hover:text-foreground transition-colors text-xl leading-none ml-2 shrink-0"
-              >
-                &times;
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </div>
   );
 }

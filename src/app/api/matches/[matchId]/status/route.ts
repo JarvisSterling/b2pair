@@ -14,7 +14,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { status } = await req.json();
-  const allowed = ["pending", "saved", "dismissed"];
+  const allowed = ["suggested", "viewed", "saved", "dismissed", "connected"];
   if (!allowed.includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }

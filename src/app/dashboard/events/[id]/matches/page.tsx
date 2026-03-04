@@ -421,7 +421,7 @@ export default function EventMatchesPage() {
                         {/* Save/Dismiss */}
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => updateMatchStatus(match.id, isSaved ? "pending" : "saved")}
+                            onClick={() => updateMatchStatus(match.id, isSaved ? "viewed" : "saved")}
                             className={cn(
                               "p-1.5 rounded-lg transition-colors",
                               isSaved

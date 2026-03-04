@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme-provider";
+import { SonnerToaster } from "@/components/sonner-toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +25,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#000000",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
 };
 
 export default function RootLayout({
@@ -33,10 +37,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} dark`} suppressHydrationWarning>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <body className="min-h-screen font-sans antialiased">
-        {children}
-        <Toaster theme="dark" richColors={false} closeButton={false} />
+        <ThemeProvider>
+          {children}
+          <SonnerToaster />
+        </ThemeProvider>
       </body>
     </html>
   );

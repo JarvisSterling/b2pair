@@ -28,6 +28,7 @@ import {
   X,
   Bell,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useState, useEffect } from "react";
 import { useParticipantPerms } from "@/hooks/use-participant-perms";
 import { useCompanyMemberships, type CompanyMembership } from "@/hooks/use-company-memberships";
@@ -332,6 +333,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
             <p className="truncate text-small text-muted-foreground">{profile.email}</p>
           </div>
         </Link>
+        <ThemeToggle variant="row" />
         <button
           onClick={handleSignOut}
           className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-caption text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
@@ -359,6 +361,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           </span>
         )}
       </Link>
+      <ThemeToggle variant="icon" />
       <Link href="/dashboard/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium hover:opacity-80">
         {initials}
       </Link>
@@ -442,6 +445,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
                 <p className="truncate text-small text-muted-foreground">{profile.email}</p>
               </div>
             </Link>
+            <ThemeToggle variant="row" />
             <button onClick={handleSignOut} className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-caption text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
               <LogOut className="h-4 w-4" />
               Sign out

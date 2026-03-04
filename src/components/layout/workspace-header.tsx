@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, LogOut, Settings } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useState } from "react";
 import { SafeImage } from "@/components/ui/safe-image";
 
@@ -97,7 +98,8 @@ export function WorkspaceHeader({ profile, workspaces, currentWorkspaceId }: Pro
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <ThemeToggle variant="icon" />
         {profile.avatar_url ? (
           <SafeImage src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
         ) : (

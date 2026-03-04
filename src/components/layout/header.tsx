@@ -19,6 +19,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { SafeImage } from "@/components/ui/safe-image";
 
 interface Profile {
@@ -113,6 +114,7 @@ export function Header({ profile }: { profile: Profile }) {
         </Link>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle variant="icon" />
           <Link href="/dashboard/notifications">
             <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-md">
               <Bell className="h-4 w-4" strokeWidth={1.5} />
@@ -198,6 +200,7 @@ export function Header({ profile }: { profile: Profile }) {
                   <p className="truncate text-[12px] text-muted-foreground">{profile.email}</p>
                 </div>
               </div>
+              <ThemeToggle variant="row" className="text-[13px] gap-2.5 px-3 py-[7px] rounded-md" />
               <button
                 onClick={handleSignOut}
                 className="flex w-full items-center gap-2.5 rounded-md px-3 py-[7px] text-[13px] text-muted-foreground hover:bg-surface hover:text-foreground transition-colors duration-100"

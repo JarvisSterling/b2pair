@@ -16,6 +16,7 @@ import {
   LogOut,
   User,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { SafeImage } from "@/components/ui/safe-image";
@@ -224,6 +225,8 @@ export function Sidebar({ profile }: { profile: Profile }) {
             </Link>
           );
         })}
+
+        <ThemeToggle variant="row" className="text-[13px] gap-2.5 px-3 py-[7px] rounded-md" />
 
         <button
           onClick={handleSignOut}

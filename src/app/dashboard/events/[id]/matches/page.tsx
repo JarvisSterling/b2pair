@@ -63,11 +63,11 @@ interface MatchEntry {
 }
 
 const SCORE_FACTORS = [
-  { key: "intent_score", label: "Intent", icon: Target, color: "bg-blue-500" },
-  { key: "industry_score", label: "Industry", icon: Building2, color: "bg-emerald-500" },
-  { key: "interest_score", label: "Interests", icon: Lightbulb, color: "bg-amber-500" },
-  { key: "complementarity_score", label: "Complementarity", icon: Puzzle, color: "bg-purple-500" },
-  { key: "embedding_score", label: "AI Similarity", icon: Brain, color: "bg-pink-500" },
+  { key: "intent_score", label: "Intent", icon: Target, color: "#3b82f6" },
+  { key: "industry_score", label: "Industry", icon: Building2, color: "#10b981" },
+  { key: "interest_score", label: "Interests", icon: Lightbulb, color: "#f59e0b" },
+  { key: "complementarity_score", label: "Complementarity", icon: Puzzle, color: "#8b5cf6" },
+  { key: "embedding_score", label: "AI Similarity", icon: Brain, color: "#ec4899" },
 ];
 
 const REASON_ICONS: Record<string, any> = {
@@ -497,8 +497,8 @@ export default function EventMatchesPage() {
                                 <span className="text-xs text-muted-foreground w-28 shrink-0">{label}</span>
                                 <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                                   <div
-                                    className={cn("h-full rounded-full transition-all", color)}
-                                    style={{ width: `${Math.min(value, 100)}%` }}
+                                    className="h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${Math.min(value, 100)}%`, backgroundColor: color }}
                                   />
                                 </div>
                                 <span className="text-xs font-medium text-muted-foreground w-8 text-right">{Math.round(value)}</span>

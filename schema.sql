@@ -186,6 +186,7 @@ create table public.matches (
   industry_score numeric(5,2) default 0,
   interest_score numeric(5,2) default 0,
   complementarity_score numeric(5,2) default 0,
+  embedding_score numeric(5,2) default 0,
   
   -- Explanation
   match_reasons jsonb default '[]',

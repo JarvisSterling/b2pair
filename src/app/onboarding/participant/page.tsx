@@ -154,7 +154,11 @@ export default function ParticipantOnboardingPage() {
         body: JSON.stringify({
           title: title.trim(),
           companyName: companyName.trim(),
+          industry: (industry || "").trim(),
+          bio: (bio || "").trim(),
           intents: selectedIntents,
+          expertiseAreas: selectedExpertise || [],
+          interests: selectedInterests || [],
         }),
       });
       if (!res.ok) throw new Error("Failed to suggest");

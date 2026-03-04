@@ -165,7 +165,11 @@ export default function TeamMemberInvitePage() {
         body: JSON.stringify({
           title: title.trim(),
           companyName,
+          industry: (industry || "").trim(),
+          bio: (bio || "").trim(),
           intents: selectedIntents,
+          expertiseAreas: selectedExpertise || [],
+          interests: selectedInterests || [],
         }),
       });
       if (res.ok) {

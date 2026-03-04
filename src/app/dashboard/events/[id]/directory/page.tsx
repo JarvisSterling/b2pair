@@ -62,7 +62,7 @@ const SPECIAL_ROLES = ["speaker", "investor", "vip", "panelist", "mentor", "spon
 /** Strip AI-generated prefix: "As a X at Y, I'm looking for Z" → "Z"
  *  Also handles "As a X at Y, I bring Z" */
 function trimAiPrefix(text: string): string {
-  const m = text.match(/^As a .+?,\s+I(?:'m looking for|'m seeking| bring|'m offering)\s+(.+)$/si);
+  const m = text.match(/^As a .+?,\s+I(?:'m looking for|'m seeking| bring|'m offering)\s+(.+)$/i);
   return m ? m[1] : text;
 }
 

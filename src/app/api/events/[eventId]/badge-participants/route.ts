@@ -7,18 +7,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Returns all approved participants with profile + QR token for badge generation.
  * Organizer-only.
  */
-export async function GET(_req: NextRequest, { params }: { params: { eventId: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
+  const { eventId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const admin = createAdminClient();
 
-  // Verify organizer owns this event
+  // Verify event exists
   const { data: event } = await admin
     .from("events")
     .select("id, name, created_by, organization_id")
-    .eq("id", params.eventId)
+    .eq("id", eventId)
     .single();
 
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -31,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: { eventId: st
       profiles!inner(full_name, email, company_name, title, avatar_url),
       participant_types(name)
     `)
-    .eq("event_id", params.eventId)
+    .eq("event_id", eventId)
     .eq("status", "approved");
 
   if (!participants) return NextResponse.json({ participants: [] });
@@ -41,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: { params: { eventId: st
   const { data: qrTokens } = await admin
     .from("qr_tokens")
     .select("participant_id, token")
-    .eq("event_id", params.eventId)
+    .eq("event_id", eventId)
     .in("participant_id", participantIds);
 
   const tokenMap: Record<string, string> = {};

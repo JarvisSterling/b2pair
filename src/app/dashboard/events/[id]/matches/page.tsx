@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useActivityTracker } from "@/hooks/use-activity-tracker";
 import { SafeImage } from "@/components/ui/safe-image";
+import { MeetingSlotPicker, SelectedSlot } from "@/components/meeting-slot-picker";
 
 interface MatchEntry {
   id: string;
@@ -99,6 +100,7 @@ export default function EventMatchesPage() {
   const [requestingMeeting, setRequestingMeeting] = useState<string | null>(null);
   const [meetingNote, setMeetingNote] = useState("");
   const [meetingType, setMeetingType] = useState("in-person");
+  const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSent, setRequestSent] = useState<string | null>(null);
 
@@ -207,6 +209,15 @@ export default function EventMatchesPage() {
   async function sendMeetingRequest(participantId: string) {
     setSendingRequest(true);
     track("meeting_request", participantId, { source: "matches" });
+
+    // Build ISO timestamps if a slot was selected
+    let startTime: string | null = null;
+    let endTime: string | null = null;
+    if (selectedSlot) {
+      startTime = new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toISOString();
+      endTime   = new Date(`${selectedSlot.date}T${selectedSlot.endTime}:00`).toISOString();
+    }
+
     const res = await fetch("/api/meetings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -215,6 +226,8 @@ export default function EventMatchesPage() {
         recipientParticipantId: participantId,
         agendaNote: meetingNote.trim() || null,
         meetingType,
+        startTime,
+        endTime,
       }),
     });
 
@@ -224,6 +237,7 @@ export default function EventMatchesPage() {
         setRequestingMeeting(null);
         setRequestSent(null);
         setMeetingNote("");
+        setSelectedSlot(null);
       }, 2000);
     }
     setSendingRequest(false);
@@ -495,6 +509,7 @@ export default function EventMatchesPage() {
                               setRequestingMeeting(match.other_participant?.id);
                               setMeetingNote("");
                               setMeetingType("in-person");
+                              setSelectedSlot(null);
                             }}
                           >
                             <Calendar className="mr-1.5 h-3.5 w-3.5" />
@@ -521,7 +536,41 @@ export default function EventMatchesPage() {
 
                       {/* Inline meeting request form */}
                       {isRequesting && !wasRequested && (
-                        <div className="mt-4 p-4 rounded-lg border border-border bg-background space-y-3 animate-fade-in">
+                        <div className="mt-4 p-4 rounded-lg border border-border bg-background space-y-4 animate-fade-in">
+
+                          {/* Pick a time */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-xs font-medium text-muted-foreground">Pick a time</label>
+                              {selectedSlot && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedSlot(null)}
+                                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
+                            <MeetingSlotPicker
+                              eventId={eventId}
+                              recipientParticipantId={match.other_participant?.id}
+                              selected={selectedSlot}
+                              onSelect={setSelectedSlot}
+                            />
+                            {selectedSlot && (
+                              <p className="mt-2 text-[11px] text-primary font-medium">
+                                ✓ Requesting{" "}
+                                {new Date(`${selectedSlot.date}T${selectedSlot.startTime}:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                                at {selectedSlot.startTime.replace(/^0/, "")} – {selectedSlot.endTime.replace(/^0/, "")}
+                                {!selectedSlot.iAmFree && (
+                                  <span className="ml-1.5 text-warning font-normal">(you&apos;re marked busy at this time)</span>
+                                )}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Meeting type */}
                           <div>
                             <label className="text-xs font-medium text-muted-foreground">Meeting type</label>
                             <div className="flex gap-2 mt-1.5">
@@ -541,6 +590,8 @@ export default function EventMatchesPage() {
                               ))}
                             </div>
                           </div>
+
+                          {/* Note */}
                           <div>
                             <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
                             <textarea
@@ -551,6 +602,8 @@ export default function EventMatchesPage() {
                               className="mt-1.5 flex w-full rounded-lg bg-input/50 px-3 py-2 text-sm border border-border placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary/50 resize-none"
                             />
                           </div>
+
+                          {/* Actions */}
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -562,12 +615,12 @@ export default function EventMatchesPage() {
                               ) : (
                                 <Calendar className="mr-1.5 h-3.5 w-3.5" />
                               )}
-                              Send request
+                              {selectedSlot ? "Send request" : "Send without time"}
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => setRequestingMeeting(null)}
+                              onClick={() => { setRequestingMeeting(null); setSelectedSlot(null); }}
                             >
                               Cancel
                             </Button>

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { conversationId, content, senderId } = await request.json();
+  const { conversationId, content, senderId, eventId: bodyEventId } = await request.json();
   if (!conversationId || !content?.trim() || !senderId) {
     return NextResponse.json({ error: "conversationId, content, and senderId required" }, { status: 400 });
   }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       .single();
 
     if (otherParticipant) {
-      const eventId = conversation.event_id;
+      const eventId = bodyEventId || conversation.event_id;
       await createNotification(supabase, {
         userId: otherParticipant.user_id,
         eventId,

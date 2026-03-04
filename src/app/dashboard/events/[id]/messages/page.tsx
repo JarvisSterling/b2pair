@@ -351,6 +351,7 @@ export default function EventMessagesPage() {
         conversationId: selectedConvo,
         content,
         senderId: myParticipantId,
+        eventId,
       }),
     });
 

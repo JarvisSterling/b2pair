@@ -19,6 +19,7 @@ import {
   Loader2,
   X,
   Check,
+  Clock,
   Globe,
   Mail,
   Building2,
@@ -121,6 +122,46 @@ export default function DirectoryPage() {
     { revalidateOnFocus: true, dedupingInterval: 2000 }
   );
 
+  // Fetch existing meeting statuses for this event (to prevent duplicate requests)
+  const { data: meetingStatusMap = new Map<string, string>(), mutate: mutateMeetingStatus } = useSWR<Map<string, string>>(
+    eventId ? `meeting-statuses-${eventId}` : null,
+    async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return new Map<string, string>();
+
+      const { data: myP } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (!myP) return new Map<string, string>();
+
+      const [{ data: asRequester }, { data: asRecipient }] = await Promise.all([
+        supabase
+          .from("meetings")
+          .select("recipient_id, status")
+          .eq("event_id", eventId)
+          .eq("requester_id", myP.id)
+          .not("status", "in", "(declined,cancelled)"),
+        supabase
+          .from("meetings")
+          .select("requester_id, status")
+          .eq("event_id", eventId)
+          .eq("recipient_id", myP.id)
+          .not("status", "in", "(declined,cancelled)"),
+      ]);
+
+      const map = new Map<string, string>();
+      (asRequester || []).forEach((m: any) => map.set(m.recipient_id, m.status));
+      (asRecipient || []).forEach((m: any) => map.set(m.requester_id, m.status));
+      return map;
+    },
+    { revalidateOnFocus: true, dedupingInterval: 2000 }
+  );
+
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [industryFilter, setIndustryFilter] = useState("all");
@@ -175,6 +216,12 @@ export default function DirectoryPage() {
     });
     if (res.ok) {
       setRequestSent(true);
+      // Optimistically update the meeting status map so button changes immediately
+      mutateMeetingStatus((prev) => {
+        const updated = new Map(prev);
+        updated.set(meetingTarget.participantId, "pending");
+        return updated;
+      }, { revalidate: false });
       setTimeout(() => closeMeetingModal(), 1800);
     }
     setSendingRequest(false);
@@ -369,20 +416,39 @@ export default function DirectoryPage() {
                         Message
                       </Button>
                     )}
-                    {perms.can_book_meetings && (
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          track("meeting_request", entry.id);
-                          openMeetingModal(entry);
-                        }}
-                      >
-                        <Calendar className="mr-1 h-3 w-3" />
-                        Meet
-                      </Button>
-                    )}
+                    {perms.can_book_meetings && (() => {
+                      const mtgStatus = meetingStatusMap.get(entry.id);
+                      if (mtgStatus === "pending") {
+                        return (
+                          <Button size="sm" className="flex-1" variant="outline" disabled>
+                            <Clock className="mr-1 h-3 w-3" />
+                            Pending
+                          </Button>
+                        );
+                      }
+                      if (mtgStatus === "accepted") {
+                        return (
+                          <Button size="sm" className="flex-1 bg-emerald-500/10 text-emerald-600 border-emerald-200 hover:bg-emerald-500/10" variant="outline" disabled>
+                            <Check className="mr-1 h-3 w-3" />
+                            Scheduled
+                          </Button>
+                        );
+                      }
+                      return (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            track("meeting_request", entry.id);
+                            openMeetingModal(entry);
+                          }}
+                        >
+                          <Calendar className="mr-1 h-3 w-3" />
+                          Meet
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>
@@ -644,19 +710,38 @@ export default function DirectoryPage() {
                     Message
                   </Button>
                 )}
-                {perms.can_book_meetings && (
-                  <Button
-                    className="flex-1"
-                    onClick={() => {
-                      const entry = selectedEntry;
-                      setSelectedEntry(null);
-                      openMeetingModal(entry);
-                    }}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Request meeting
-                  </Button>
-                )}
+                {perms.can_book_meetings && (() => {
+                  const mtgStatus = meetingStatusMap.get(selectedEntry.id);
+                  if (mtgStatus === "pending") {
+                    return (
+                      <Button className="flex-1" variant="outline" disabled>
+                        <Clock className="mr-2 h-4 w-4" />
+                        Pending
+                      </Button>
+                    );
+                  }
+                  if (mtgStatus === "accepted") {
+                    return (
+                      <Button className="flex-1 bg-emerald-500/10 text-emerald-600 border-emerald-200 hover:bg-emerald-500/10" variant="outline" disabled>
+                        <Check className="mr-2 h-4 w-4" />
+                        Scheduled
+                      </Button>
+                    );
+                  }
+                  return (
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        const entry = selectedEntry;
+                        setSelectedEntry(null);
+                        openMeetingModal(entry);
+                      }}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Request meeting
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           </div>

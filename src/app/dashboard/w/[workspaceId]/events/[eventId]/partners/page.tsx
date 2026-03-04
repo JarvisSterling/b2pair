@@ -361,7 +361,7 @@ export default function PartnersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-border">
+      <div className="flex gap-1 mb-6 border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
         {([
           { key: "sponsors" as const, label: "Sponsors", count: sponsors.length, icon: Crown },
           { key: "exhibitors" as const, label: "Exhibitors", count: exhibitors.length, icon: Building2 },
@@ -371,7 +371,7 @@ export default function PartnersPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-caption font-medium border-b-2 -mb-px transition-all ${
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 text-caption font-medium border-b-2 -mb-px transition-all ${
               activeTab === tab.key
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1364,92 +1364,104 @@ function CompanyList({
 
   return (
     <div className="space-y-2">
-      {companies.map((company) => (
-        <Card key={company.id} className="group cursor-pointer hover:border-primary/30 transition-colors" onClick={() => onView(company.id)}>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-4">
-              {company.logo_url ? (
-                <SafeImage src={company.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" width={40} height={40} />
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary text-small font-bold shrink-0">
-                  {company.name[0]}
+      {companies.map((company) => {
+        const statusActions = (
+          <>
+            {company.status === "submitted" && (
+              <>
+                <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => onApprove(company.id)}>
+                  <Check className="mr-1 h-3 w-3" /> Approve
+                </Button>
+                <Button size="sm" variant="ghost" className="text-xs h-8 text-destructive hover:text-destructive" onClick={() => onReject(company.id)}>
+                  <XCircle className="mr-1 h-3 w-3" /> Reject
+                </Button>
+              </>
+            )}
+            {company.status === "approved" && (
+              <Button size="sm" className="text-xs h-8" onClick={() => onPublish(company.id)}>
+                <Globe className="mr-1 h-3 w-3" /> Publish
+              </Button>
+            )}
+            {company.status === "live" && (
+              <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => onUnpublish(company.id)}>
+                <Globe className="mr-1 h-3 w-3" /> Unpublish
+              </Button>
+            )}
+            {(company.status === "invited" || company.status === "onboarding") && (company as any).invite_code && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-8"
+                onClick={() => copyInviteLink((company as any).invite_code, company.id)}
+              >
+                <Link2 className="mr-1 h-3 w-3" />
+                {copiedLink === company.id ? "Copied!" : "Copy link"}
+              </Button>
+            )}
+            <button
+              onClick={() => {
+                if (window.confirm(`Remove ${company.name}? This cannot be undone.`)) onDelete(company.id);
+              }}
+              className="opacity-50 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded hover:bg-secondary transition-opacity"
+              disabled={deleting === company.id}
+              title="Remove company"
+            >
+              {deleting === company.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 text-destructive" />}
+            </button>
+          </>
+        );
+
+        return (
+          <Card key={company.id} className="group cursor-pointer hover:border-primary/30 transition-colors" onClick={() => onView(company.id)}>
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                {company.logo_url ? (
+                  <SafeImage src={company.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" width={40} height={40} />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary text-small font-bold shrink-0">
+                    {company.name[0]}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+                    <p className="text-body font-medium">{company.name}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLORS[company.status]}`}>
+                      {company.status}
+                    </span>
+                    {(company as any).members_count > 0 && (
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Users className="h-3 w-3" />
+                        {(company as any).members_count}
+                      </span>
+                    )}
+                  </div>
+                  {company.description_short && (
+                    <p className="text-caption text-muted-foreground truncate mt-0.5">{company.description_short}</p>
+                  )}
+                  {/* Actions on mobile — shown below company info */}
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap sm:hidden" onClick={(e) => e.stopPropagation()}>
+                    {statusActions}
+                  </div>
+                </div>
+
+                {/* Actions on desktop — shown on the right */}
+                <div className="hidden sm:flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {statusActions}
+                </div>
+              </div>
+
+              {/* Rejection reason */}
+              {company.status === "rejected" && company.rejection_reason && (
+                <div className="mt-3 sm:ml-14 p-2 rounded bg-red-500/5 border border-red-500/10">
+                  <p className="text-caption text-red-500">
+                    <span className="font-medium">Rejected:</span> {company.rejection_reason}
+                  </p>
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-body font-medium truncate">{company.name}</p>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLORS[company.status]}`}>
-                    {company.status}
-                  </span>
-                  {(company as any).members_count > 0 && (
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Users className="h-3 w-3" />
-                      {(company as any).members_count}
-                    </span>
-                  )}
-                </div>
-                {company.description_short && (
-                  <p className="text-caption text-muted-foreground truncate mt-0.5">{company.description_short}</p>
-                )}
-              </div>
-
-              {/* Status actions */}
-              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                {company.status === "submitted" && (
-                  <>
-                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => onApprove(company.id)}>
-                      <Check className="mr-1 h-3 w-3" /> Approve
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-xs h-8 text-destructive hover:text-destructive" onClick={() => onReject(company.id)}>
-                      <XCircle className="mr-1 h-3 w-3" /> Reject
-                    </Button>
-                  </>
-                )}
-                {company.status === "approved" && (
-                  <Button size="sm" className="text-xs h-8" onClick={() => onPublish(company.id)}>
-                    <Globe className="mr-1 h-3 w-3" /> Publish
-                  </Button>
-                )}
-                {company.status === "live" && (
-                  <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => onUnpublish(company.id)}>
-                    <Globe className="mr-1 h-3 w-3" /> Unpublish
-                  </Button>
-                )}
-                {(company.status === "invited" || company.status === "onboarding") && (company as any).invite_code && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs h-8"
-                    onClick={() => copyInviteLink((company as any).invite_code, company.id)}
-                  >
-                    <Link2 className="mr-1 h-3 w-3" />
-                    {copiedLink === company.id ? "Copied!" : "Copy Invite Link"}
-                  </Button>
-                )}
-                <button
-                  onClick={() => {
-                    if (window.confirm(`Remove ${company.name}? This cannot be undone.`)) onDelete(company.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-secondary transition-opacity"
-                  disabled={deleting === company.id}
-                  title="Remove company"
-                >
-                  {deleting === company.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 text-destructive" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Rejection reason */}
-            {company.status === "rejected" && company.rejection_reason && (
-              <div className="mt-3 ml-14 p-2 rounded bg-red-500/5 border border-red-500/10">
-                <p className="text-caption text-red-500">
-                  <span className="font-medium">Rejected:</span> {company.rejection_reason}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

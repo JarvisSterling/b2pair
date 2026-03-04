@@ -1,6 +1,6 @@
-﻿﻿﻿﻿﻿﻿﻿﻿"use client";
+﻿﻿﻿﻿﻿﻿﻿﻿﻿"use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import useSWR from "swr";
 import { useRealtime } from "@/hooks/use-realtime";
 import { useRouter } from "next/navigation";
@@ -447,7 +447,7 @@ export default function EventMatchesPage() {
             const isRequesting = requestingMeeting === match.other_participant?.id;
             const wasRequested = requestSent === match.other_participant?.id;
 
-            return (
+            return (<Fragment key={match.id}>
               {tab === "all" && !search && match.organizer_recommended && index === 0 && (
                 <div className="flex items-center gap-2 mb-3 mt-1">
                   <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" />
@@ -462,7 +462,6 @@ export default function EventMatchesPage() {
                 </div>
               )}
               <Card
-                key={match.id}
                 className={cn(
                   "transition-all duration-200",
                   isSaved && "border-primary/20 bg-primary/[0.02]",
@@ -736,7 +735,7 @@ export default function EventMatchesPage() {
                   </div>
                 </CardContent>
               </Card>
-            );
+            </Fragment>);
           })}
         </div>
       )}

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { isEventOrganizer, canAccessCompany } from "@/lib/sponsors-helpers";
+import { createNotifications } from "@/lib/notifications";
 
 type Params = { params: Promise<{ eventId: string; companyId: string }> };
 
@@ -117,6 +118,63 @@ export async function PATCH(request: Request, { params }: Params) {
     .eq("id", companyId);
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+  // ── Notify company members of status changes ──
+  const finalStatus = update.status as string;
+  const notifyStatuses = ["approved", "rejected", "live"];
+  if (isOrganizer && notifyStatuses.includes(finalStatus)) {
+    const { data: members } = await supabase
+      .from("company_members")
+      .select("user_id")
+      .eq("company_id", companyId)
+      .eq("invite_status", "accepted");
+
+    const { data: companyInfo } = await supabase
+      .from("companies")
+      .select("name")
+      .eq("id", companyId)
+      .single();
+
+    const companyName = companyInfo?.name || "Your company";
+
+    if (members?.length) {
+      const typeMap: Record<string, { type: string; title: string; body: string }> = {
+        approved: {
+          type: "company_approved",
+          title: "Partnership application approved",
+          body: `${companyName} has been approved — complete your profile to go live`,
+        },
+        live: {
+          type: "company_live",
+          title: "Company profile is live!",
+          body: `${companyName} is now visible to event attendees`,
+        },
+        rejected: {
+          type: "company_rejected",
+          title: "Partnership application needs revision",
+          body: rejection_reason
+            ? `Reason: ${rejection_reason}`
+            : `${companyName} was not approved — open the wizard to review feedback`,
+        },
+      };
+
+      const notif = typeMap[finalStatus];
+      if (notif) {
+        const link = `/events/${eventId}/sponsors/${companyId}`;
+        await createNotifications(
+          supabase,
+          members.map((m) => ({
+            userId: m.user_id,
+            eventId,
+            type: notif.type,
+            title: notif.title,
+            body: notif.body,
+            link,
+          }))
+        );
+      }
+    }
+  }
 
   return NextResponse.json({ success: true, status: update.status });
 }

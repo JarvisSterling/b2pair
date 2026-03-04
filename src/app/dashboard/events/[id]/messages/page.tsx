@@ -341,21 +341,19 @@ export default function EventMessagesPage() {
     if (!newMessage.trim() || !selectedConvo || !myParticipantId) return;
 
     setSending(true);
-    const supabase = createClient();
+    const content = newMessage.trim();
+    setNewMessage("");
 
-    await supabase.from("messages").insert({
-      conversation_id: selectedConvo,
-      sender_id: myParticipantId,
-      content: newMessage.trim(),
-      content_type: "text",
+    await fetch("/api/messages/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: selectedConvo,
+        content,
+        senderId: myParticipantId,
+      }),
     });
 
-    await supabase
-      .from("conversations")
-      .update({ last_message_at: new Date().toISOString() })
-      .eq("id", selectedConvo);
-
-    setNewMessage("");
     setSending(false);
   }
 

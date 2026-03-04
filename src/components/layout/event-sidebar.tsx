@@ -20,8 +20,9 @@ import {
   Building2,
   Menu,
   X,
+  Bell,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SafeImage } from "@/components/ui/safe-image";
 
 interface Props {
@@ -54,8 +55,30 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
   const router = useRouter();
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [allUnreadCount, setAllUnreadCount] = useState(0);
 
   const basePath = `/dashboard/w/${workspaceId}/events/${eventId}`;
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const loadUnread = () => {
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .then(({ count }) => setAllUnreadCount(count || 0));
+      };
+      loadUnread();
+      const channel = supabase
+        .channel("organizer-notifs")
+        .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, loadUnread)
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    });
+  }, []);
   const currentWorkspace = workspaces.find((w) => w.id === workspaceId);
 
   function isActive(navPath: string) {
@@ -161,6 +184,24 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
             </Link>
           );
         })}
+        <Link
+          href="/dashboard/notifications"
+          className={cn(
+            "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+            "transition-all duration-150 ease-out",
+            pathname === "/dashboard/notifications"
+              ? "bg-primary/5 text-primary font-medium"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+          )}
+        >
+          <Bell className="h-[18px] w-[18px]" strokeWidth={pathname === "/dashboard/notifications" ? 2 : 1.5} />
+          Notifications
+          {allUnreadCount > 0 && (
+            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+              {allUnreadCount > 99 ? "99+" : allUnreadCount}
+            </span>
+          )}
+        </Link>
       </nav>
 
       {/* Profile / Sign out */}
@@ -194,6 +235,14 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
         <Menu className="h-5 w-5" />
       </button>
       <span className="flex-1 text-sm font-semibold truncate">{currentWorkspace?.name || "Event"}</span>
+      <Link href="/dashboard/notifications" className="relative flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary transition-colors">
+        <Bell className="h-5 w-5" />
+        {allUnreadCount > 0 && (
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-primary-foreground">
+            {allUnreadCount > 9 ? "9+" : allUnreadCount}
+          </span>
+        )}
+      </Link>
       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium">{initials}</div>
     </div>
 
@@ -229,6 +278,20 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
                 </Link>
               );
             })}
+            <Link href="/dashboard/notifications" onClick={() => setMenuOpen(false)}
+              className={cn("flex items-center gap-3 rounded-sm px-3 py-2.5 text-body transition-all",
+                pathname === "/dashboard/notifications"
+                  ? "bg-primary/5 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}>
+              <Bell className="h-[18px] w-[18px]" strokeWidth={pathname === "/dashboard/notifications" ? 2 : 1.5} />
+              Notifications
+              {allUnreadCount > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                  {allUnreadCount > 99 ? "99+" : allUnreadCount}
+                </span>
+              )}
+            </Link>
           </nav>
           <div className="border-t border-border p-3 shrink-0">
             <button onClick={handleSignOut} className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-caption text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">

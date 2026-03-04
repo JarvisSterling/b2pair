@@ -29,17 +29,22 @@ interface Notification {
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  meeting_request: <Calendar className="h-4 w-4" />,
-  meeting_accepted: <Check className="h-4 w-4" />,
-  meeting_declined: <Calendar className="h-4 w-4" />,
-  meeting_reminder: <Calendar className="h-4 w-4" />,
-  meeting_cancelled: <Calendar className="h-4 w-4" />,
-  new_match: <Zap className="h-4 w-4" />,
-  new_message: <MessageSquare className="h-4 w-4" />,
-  event_update: <Info className="h-4 w-4" />,
-  registration_approved: <Check className="h-4 w-4" />,
-  registration_rejected: <Users className="h-4 w-4" />,
-  system: <Info className="h-4 w-4" />,
+  meeting_request:     <Calendar className="h-4 w-4 text-primary" />,
+  meeting_rescheduled: <Calendar className="h-4 w-4 text-amber-400" />,
+  meeting_accepted:    <Check    className="h-4 w-4 text-emerald-400" />,
+  meeting_declined:    <Calendar className="h-4 w-4 text-rose-400" />,
+  meeting_reminder:    <Calendar className="h-4 w-4" />,
+  meeting_cancelled:   <Calendar className="h-4 w-4 text-muted-foreground" />,
+  new_match:           <Zap      className="h-4 w-4 text-amber-400" />,
+  new_message:         <MessageSquare className="h-4 w-4 text-primary" />,
+  company_approved:    <Check    className="h-4 w-4 text-emerald-400" />,
+  company_live:        <Check    className="h-4 w-4 text-emerald-400" />,
+  company_rejected:    <Users    className="h-4 w-4 text-rose-400" />,
+  contact_exchange:    <Users    className="h-4 w-4 text-primary" />,
+  event_update:        <Info     className="h-4 w-4" />,
+  registration_approved: <Check  className="h-4 w-4 text-emerald-400" />,
+  registration_rejected: <Users  className="h-4 w-4 text-rose-400" />,
+  system:              <Info     className="h-4 w-4" />,
 };
 
 export default function NotificationsPage() {

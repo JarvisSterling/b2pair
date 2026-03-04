@@ -6,6 +6,7 @@ import { Header } from "./header";
 import { EventSidebar } from "./event-sidebar";
 import { WorkspaceHeader } from "./workspace-header";
 import { ParticipantEventSidebar } from "./participant-event-sidebar";
+import { NotificationToast } from "@/components/notification-toast";
 
 interface Profile {
   id: string;
@@ -62,6 +63,8 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
   // Organizer inside an event: event sidebar
   if (isOrganizer && isEventView && currentWorkspaceId && currentEventId) {
     return (
+      <>
+      <NotificationToast />
       <div className="flex h-screen overflow-hidden bg-background">
         <EventSidebar
           workspaceId={currentWorkspaceId}
@@ -75,12 +78,15 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
           </main>
         </div>
       </div>
+      </>
     );
   }
 
   // Organizer at workspace level (event list, new event): workspace header, no sidebar
   if (isOrganizer && (isWorkspaceRoot || isNewEvent)) {
     return (
+      <>
+      <NotificationToast />
       <div className="min-h-screen bg-background">
         <WorkspaceHeader
           profile={profile}
@@ -91,12 +97,15 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
           {children}
         </main>
       </div>
+      </>
     );
   }
 
   // Participant inside an event: event sidebar
   if (isParticipantInEvent && participantEventId) {
     return (
+      <>
+      <NotificationToast />
       <div className="flex h-screen overflow-hidden bg-background">
         <ParticipantEventSidebar
           eventId={participantEventId}
@@ -108,6 +117,7 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
           </main>
         </div>
       </div>
+      </>
     );
   }
 
@@ -151,3 +161,4 @@ export function DashboardShell({ profile, workspaces, children }: Props) {
     </div>
   );
 }
+

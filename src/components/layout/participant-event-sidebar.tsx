@@ -26,6 +26,7 @@ import {
   FileText,
   Menu,
   X,
+  Bell,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParticipantPerms } from "@/hooks/use-participant-perms";
@@ -48,6 +49,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
   const router = useRouter();
   const [eventName, setEventName] = useState("Event");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [allUnreadCount, setAllUnreadCount] = useState(0);
   const [mode, setMode] = useState<"participant" | "company">("participant");
   const [menuOpen, setMenuOpen] = useState(false);
   const perms = useParticipantPerms(eventId);
@@ -82,8 +84,9 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
 
-      // Load initial unread count
+      // Load initial unread counts
       const loadUnread = () => {
+        // Message-specific badge
         supabase
           .from("notifications")
           .select("id", { count: "exact", head: true })
@@ -91,6 +94,13 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           .eq("read", false)
           .eq("type", "new_message")
           .then(({ count }) => setUnreadCount(count || 0));
+        // All notifications badge (for bell)
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .then(({ count }) => setAllUnreadCount(count || 0));
       };
       loadUnread();
 
@@ -214,6 +224,25 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
                   </Link>
                 );
               })}
+            {/* Notifications */}
+            <Link
+              href="/dashboard/notifications"
+              className={cn(
+                "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                "transition-all duration-150 ease-out",
+                pathname === "/dashboard/notifications"
+                  ? "bg-primary/5 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
+              <Bell className="h-[18px] w-[18px]" strokeWidth={pathname === "/dashboard/notifications" ? 2 : 1.5} />
+              Notifications
+              {allUnreadCount > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                  {allUnreadCount > 99 ? "99+" : allUnreadCount}
+                </span>
+              )}
+            </Link>
 
             {/* Switch to company view */}
             {companyMembership && (
@@ -322,6 +351,14 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
         <Menu className="h-5 w-5" />
       </button>
       <span className="flex-1 text-sm font-semibold truncate">{eventName}</span>
+      <Link href="/dashboard/notifications" className="relative flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary transition-colors">
+        <Bell className="h-5 w-5" />
+        {allUnreadCount > 0 && (
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-primary-foreground">
+            {allUnreadCount > 9 ? "9+" : allUnreadCount}
+          </span>
+        )}
+      </Link>
       <Link href="/dashboard/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium hover:opacity-80">
         {initials}
       </Link>
@@ -379,6 +416,21 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
                 </Link>
               );
             })}
+            {/* Notifications — always visible, shows global unread badge */}
+            <Link href="/dashboard/notifications" onClick={() => setMenuOpen(false)}
+              className={cn("flex items-center gap-3 rounded-sm px-3 py-2.5 text-body transition-all",
+                pathname === "/dashboard/notifications"
+                  ? "bg-primary/5 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}>
+              <Bell className="h-[18px] w-[18px]" strokeWidth={pathname === "/dashboard/notifications" ? 2 : 1.5} />
+              Notifications
+              {allUnreadCount > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                  {allUnreadCount > 99 ? "99+" : allUnreadCount}
+                </span>
+              )}
+            </Link>
           </nav>
 
           <div className="border-t border-border p-3 shrink-0">

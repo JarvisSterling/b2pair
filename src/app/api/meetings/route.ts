@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * POST /api/meetings
@@ -76,13 +77,13 @@ export async function POST(request: Request) {
       .eq("id", user.id)
       .single();
 
-    await supabase.from("notifications").insert({
-      user_id: recipientParticipant.user_id,
-      event_id: eventId,
+    await createNotification(supabase, {
+      userId: recipientParticipant.user_id,
+      eventId,
       type: "meeting_request",
       title: "New meeting request",
       body: `${requesterProfile?.full_name || "Someone"} wants to meet with you`,
-      link: `/dashboard/meetings`,
+      link: `/dashboard/events/${eventId}/meetings`,
     });
   }
 
@@ -152,13 +153,13 @@ export async function PATCH(request: Request) {
       .eq("id", user.id)
       .single();
     if (otherParticipant) {
-      await supabase.from("notifications").insert({
-        user_id: otherParticipant.user_id,
-        event_id: mtg.event_id,
-        type: "meeting_request",
+      await createNotification(supabase, {
+        userId: otherParticipant.user_id,
+        eventId: mtg.event_id,
+        type: "meeting_rescheduled",
         title: "Meeting rescheduled",
-        body: `${myProfile?.full_name || "Someone"} proposed a new time for your meeting`,
-        link: `/dashboard/meetings`,
+        body: `${myProfile?.full_name || "Someone"} proposed a new time — tap to confirm`,
+        link: `/dashboard/events/${mtg.event_id}/meetings`,
       });
     }
   }
@@ -190,6 +191,13 @@ export async function PATCH(request: Request) {
     }
   }
 
+  // Fetch meeting details before update (for notification routing)
+  const { data: meetingForNotif } = await supabase
+    .from("meetings")
+    .select("requester_id, recipient_id, event_id")
+    .eq("id", meetingId)
+    .single();
+
   const { error } = await supabase
     .from("meetings")
     .update(updates)
@@ -197,6 +205,69 @@ export async function PATCH(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // ── Send notifications for status changes ──
+  if (status && meetingForNotif && !reschedule) {
+    const { data: myParticipants } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("user_id", user.id);
+    const myIds = new Set((myParticipants || []).map((p: any) => p.id));
+
+    const myPid = myIds.has(meetingForNotif.requester_id)
+      ? meetingForNotif.requester_id
+      : meetingForNotif.recipient_id;
+    const otherPid = myPid === meetingForNotif.requester_id
+      ? meetingForNotif.recipient_id
+      : meetingForNotif.requester_id;
+
+    const { data: otherParticipant } = await supabase
+      .from("participants")
+      .select("user_id")
+      .eq("id", otherPid)
+      .single();
+
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+
+    const name = myProfile?.full_name || "Someone";
+    const evtId = meetingForNotif.event_id;
+    const link = `/dashboard/events/${evtId}/meetings`;
+
+    if (otherParticipant) {
+      if (status === "accepted") {
+        await createNotification(supabase, {
+          userId: otherParticipant.user_id,
+          eventId: evtId,
+          type: "meeting_accepted",
+          title: "Meeting request accepted",
+          body: `${name} accepted your meeting request`,
+          link,
+        });
+      } else if (status === "declined") {
+        await createNotification(supabase, {
+          userId: otherParticipant.user_id,
+          eventId: evtId,
+          type: "meeting_declined",
+          title: "Meeting request declined",
+          body: `${name} declined your meeting request`,
+          link,
+        });
+      } else if (status === "cancelled") {
+        await createNotification(supabase, {
+          userId: otherParticipant.user_id,
+          eventId: evtId,
+          type: "meeting_cancelled",
+          title: "Meeting cancelled",
+          body: `${name} cancelled your upcoming meeting`,
+          link,
+        });
+      }
+    }
   }
 
   // ── Outcome feedback loop for intent engine ──

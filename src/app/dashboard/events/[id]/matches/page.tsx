@@ -181,21 +181,27 @@ export default function EventMatchesPage() {
   }
 
   async function updateMatchStatus(matchId: string, status: "saved" | "dismissed" | "pending") {
-    const supabase = createClient();
     const match = matches.find((m) => m.id === matchId);
     if (match) {
       if (status === "saved") track("match_saved", match.other_participant?.id);
       if (status === "dismissed") track("match_dismissed", match.other_participant?.id);
     }
-    await supabase.from("matches").update({ status }).eq("id", matchId);
-    // Optimistic update + revalidate
+    // Optimistic update immediately
     mutate(
       matchData ? {
         ...matchData,
         matches: matchData.matches.map((m) => m.id === matchId ? { ...m, status } : m),
       } : undefined,
-      { revalidate: true }
+      { revalidate: false }
     );
+    // Persist via server API (bypasses RLS on matches table)
+    await fetch(`/api/matches/${matchId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    // Revalidate to confirm persisted state
+    mutate();
   }
 
   async function sendMeetingRequest(participantId: string) {

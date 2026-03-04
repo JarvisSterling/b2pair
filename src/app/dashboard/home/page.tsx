@@ -13,7 +13,6 @@ import {
   Search,
 } from "lucide-react";
 import Link from "next/link";
-import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 import { SafeImage } from "@/components/ui/safe-image";
 
 export default async function ParticipantHome() {
@@ -76,7 +75,8 @@ export default async function ParticipantHome() {
         .eq("event_id", latestEvent.id)
         .or(
           `participant_a_id.eq.${latestEvent.participantId},participant_b_id.eq.${latestEvent.participantId}`
-        ),
+        )
+        .neq("status", "dismissed"),
       supabase
         .from("meetings")
         .select("*", { count: "exact", head: true })
@@ -98,37 +98,6 @@ export default async function ParticipantHome() {
     };
   }
 
-  // Check profile completion for nudge banner
-  let profileCompletion = {
-    hasLookingFor: true,
-    hasOffering: true,
-    hasCompanySize: true,
-    hasCompanyWebsite: true,
-  };
-
-  if (latestEvent) {
-    const { data: participant } = await admin
-      .from("participants")
-      .select("looking_for, offering, company_id")
-      .eq("id", latestEvent.participantId)
-      .single();
-
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("company_size, company_website")
-      .eq("id", user!.id)
-      .single();
-
-    const belongsToCompany = !!participant?.company_id;
-
-    profileCompletion = {
-      hasLookingFor: !!participant?.looking_for,
-      hasOffering: !!participant?.offering,
-      hasCompanySize: belongsToCompany ? true : !!profile?.company_size,
-      hasCompanyWebsite: belongsToCompany ? true : !!profile?.company_website,
-    };
-  }
-
   const otherEvents = events.slice(1);
   const dateFormatter = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -144,18 +113,6 @@ export default async function ParticipantHome() {
           Events you've registered for and your networking activity.
         </p>
       </div>
-
-      {/* Profile completion nudge */}
-      {latestEvent && (
-        <ProfileCompletionBanner
-          eventId={latestEvent.id}
-          participantId={latestEvent.participantId}
-          hasLookingFor={profileCompletion.hasLookingFor}
-          hasOffering={profileCompletion.hasOffering}
-          hasCompanySize={profileCompletion.hasCompanySize}
-          hasCompanyWebsite={profileCompletion.hasCompanyWebsite}
-        />
-      )}
 
       {events.length === 0 && companyEvents.length === 0 ? (
         <Card>

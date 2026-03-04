@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ eve
     .from("participants")
     .select(`
       id, user_id, status,
-      profiles!inner(full_name, email, company_name, title, avatar_url),
+      profiles(full_name, email, company_name, title, avatar_url),
       participant_types(name)
     `)
     .eq("event_id", eventId)

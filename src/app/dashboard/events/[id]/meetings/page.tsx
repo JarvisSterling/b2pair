@@ -327,6 +327,8 @@ export default function EventMeetingsPage() {
     (m) => !m.is_requester && m.status === "pending"
   ).length;
 
+  const cancelledCount = meetings.filter((m) => m.status === "cancelled").length;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -362,6 +364,10 @@ export default function EventMeetingsPage() {
           },
           { key: "upcoming", label: "Upcoming" },
           { key: "completed", label: "Completed" },
+          {
+            key: "cancelled",
+            label: `Cancelled${cancelledCount > 0 ? ` (${cancelledCount})` : ""}`,
+          },
         ].map((f) => (
           <button
             key={f.key}
@@ -385,6 +391,8 @@ export default function EventMeetingsPage() {
               <p className="text-body text-muted-foreground">
                 {filter === "incoming"
                   ? "No pending meeting requests."
+                  : filter === "cancelled"
+                  ? "No cancelled meetings."
                   : "No meetings yet."}
               </p>
               <p className="mt-1 text-caption text-muted-foreground">

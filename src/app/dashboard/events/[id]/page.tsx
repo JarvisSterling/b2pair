@@ -12,7 +12,18 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
+  Target,
+  Pencil,
 } from "lucide-react";
+
+const INTENT_LABELS: Record<string, string> = {
+  buying: "Buy / Source",
+  selling: "Sell / Promote",
+  investing: "Invest",
+  partnering: "Partner",
+  learning: "Learn",
+  networking: "Network",
+};
 import Link from "next/link";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 
@@ -88,7 +99,7 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
   // Check profile completion for nudge
   const { data: myParticipantFull } = await admin
     .from("participants")
-    .select("looking_for, offering, company_id")
+    .select("looking_for, offering, company_id, intents")
     .eq("id", myParticipant.id)
     .single();
 
@@ -245,6 +256,60 @@ export default async function ParticipantEventDashboard({ params }: PageProps) {
         hasCompanySize={profileCompletion.hasCompanySize}
         hasCompanyWebsite={profileCompletion.hasCompanyWebsite}
       />
+
+      {/* My participation card */}
+      {!belongsToCompany && (
+        <Card className="mb-6">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-2 shrink-0">
+                <Target className="h-4 w-4 text-primary" />
+                <p className="text-body font-semibold">My participation</p>
+              </div>
+              <Link
+                href={`/dashboard/complete-profile?redirect=/dashboard/events/${id}&eventId=${id}`}
+                className="flex items-center gap-1.5 text-caption text-primary hover:underline shrink-0"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </Link>
+            </div>
+
+            {/* Intents */}
+            {(myParticipantFull?.intents ?? []).length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {(myParticipantFull!.intents as string[]).map((intent) => (
+                  <Badge key={intent} variant="secondary">
+                    {INTENT_LABELS[intent] ?? intent}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-caption text-muted-foreground">No intents set yet.</p>
+            )}
+
+            {/* Looking for */}
+            {myParticipantFull?.looking_for ? (
+              <div className="mt-3">
+                <p className="text-caption font-medium text-muted-foreground mb-0.5">Looking for</p>
+                <p className="text-caption text-foreground line-clamp-2">{myParticipantFull.looking_for}</p>
+              </div>
+            ) : (
+              <p className="mt-2 text-caption text-muted-foreground italic">
+                Add what you&apos;re looking for to improve your matches.
+              </p>
+            )}
+
+            {/* Offering */}
+            {myParticipantFull?.offering && (
+              <div className="mt-2">
+                <p className="text-caption font-medium text-muted-foreground mb-0.5">Offering</p>
+                <p className="text-caption text-foreground line-clamp-2">{myParticipantFull.offering}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-4 mb-8">

@@ -11,6 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { Save, Loader2, Check, Pencil, X } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
 
+const COMPANY_SIZES = [
+  { value: "1-10", label: "1–10 employees" },
+  { value: "11-50", label: "11–50 employees" },
+  { value: "51-200", label: "51–200 employees" },
+  { value: "201-1000", label: "201–1,000 employees" },
+  { value: "1000+", label: "1,000+ employees" },
+];
+
 const INDUSTRIES = [
   "Technology", "Healthcare", "Finance", "Manufacturing", "Retail",
   "Education", "Real Estate", "Energy", "Consulting", "Media",
@@ -238,12 +246,34 @@ export default function ProfilePage() {
                   </button>
                 ))}
               </div>
+              <div>
+                <p className="text-caption text-muted-foreground mb-2">Company size</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {COMPANY_SIZES.map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => setDraft({ ...draft, company_size: draft.company_size === s.value ? null : s.value })}
+                      className={`rounded-sm border px-3 py-2 text-caption text-left transition-all duration-150 ${
+                        draft.company_size === s.value
+                          ? "border-primary bg-primary/5 text-primary font-medium"
+                          : "border-border bg-background text-foreground hover:border-border-strong"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Input value={draft.company_website || ""} onChange={(e) => setDraft({ ...draft, company_website: e.target.value })} placeholder="Website" />
             </div>
           ) : (
             <div className="space-y-2">
               <p className="text-body font-medium">{profile.company_name || "Not set"}</p>
-              {profile.industry && <Badge variant="secondary">{profile.industry}</Badge>}
+              <div className="flex flex-wrap gap-2">
+                {profile.industry && <Badge variant="secondary">{profile.industry}</Badge>}
+                {profile.company_size && <Badge variant="outline">{COMPANY_SIZES.find(s => s.value === profile.company_size)?.label ?? profile.company_size}</Badge>}
+              </div>
               {profile.company_website && (
                 <p className="text-caption text-primary">{profile.company_website}</p>
               )}

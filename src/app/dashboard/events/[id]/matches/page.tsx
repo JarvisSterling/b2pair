@@ -30,6 +30,9 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  User,
+  Mail,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActivityTracker } from "@/hooks/use-activity-tracker";
@@ -61,6 +64,32 @@ interface MatchEntry {
     };
   };
 }
+
+interface ParticipantDetail {
+  id: string;
+  role: string;
+  intent: string | null;
+  tags: string[];
+  profiles: {
+    full_name: string;
+    email: string;
+    avatar_url: string | null;
+    title: string | null;
+    company_name: string | null;
+    industry: string | null;
+    bio: string | null;
+    expertise_areas: string[];
+  };
+}
+
+const INTENT_LABELS: Record<string, string> = {
+  buying: "Looking to buy",
+  selling: "Looking to sell",
+  investing: "Looking to invest",
+  partnering: "Looking to partner",
+  learning: "Looking to learn",
+  networking: "Networking",
+};
 
 const SCORE_FACTORS = [
   { key: "intent_score", label: "Intent", icon: Target, color: "#3b82f6" },
@@ -114,6 +143,11 @@ export default function EventMatchesPage() {
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSent, setRequestSent] = useState<string | null>(null);
+
+  // Participant detail panel state
+  const [panelMatch, setPanelMatch] = useState<MatchEntry | null>(null);
+  const [panelDetail, setPanelDetail] = useState<ParticipantDetail | null>(null);
+  const [loadingPanel, setLoadingPanel] = useState(false);
 
   // SWR: fetch matches with caching
   const { data: matchData, isLoading: loading, mutate } = useSWR(
@@ -249,6 +283,20 @@ export default function EventMatchesPage() {
       }, 2000);
     }
     setSendingRequest(false);
+  }
+
+  async function openPanel(match: MatchEntry) {
+    setPanelMatch(match);
+    setLoadingPanel(true);
+    setPanelDetail(null);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("participants")
+      .select(`id, role, intent, tags, profiles!inner(full_name, email, avatar_url, title, company_name, industry, bio, expertise_areas)`)
+      .eq("id", match.other_participant.id)
+      .single();
+    setPanelDetail(data as unknown as ParticipantDetail);
+    setLoadingPanel(false);
   }
 
   const activeMatches = matches.filter((m) => m.status !== "dismissed");
@@ -540,6 +588,14 @@ export default function EventMatchesPage() {
                             Message
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openPanel(match)}
+                          title="View profile"
+                        >
+                          <User className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
 
                       {/* Inline meeting request form */}
@@ -642,6 +698,173 @@ export default function EventMatchesPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Participant Detail Panel */}
+      {panelMatch && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => { setPanelMatch(null); setPanelDetail(null); }}
+          />
+          <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l border-border shadow-xl animate-slide-in-right overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  {panelMatch.other_participant.profiles.avatar_url ? (
+                    <SafeImage
+                      src={panelMatch.other_participant.profiles.avatar_url}
+                      alt={panelMatch.other_participant.profiles.full_name}
+                      className="h-16 w-16 rounded-full object-cover"
+                      width={64}
+                      height={64}
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary text-h3 font-semibold">
+                      {panelMatch.other_participant.profiles.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-h3 font-semibold">{panelMatch.other_participant.profiles.full_name}</h2>
+                    <p className="text-caption text-muted-foreground">
+                      {[panelMatch.other_participant.profiles.title, panelMatch.other_participant.profiles.company_name]
+                        .filter(Boolean)
+                        .join(" at ")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setPanelMatch(null); setPanelDetail(null); }}
+                  className="p-2 rounded hover:bg-secondary"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {loadingPanel ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : panelDetail ? (
+                <>
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <Badge variant="secondary" className="capitalize">{panelDetail.role}</Badge>
+                    {panelDetail.profiles.industry && (
+                      <Badge variant="outline">
+                        <Building2 className="mr-1 h-3 w-3" />
+                        {panelDetail.profiles.industry}
+                      </Badge>
+                    )}
+                    {panelDetail.intent && (
+                      <Badge variant="outline">
+                        <Tag className="mr-1 h-3 w-3" />
+                        {INTENT_LABELS[panelDetail.intent] || panelDetail.intent}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Bio */}
+                  {panelDetail.profiles.bio && (
+                    <div className="mb-6">
+                      <h3 className="text-caption font-semibold mb-2">About</h3>
+                      <p className="text-body text-muted-foreground whitespace-pre-wrap">
+                        {panelDetail.profiles.bio}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Contact */}
+                  <div className="mb-6">
+                    <h3 className="text-caption font-semibold mb-2">Contact</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-caption text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5" />
+                        <span>{panelDetail.profiles.email}</span>
+                      </div>
+                      {panelDetail.profiles.company_name && (
+                        <div className="flex items-center gap-2 text-caption text-muted-foreground">
+                          <Building2 className="h-3.5 w-3.5" />
+                          <span>{panelDetail.profiles.company_name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expertise */}
+                  {panelDetail.profiles.expertise_areas?.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-caption font-semibold mb-2">Expertise</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {panelDetail.profiles.expertise_areas.map((area) => (
+                          <span
+                            key={area}
+                            className="text-small bg-secondary text-foreground rounded-full px-2.5 py-1"
+                          >
+                            {area}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tags */}
+                  {panelDetail.tags?.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-caption font-semibold mb-2">Tags</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {panelDetail.tags.map((tag) => (
+                          <Badge key={tag} variant="outline">{tag}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2 mt-8 pt-6 border-t border-border">
+                    {perms.can_message && (
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setPanelMatch(null);
+                          setPanelDetail(null);
+                          router.push(`/dashboard/events/${eventId}/messages?to=${panelMatch.other_participant.id}`);
+                        }}
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Message
+                      </Button>
+                    )}
+                    {perms.can_book_meetings && (
+                      <Button
+                        className="flex-1"
+                        onClick={() => {
+                          const m = panelMatch;
+                          setPanelMatch(null);
+                          setPanelDetail(null);
+                          setRequestingMeeting(m.other_participant.id);
+                          setMeetingNote("");
+                          setMeetingType("in-person");
+                          setSelectedSlot(null);
+                        }}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Request meeting
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

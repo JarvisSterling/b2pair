@@ -40,6 +40,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export default function EventControlPanel({ params }: PageProps) {
   const { workspaceId, eventId } = use(params);
   const { data, isLoading } = useSWR(`/api/events/${eventId}/overview`, fetcher);
+  const [copied, setCopied] = useState(false);
 
   // Prefetch all tab data in the background
   useEffect(() => {
@@ -68,7 +69,6 @@ export default function EventControlPanel({ params }: PageProps) {
 
   const eventUrl = `/events/${event.slug}`;
   const basePath = `/dashboard/w/${workspaceId}/events/${eventId}`;
-  const [copied, setCopied] = useState(false);
 
   function copyRegistrationLink() {
     const full = `${window.location.origin}${eventUrl}`;

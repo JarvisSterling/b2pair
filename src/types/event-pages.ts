@@ -18,7 +18,8 @@ export type BlockType =
   | "sponsor"
   | "exhibitor-directory"
   | "featured-sponsor"
-  | "sponsor-banner";
+  | "sponsor-banner"
+  | "agenda";
 
 // Content blocks stored in event_pages.content JSONB
 export interface BaseBlock {
@@ -120,6 +121,12 @@ export interface SponsorBannerBlock extends BaseBlock {
   tierFilter?: string[]; // Tiers to rotate banners from
 }
 
+export interface AgendaBlock extends BaseBlock {
+  type: "agenda";
+  title?: string; // Optional section heading, defaults to "Agenda"
+  trackFilter?: string[]; // Show only specific track IDs, empty = all
+}
+
 export type ContentBlock =
   | HeroBlock
   | RichTextBlock
@@ -133,7 +140,8 @@ export type ContentBlock =
   | SponsorBlock
   | ExhibitorDirectoryBlock
   | FeaturedSponsorBlock
-  | SponsorBannerBlock;
+  | SponsorBannerBlock
+  | AgendaBlock;
 
 // Database row types
 export interface EventPage {

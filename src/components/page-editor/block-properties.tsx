@@ -190,6 +190,14 @@ function BlockFields({
           A simple horizontal line separator. No additional settings.
         </p>
       );
+    case "agenda":
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Embeds the event agenda — sessions grouped by date with track colour coding, session type, and room info. Manage sessions in the Agenda Builder.
+          </p>
+        </div>
+      );
     default:
       return null;
   }

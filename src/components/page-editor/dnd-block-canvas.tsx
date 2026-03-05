@@ -31,6 +31,7 @@ import {
   BarChart3,
   Layout,
   Award,
+  CalendarDays,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const BLOCK_LABELS: Record<BlockType, { label: string; icon: React.ReactNode }> 
   "exhibitor-directory": { label: "Exhibitors", icon: <Award className="h-3.5 w-3.5" /> },
   "featured-sponsor": { label: "Featured", icon: <Award className="h-3.5 w-3.5" /> },
   "sponsor-banner": { label: "Banners", icon: <Award className="h-3.5 w-3.5" /> },
+  agenda: { label: "Agenda", icon: <CalendarDays className="h-3.5 w-3.5" /> },
 };
 
 interface DndBlockCanvasProps {
@@ -342,6 +344,12 @@ function BlockPreview({ block }: { block: ContentBlock }) {
       );
     case "divider":
       return <hr className="border-t border-border/60" />;
+    case "agenda":
+      return (
+        <p className="text-sm text-muted-foreground text-center">
+          {block.title || "Agenda"} — sessions auto-populated
+        </p>
+      );
     default:
       return null;
   }
@@ -364,6 +372,7 @@ function InsertDropdown({
     { type: "faq", label: "FAQ", icon: <HelpCircle className="h-4 w-4" /> },
     { type: "cta", label: "Button", icon: <MousePointerClick className="h-4 w-4" /> },
     { type: "sponsor", label: "Sponsors", icon: <Award className="h-4 w-4" /> },
+    { type: "agenda", label: "Agenda", icon: <CalendarDays className="h-4 w-4" /> },
     { type: "divider", label: "Divider", icon: <Minus className="h-4 w-4" /> },
   ];
 

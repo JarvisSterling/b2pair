@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ChevronDown, ExternalLink, Play, Search, Building2, Crown, Globe, ArrowRight } from "lucide-react";
+import { ChevronDown, ExternalLink, Play, Search, Building2, Crown, Globe, ArrowRight, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import type { ContentBlock, SponsorBlock as SponsorBlockType, ExhibitorDirectoryBlock as ExhibitorDirBlockType, FeaturedSponsorBlock as FeaturedBlockType, SponsorBannerBlock as BannerBlockType } from "@/types/event-pages";
+import type { ContentBlock, SponsorBlock as SponsorBlockType, ExhibitorDirectoryBlock as ExhibitorDirBlockType, FeaturedSponsorBlock as FeaturedBlockType, SponsorBannerBlock as BannerBlockType, AgendaBlock as AgendaBlockType } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
 import { SafeImage } from "@/components/ui/safe-image";
 
@@ -276,6 +276,9 @@ function RenderBlock({ block }: { block: ContentBlock }) {
 
     case "sponsor-banner":
       return <SponsorBannerBlockRenderer block={block} />;
+
+    case "agenda":
+      return <AgendaBlockRenderer block={block} />;
 
     default:
       return null;
@@ -638,6 +641,173 @@ function SponsorBannerBlockRenderer({ block }: { block: BannerBlockType }) {
     </a>
   );
 }
+
+// ─── Agenda Block ────────────────────────────────────────────────────────────
+
+interface RawAgendaSession {
+  id: string;
+  title: string;
+  description?: string;
+  session_type: string;
+  start_time: string;
+  end_time: string;
+  is_break: boolean;
+  track_id?: string | null;
+  room_id?: string | null;
+}
+
+interface AgendaSession extends RawAgendaSession {
+  track?: { id: string; name: string; color: string } | null;
+  room?: { id: string; name: string } | null;
+}
+
+function AgendaBlockRenderer({ block }: { block: AgendaBlockType }) {
+  const eventId = useEventIdFromParams();
+  const [sessions, setSessions] = useState<AgendaSession[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!eventId) return;
+    fetch(`/api/agenda?eventId=${eventId}`)
+      .then((r) => r.json())
+      .then((data: { sessions: RawAgendaSession[]; tracks: { id: string; name: string; color: string }[]; rooms: { id: string; name: string }[] }) => {
+        const trackMap = Object.fromEntries((data.tracks || []).map((t) => [t.id, t]));
+        const roomMap = Object.fromEntries((data.rooms || []).map((r) => [r.id, r]));
+        let enriched: AgendaSession[] = (data.sessions || []).map((s) => ({
+          ...s,
+          track: s.track_id ? trackMap[s.track_id] || null : null,
+          room: s.room_id ? roomMap[s.room_id] || null : null,
+        }));
+        if (block.trackFilter?.length) {
+          enriched = enriched.filter((s) => !s.track_id || block.trackFilter!.includes(s.track_id));
+        }
+        setSessions(enriched);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [eventId, block.trackFilter]);
+
+  // Group sessions by date
+  const grouped = sessions.reduce<Record<string, AgendaSession[]>>((acc, s) => {
+    const d = new Date(s.start_time);
+    const key = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
+
+  const fmtTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "UTC" });
+
+  const durationMin = (start: string, end: string) =>
+    Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000);
+
+  const typeColor: Record<string, string> = {
+    keynote: "#8B5CF6",
+    panel: "#0071E3",
+    workshop: "#16A34A",
+    talk: "#0891B2",
+    networking: "#D97706",
+    break: "#6B7280",
+  };
+
+  return (
+    <div>
+      <h2
+        className="text-2xl font-bold mb-6"
+        style={{ color: "var(--page-text)" }}
+      >
+        {block.title || "Agenda"}
+      </h2>
+
+      {loading && (
+        <div className="flex items-center gap-2 py-4" style={{ color: "var(--page-text-secondary)" }}>
+          <Clock className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Loading sessions…</span>
+        </div>
+      )}
+
+      {!loading && sessions.length === 0 && (
+        <p className="text-sm py-4" style={{ color: "var(--page-text-secondary)" }}>
+          No sessions scheduled yet.
+        </p>
+      )}
+
+      {Object.entries(grouped).map(([dateLabel, daySessions]) => (
+        <div key={dateLabel} className="mb-8">
+          <h3
+            className="text-base font-semibold mb-3 pb-2 border-b"
+            style={{ color: "var(--page-text)", borderColor: "var(--page-border)" }}
+          >
+            {dateLabel}
+          </h3>
+          <div className="space-y-2">
+            {daySessions.map((s) => {
+              const dur = durationMin(s.start_time, s.end_time);
+              const color = typeColor[s.session_type] || "#6B7280";
+              return (
+                <div
+                  key={s.id}
+                  className="flex gap-4 rounded-xl p-4"
+                  style={{ backgroundColor: "var(--page-surface)" }}
+                >
+                  <div className="shrink-0 text-right min-w-[72px]">
+                    <p className="text-sm font-semibold" style={{ color: "var(--page-text)" }}>
+                      {fmtTime(s.start_time)}
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--page-text-secondary)" }}>
+                      {dur}min
+                    </p>
+                  </div>
+                  {!s.is_break && (
+                    <div
+                      className="w-0.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: s.track?.color || color }}
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="text-sm font-medium" style={{ color: "var(--page-text)" }}>
+                        {s.title}
+                      </p>
+                      <span
+                        className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: `${color}20`, color }}
+                      >
+                        {s.session_type}
+                      </span>
+                    </div>
+                    {s.description && (
+                      <p className="text-xs mb-2 line-clamp-2" style={{ color: "var(--page-text-secondary)" }}>
+                        {s.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {s.track && (
+                        <span className="flex items-center gap-1 text-xs" style={{ color: "var(--page-text-secondary)" }}>
+                          <span className="h-1.5 w-1.5 rounded-full inline-block" style={{ backgroundColor: s.track.color }} />
+                          {s.track.name}
+                        </span>
+                      )}
+                      {s.room && (
+                        <span className="flex items-center gap-1 text-xs" style={{ color: "var(--page-text-secondary)" }}>
+                          <MapPin className="h-3 w-3" />
+                          {s.room.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function getEmbedUrl(url: string): string | null {
   try {

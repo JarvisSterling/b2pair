@@ -14,6 +14,7 @@ import {
   Grid3X3,
   Upload,
   Loader2,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ReactNode }[] =
   { type: "video", label: "Video", icon: <Video className="h-4 w-4" /> },
   { type: "faq", label: "FAQ", icon: <HelpCircle className="h-4 w-4" /> },
   { type: "cta", label: "Button", icon: <MousePointerClick className="h-4 w-4" /> },
+  { type: "agenda", label: "Agenda", icon: <CalendarDays className="h-4 w-4" /> },
   { type: "divider", label: "Divider", icon: <Minus className="h-4 w-4" /> },
 ];
 
@@ -72,6 +74,9 @@ export function BlockEditor({ blocks, onChange, eventId }: BlockEditorProps) {
         break;
       case "divider":
         newBlock = { id, type: "divider" };
+        break;
+      case "agenda":
+        newBlock = { id, type: "agenda" };
         break;
       default:
         return;
@@ -285,6 +290,20 @@ function BlockEditorField({
       return (
         <div className="flex items-center justify-center py-1">
           <hr className="w-full border-t border-border/60" />
+        </div>
+      );
+
+    case "agenda":
+      return (
+        <div className="space-y-2">
+          <Input
+            value={block.title || ""}
+            onChange={(e) => onUpdate({ title: e.target.value || undefined })}
+            placeholder='Section heading (default: "Agenda")'
+          />
+          <p className="text-xs text-muted-foreground">
+            Displays all event sessions grouped by date. Manage sessions in the Agenda Builder.
+          </p>
         </div>
       );
 

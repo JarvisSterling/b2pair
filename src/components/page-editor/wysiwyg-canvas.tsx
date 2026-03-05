@@ -32,6 +32,7 @@ import {
   Layout,
   Award,
   Loader2,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -308,6 +309,7 @@ function InsertDropdown({
     { type: "faq", label: "FAQ", icon: <HelpCircle className="h-4 w-4" /> },
     { type: "cta", label: "Button", icon: <MousePointerClick className="h-4 w-4" /> },
     { type: "sponsor", label: "Sponsors", icon: <Award className="h-4 w-4" /> },
+    { type: "agenda", label: "Agenda", icon: <CalendarDays className="h-4 w-4" /> },
     { type: "divider", label: "Divider", icon: <Minus className="h-4 w-4" /> },
   ];
 

@@ -204,6 +204,9 @@ export function FullScreenEditor({
       case "sponsor":
         newBlock = { id, type: "sponsor", title: "Our Sponsors" };
         break;
+      case "agenda":
+        newBlock = { id, type: "agenda" };
+        break;
       default:
         return;
     }

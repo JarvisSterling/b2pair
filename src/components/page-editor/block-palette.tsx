@@ -15,6 +15,7 @@ import {
   Building2,
   Star,
   Columns,
+  CalendarDays,
 } from "lucide-react";
 import type { BlockType } from "@/types/event-pages";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,12 @@ const BLOCK_ITEMS: {
     label: "Banners",
     icon: <Columns className="h-4 w-4" />,
     description: "Rotating sponsor banners",
+  },
+  {
+    type: "agenda",
+    label: "Agenda",
+    icon: <CalendarDays className="h-4 w-4" />,
+    description: "Event schedule & sessions",
   },
   {
     type: "divider",

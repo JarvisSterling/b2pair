@@ -69,11 +69,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Skip AI for sparse profiles — no bio, no expertise, no interests.
-    // Without real facts to anchor the output, models hallucinate specific
-    // numbers and details (revenue, client counts, budgets) that don't exist.
+    // Skip AI when there's not enough grounded context to prevent hallucination.
+    // Two cases:
+    //  1. Sparse: no bio, no expertise, no interests at all.
+    //  2. Vague bio: short bio (<100 chars) with no numbers and no expertise.
+    //     Without specific numbers/facts, models hallucinate revenue figures,
+    //     company sizes, sector names, and client counts that don't exist.
     const isSparse = !bio.trim() && expertiseAreas.length === 0 && interests.length === 0;
-    if (isSparse) {
+    const isVagueBio = bio.trim().length < 100 && !/\d/.test(bio) && expertiseAreas.length === 0;
+    if (isSparse || isVagueBio) {
       return NextResponse.json(
         generateFallback(title, companyName, industry, intents, expertiseAreas, interests)
       );

@@ -136,8 +136,8 @@ export default function CompanyLeadsPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map((lead) => {
-            const name = lead.participant?.user?.raw_user_meta_data?.full_name || lead.participant?.user?.email || "Unknown";
-            const email = lead.participant?.user?.email || "";
+            const name = lead.participant?.profiles?.full_name || lead.participant?.profiles?.email || "Unknown";
+            const email = lead.participant?.profiles?.email || "";
             const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
             return (
               <Card key={lead.id} className="group">

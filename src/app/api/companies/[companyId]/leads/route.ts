@@ -27,7 +27,8 @@ export async function GET(request: Request, { params }: Params) {
       *,
       participant:participants(
         id,
-        user:users(email, raw_user_meta_data)
+        user_id,
+        profiles(full_name, email, avatar_url)
       )
     `)
     .eq("company_id", companyId)

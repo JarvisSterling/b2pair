@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     embedding: weights.embedding / totalWeight,
   };
 
-  const minScore = rules?.minimum_score ?? 40;
+  const minScore = rules?.minimum_score ?? 50;
   const excludeSameCompany = rules?.exclude_same_company ?? true;
   const excludeSameRole = rules?.exclude_same_role ?? false;
   const confidenceThreshold = rules?.intent_confidence_threshold ?? 40;
@@ -176,6 +176,41 @@ export async function POST(request: Request) {
     participantVectors.set(p.id, { vector, confidence });
   }
 
+  // ─── Direct Intent Scoring (replaces broken probability-vector approach) ───
+  // When a user selects multiple intents, the vector approach dilutes the signal
+  // massively (e.g. [networking, partnering] + [selling, investing, networking] 
+  // should score 100 via partnering↔investing, but vectors give ~26).
+  // Fix: take the BEST single pairwise compatibility from the explicit intents.
+  function computeDirectIntentScore(intentsA: string[], intentsB: string[]): number {
+    const validA = intentsA.filter((i) => INTENT_KEYS.includes(i as IntentKey));
+    const validB = intentsB.filter((i) => INTENT_KEYS.includes(i as IntentKey));
+    if (!validA.length || !validB.length) return 40;
+    let max = 0;
+    for (const iA of validA) {
+      for (const iB of validB) {
+        const s = COMPATIBILITY_MATRIX[iA as IntentKey]?.[iB as IntentKey] ?? 30;
+        if (s > max) max = s;
+      }
+    }
+    return max;
+  }
+
+  function getBestIntentPair(
+    intentsA: string[], intentsB: string[]
+  ): { iA: string; iB: string } | null {
+    const validA = intentsA.filter((i) => INTENT_KEYS.includes(i as IntentKey));
+    const validB = intentsB.filter((i) => INTENT_KEYS.includes(i as IntentKey));
+    if (!validA.length || !validB.length) return null;
+    let best = { iA: validA[0], iB: validB[0], score: 0 };
+    for (const iA of validA) {
+      for (const iB of validB) {
+        const s = COMPATIBILITY_MATRIX[iA as IntentKey]?.[iB as IntentKey] ?? 30;
+        if (s > best.score) best = { iA, iB, score: s };
+      }
+    }
+    return { iA: best.iA, iB: best.iB };
+  }
+
   // Generate all pairwise matches
   const matches: {
     event_id: string;
@@ -202,16 +237,11 @@ export async function POST(request: Request) {
       // Ensure participant_a_id < participant_b_id for unique constraint
       const [pA, pB] = a.id < b.id ? [a, b] : [b, a];
 
-      // Intent score — use Intent Engine vectors
-      const vecA = participantVectors.get(pA.id)!;
-      const vecB = participantVectors.get(pB.id)!;
-      const intentResult = computeIntentCompatibility(
-        vecA.vector, vecA.confidence,
-        vecB.vector, vecB.confidence
-      );
-
-      // If both users have very low confidence, reduce intent impact
-      const intentScore = intentResult.final;
+      // Intent score — direct max-pairing (see computeDirectIntentScore above)
+      const intentsA = (pA.intents as string[]) || (pA.intent ? [pA.intent] : []);
+      const intentsB = (pB.intents as string[]) || (pB.intent ? [pB.intent] : []);
+      const intentScore = computeDirectIntentScore(intentsA, intentsB);
+      const bestPair = getBestIntentPair(intentsA, intentsB);
 
       const industryScore = computeIndustryScore(pA.profiles, pB.profiles);
       const interestScore = computeInterestScore(pA, pB);
@@ -237,7 +267,7 @@ export async function POST(request: Request) {
       if (totalScore < minScore) continue;
 
       const reasons = generateReasons(
-        pA, pB, vecA, vecB, intentResult,
+        pA, pB, bestPair, intentScore,
         industryScore, interestScore, embeddingScore, hasEmbeddings
       );
 
@@ -394,9 +424,8 @@ function computeComplementarityScore(a: any, b: any): number {
 function generateReasons(
   a: any,
   b: any,
-  vecA: { vector: IntentVector; confidence: number },
-  vecB: { vector: IntentVector; confidence: number },
-  intentResult: { peak: number; base: number; confidence: number; final: number },
+  bestPair: { iA: string; iB: string } | null,
+  intentScore: number,
   industryScore: number,
   interestScore: number,
   embeddingScore: number,
@@ -404,37 +433,21 @@ function generateReasons(
 ): string[] {
   const reasons: string[] = [];
 
-  // Intent-based reasons using vectors
-  if (intentResult.final >= 40) {
-    // Find the strongest intent pairing
-    let bestI: string = "", bestJ: string = "";
-    let bestPairScore = 0;
-    for (const iA of INTENT_KEYS) {
-      for (const iB of INTENT_KEYS) {
-        const ps = vecA.vector[iA] * vecB.vector[iB];
-        if (ps > bestPairScore) {
-          bestPairScore = ps;
-          bestI = iA;
-          bestJ = iB;
-        }
-      }
-    }
+  const intentLabels: Record<string, string> = {
+    buying: "looking to buy",
+    selling: "looking to sell",
+    investing: "looking to invest",
+    partnering: "looking to partner",
+    learning: "looking to learn",
+    networking: "networking",
+  };
 
-    if (bestI && bestJ) {
-      const intentLabels: Record<string, string> = {
-        buying: "looking to buy",
-        selling: "looking to sell",
-        investing: "looking to invest",
-        partnering: "looking to partner",
-        learning: "looking to learn",
-        networking: "networking",
-      };
-
-      if (bestI === bestJ) {
-        reasons.push(`Both are ${intentLabels[bestI]}`);
-      } else {
-        reasons.push(`${a.profiles.full_name} is ${intentLabels[bestI]}, ${b.profiles.full_name} is ${intentLabels[bestJ]}`);
-      }
+  // Intent-based reason using best pair
+  if (bestPair && intentScore >= 50) {
+    if (bestPair.iA === bestPair.iB) {
+      reasons.push(`Both are ${intentLabels[bestPair.iA]}`);
+    } else {
+      reasons.push(`${a.profiles.full_name || "Attendee A"} is ${intentLabels[bestPair.iA]}, ${b.profiles.full_name || "Attendee B"} is ${intentLabels[bestPair.iB]}`);
     }
   }
 

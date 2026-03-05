@@ -313,7 +313,7 @@ export default function DirectoryPage() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="h-10 rounded bg-input px-3 text-body border border-border text-foreground"
+            className="h-10 w-full sm:w-auto rounded bg-input px-3 text-body border border-border text-foreground"
           >
             <option value="all">All roles</option>
             {roles.map((role) => (
@@ -327,7 +327,7 @@ export default function DirectoryPage() {
           <select
             value={industryFilter}
             onChange={(e) => setIndustryFilter(e.target.value)}
-            className="h-10 rounded bg-input px-3 text-body border border-border text-foreground"
+            className="h-10 w-full sm:w-auto rounded bg-input px-3 text-body border border-border text-foreground"
           >
             <option value="all">All industries</option>
             {industries.map((ind) => (

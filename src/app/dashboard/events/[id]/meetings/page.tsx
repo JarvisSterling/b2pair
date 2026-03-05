@@ -413,7 +413,7 @@ export default function EventMeetingsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-1 mb-6 overflow-x-auto pb-1" style={{msOverflowStyle:'none', scrollbarWidth:'none'}}>
+      <div className="flex gap-1 mb-6 overflow-x-auto pb-1 pr-2" style={{msOverflowStyle:'none', scrollbarWidth:'none'}}>
         {[
           { key: "all", label: "All" },
           {
@@ -430,7 +430,7 @@ export default function EventMeetingsPage() {
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`rounded-sm px-3 py-2 text-caption font-medium whitespace-nowrap transition-all duration-150 ${
+            className={`flex-shrink-0 rounded-sm px-3 py-2 text-caption font-medium whitespace-nowrap transition-all duration-150 ${
               filter === f.key
                 ? "bg-primary/5 text-primary"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { canAccessCompany } from "@/lib/sponsors-helpers";
 
@@ -21,7 +22,9 @@ export async function GET(request: Request, { params }: Params) {
   const qualification = searchParams.get("qualification");
   const source = searchParams.get("source");
 
-  let query = supabase
+  // Use admin client to bypass RLS — company members may not be event participants
+  const admin = createAdminClient();
+  let query = admin
     .from("company_leads")
     .select(`
       *,
@@ -62,9 +65,10 @@ export async function POST(request: Request, { params }: Params) {
 
   // Allow self-capture (visitor auto-captured when viewing a company profile)
   // Otherwise require capture_leads permission on the company
+  const admin = createAdminClient();
   let isSelfCapture = false;
   if (participant_id) {
-    const { data: part } = await supabase
+    const { data: part } = await admin
       .from("participants")
       .select("user_id")
       .eq("id", participant_id)
@@ -78,7 +82,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   // Upsert: if lead already exists for this company+participant, update
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("company_leads")
     .upsert(
       {
@@ -123,7 +127,8 @@ export async function PATCH(request: Request, { params }: Params) {
   delete updates.created_at;
   updates.updated_at = new Date().toISOString();
 
-  const { error } = await supabase
+  const admin = createAdminClient();
+  const { error } = await admin
     .from("company_leads")
     .update(updates)
     .eq("id", id)
@@ -149,7 +154,8 @@ export async function DELETE(request: Request, { params }: Params) {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const { error } = await supabase
+  const admin = createAdminClient();
+  const { error } = await admin
     .from("company_leads")
     .delete()
     .eq("id", id)

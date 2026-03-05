@@ -370,8 +370,8 @@ function VideoEmbed({ url, title }: { url: string; title?: string }) {
 
 function useEventIdFromParams(): string | null {
   const fromContext = useContext(EventIdContext);
-  if (fromContext) return fromContext;
   const params = useParams();
+  if (fromContext) return fromContext;
   return (params?.eventId as string) || (params?.id as string) || null;
 }
 

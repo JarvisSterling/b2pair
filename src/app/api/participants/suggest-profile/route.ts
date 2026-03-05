@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Noun-form targets for each intent — used in multi-intent fallback phrasing
+const INTENT_TARGETS: Record<string, string> = {
+  buying: "vendors and solution providers",
+  selling: "buyers and potential customers",
+  investing: "investment opportunities and capital partners",
+  partnering: "strategic partners and collaborators",
+  learning: "industry experts and knowledge sources",
+  networking: "professionals and industry contacts",
+};
+
+// Single-intent verb-form descriptions — used when there's only one intent
 const INTENT_CONTEXT: Record<string, string> = {
   buying: "looking to purchase solutions or services",
   selling: "offering products or services to potential customers",
@@ -26,11 +37,29 @@ function generateFallback(
   const industryTag = industry ? ` in ${industry}` : "";
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const intentPhrases = intents.map((i) => INTENT_CONTEXT[i]).filter(Boolean);
-  const lookingFor =
-    intentPhrases.length > 0
-      ? `${capitalize(intentPhrases[0])}${intentPhrases.length > 1 ? `, and ${intentPhrases.slice(1).join(" and ")}` : ""}${industryTag}.${interests.length > 0 ? ` Particularly interested in ${interests.slice(0, 2).join(" and ")}.` : ""}`
-      : `Open to meaningful connections and opportunities${industryTag}.`;
+
+  let lookingFor: string;
+  if (intents.length === 0) {
+    lookingFor = `Open to meaningful connections and opportunities${industryTag}.`;
+  } else if (intents.length === 1) {
+    // Single intent: use verb-form description
+    const phrase = INTENT_CONTEXT[intents[0]] || "connecting with the right people";
+    lookingFor = `${capitalize(phrase)}${industryTag}.`;
+  } else {
+    // Multiple intents: use noun-form targets for clean phrasing
+    const targets = intents
+      .map((i) => INTENT_TARGETS[i])
+      .filter(Boolean)
+      .slice(0, 3);
+    const last = targets.pop()!;
+    lookingFor = targets.length > 0
+      ? `${capitalize(targets.join(", "))}, and ${last}${industryTag}.`
+      : `${capitalize(last)}${industryTag}.`;
+  }
+
+  if (interests.length > 0) {
+    lookingFor += ` Particularly interested in ${interests.slice(0, 2).join(" and ")}.`;
+  }
 
   const offering =
     expertiseAreas.length > 0

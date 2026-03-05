@@ -2,9 +2,9 @@
 import { NextResponse } from "next/server";
 import {
   computeParticipantVector,
-  computeIntentCompatibility,
   type IntentVector,
   INTENT_KEYS,
+  COMPATIBILITY_MATRIX,
 } from "@/lib/intent-engine";
 
 export const dynamic = "force-dynamic";

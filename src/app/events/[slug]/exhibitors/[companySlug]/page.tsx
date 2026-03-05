@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CompanyTracker, TrackDownload } from "@/components/events/company-tracker";
-import { Globe, Download, ShoppingBag, FileText, ExternalLink, Play, Calendar, MessageSquare } from "lucide-react";
+import { Globe, Download, ShoppingBag, FileText, Play, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { SafeImage } from "@/components/ui/safe-image";
 
@@ -92,15 +92,13 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-3 mb-8 flex-wrap">
-        {company.website && (
+      {company.website && (
+        <div className="flex gap-3 mb-8 flex-wrap">
           <a href={company.website} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm"><Globe className="mr-2 h-4 w-4" /> Website</Button>
           </a>
-        )}
-        <Button size="sm"><Calendar className="mr-2 h-4 w-4" /> Book Meeting</Button>
-        <Button size="sm" variant="secondary"><MessageSquare className="mr-2 h-4 w-4" /> Request Demo</Button>
-      </div>
+        </div>
+      )}
 
       {/* Description */}
       {company.description_long ? (

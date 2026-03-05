@@ -83,6 +83,34 @@
   }
 }
 
+/* Force light mode for event public pages (overrides .dark on <html>) */
+.light-mode {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --surface: 0 0% 97%;
+  --surface-elevated: 0 0% 100%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --border: 0 0% 92%;
+  --border-strong: 0 0% 88%;
+  --input: 0 0% 97%;
+  --ring: 0 0% 0%;
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 97%;
+  --secondary-foreground: 0 0% 0%;
+  --muted: 0 0% 97%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 97%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 0 0% 100%;
+  background-color: hsl(0 0% 100%);
+  color: hsl(0 0% 0%);
+}
+
 @layer base {
   * {
     border-color: hsl(var(--border));

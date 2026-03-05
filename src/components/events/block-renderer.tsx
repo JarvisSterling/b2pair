@@ -13,21 +13,26 @@ import { SafeImage } from "@/components/ui/safe-image";
 // Context so any block sub-renderer can access the event ID even when
 // the URL params don't contain it (e.g. public event pages use "slug" not "eventId")
 const EventIdContext = createContext<string | null>(null);
+// Context to carry the event slug for constructing absolute hrefs in blocks
+const EventSlugContext = createContext<string | null>(null);
 
 interface BlockRendererProps {
   blocks: ContentBlock[];
   eventId?: string;
+  eventSlug?: string;
   className?: string;
 }
 
-export function BlockRenderer({ blocks, className, eventId }: BlockRendererProps) {
+export function BlockRenderer({ blocks, className, eventId, eventSlug }: BlockRendererProps) {
   return (
     <EventIdContext.Provider value={eventId ?? null}>
-      <div className={cn("space-y-8", className)}>
-        {blocks.map((block) => (
-          <RenderBlock key={block.id} block={block} />
-        ))}
-      </div>
+      <EventSlugContext.Provider value={eventSlug ?? null}>
+        <div className={cn("space-y-8", className)}>
+          {blocks.map((block) => (
+            <RenderBlock key={block.id} block={block} />
+          ))}
+        </div>
+      </EventSlugContext.Provider>
     </EventIdContext.Provider>
   );
 }
@@ -375,8 +380,16 @@ function useEventIdFromParams(): string | null {
   return (params?.eventId as string) || (params?.id as string) || null;
 }
 
+function useEventSlugFromParams(): string | null {
+  const fromContext = useContext(EventSlugContext);
+  const params = useParams();
+  if (fromContext) return fromContext;
+  return (params?.slug as string) || null;
+}
+
 function SponsorLogosBlock({ block }: { block: SponsorBlockType }) {
   const eventId = useEventIdFromParams();
+  const eventSlug = useEventSlugFromParams();
   const [data, setData] = useState<{ grouped: any[]; tiers: any[] } | null>(null);
 
   useEffect(() => {
@@ -425,7 +438,7 @@ function SponsorLogosBlock({ block }: { block: SponsorBlockType }) {
               {group.sponsors.map((sponsor: any) => (
                 <a
                   key={sponsor.id}
-                  href={`sponsors/${sponsor.slug}`}
+                  href={eventSlug ? `/events/${eventSlug}/sponsors/${sponsor.slug}` : `#`}
                   className="transition-opacity hover:opacity-80"
                 >
                   {sponsor.logo_url ? (
@@ -447,6 +460,7 @@ function SponsorLogosBlock({ block }: { block: SponsorBlockType }) {
 
 function ExhibitorDirectoryBlock({ block }: { block: ExhibitorDirBlockType }) {
   const eventId = useEventIdFromParams();
+  const eventSlug = useEventSlugFromParams();
   const [data, setData] = useState<{ exhibitors: any[]; categories: string[] } | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -510,7 +524,7 @@ function ExhibitorDirectoryBlock({ block }: { block: ExhibitorDirBlockType }) {
             return (
               <a
                 key={ex.id}
-                href={`exhibitors/${ex.slug}`}
+                href={eventSlug ? `/events/${eventSlug}/exhibitors/${ex.slug}` : `#`}
                 className="rounded-xl border p-4 transition-all hover:shadow-md"
                 style={{ borderColor: "var(--page-border)", backgroundColor: "var(--page-surface)" }}
               >
@@ -609,6 +623,7 @@ function FeaturedSponsorBlockRenderer({ block }: { block: FeaturedBlockType }) {
 
 function SponsorBannerBlockRenderer({ block }: { block: BannerBlockType }) {
   const eventId = useEventIdFromParams();
+  const eventSlug = useEventSlugFromParams();
   const [banners, setBanners] = useState<any[]>([]);
   const [current, setCurrent] = useState(0);
 
@@ -642,7 +657,7 @@ function SponsorBannerBlockRenderer({ block }: { block: BannerBlockType }) {
   const sponsor = banners[current];
   return (
     <a
-      href={`sponsors/${sponsor.slug}`}
+      href={eventSlug ? `/events/${eventSlug}/sponsors/${sponsor.slug}` : `#`}
       className="block rounded-xl overflow-hidden transition-all hover:shadow-md"
     >
       <SafeImage src={sponsor.banner_url} alt={sponsor.name} className="w-full h-32 object-cover" width={400} height={128} />

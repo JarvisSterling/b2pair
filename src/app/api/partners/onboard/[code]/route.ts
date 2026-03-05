@@ -39,8 +39,9 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   if (member.invite_status === "accepted") {
-    // Rejected companies are allowed back in to fix their profile and resubmit
-    if (company?.status !== "rejected") {
+    // Rejected or in-progress companies can continue onboarding
+    const resumableStatuses = ["rejected", "onboarding"];
+    if (!resumableStatuses.includes(company?.status)) {
       return NextResponse.json({ error: "This invite has already been used", alreadyAccepted: true }, { status: 409 });
     }
   }
@@ -95,6 +96,22 @@ export async function POST(request: Request, { params }: Params) {
     .single();
 
   if (!member) return NextResponse.json({ error: "Invalid invite code" }, { status: 404 });
+
+  const { data: company } = await admin
+    .from("companies")
+    .select("status, admin_user_id")
+    .eq("id", member.company_id)
+    .single();
+
+  // Already accepted — allow idempotent re-entry if company is still in onboarding/rejected
+  if (member.invite_status === "accepted") {
+    const resumableStatuses = ["onboarding", "rejected"];
+    if (resumableStatuses.includes(company?.status) && member.user_id === user.id) {
+      return NextResponse.json({ success: true, company_id: member.company_id });
+    }
+    return NextResponse.json({ error: "Invite already used or expired" }, { status: 400 });
+  }
+
   if (member.invite_status !== "pending") {
     return NextResponse.json({ error: "Invite already used or expired" }, { status: 400 });
   }
@@ -107,12 +124,6 @@ export async function POST(request: Request, { params }: Params) {
       accepted_at: new Date().toISOString(),
     })
     .eq("id", member.id);
-
-  const { data: company } = await admin
-    .from("companies")
-    .select("status")
-    .eq("id", member.company_id)
-    .single();
 
   if (company?.status === "invited") {
     await admin

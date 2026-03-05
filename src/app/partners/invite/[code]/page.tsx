@@ -126,17 +126,31 @@ export default function TeamMemberInvitePage() {
 
   useEffect(() => { loadInvite(); }, [loadInvite]);
 
+  // Check if already signed in — but wait for invite data so we can verify email
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
-        setStep("profile");
+        // Don't advance yet — email check happens in the data+user effect below
       }
     }
     checkAuth();
   }, []);
+
+  // Once both user and invite data are loaded, verify email and advance
+  useEffect(() => {
+    if (!data || !user) return;
+    if (user.email === data.member.email) {
+      setStep("profile");
+    } else {
+      setAuthError(
+        `This invite was sent to ${data.member.email}. Please sign out and use that email address.`
+      );
+      // Stay on auth step
+    }
+  }, [data, user]);
 
   const companyName = data?.company.name || "";
   const adminFilledSize = !!data?.company.company_size;
@@ -227,7 +241,7 @@ export default function TeamMemberInvitePage() {
       setUser(signInData.user);
     }
 
-    setStep("profile");
+    // Don't call setStep here — the [data, user] effect handles email verification and step advancement
     setSaving(false);
   }
 

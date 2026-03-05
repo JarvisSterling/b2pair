@@ -90,8 +90,8 @@ export default function PartnersPage() {
   const [exhibitorsEnabled, setExhibitorsEnabled] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
-  const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", tier_id: "", team_limit: "", company_size: "", website: "" });
-  const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
+  const [sponsorForm, setSponsorForm] = useState({ name: "", contact_email: "", contact_name: "", tier_id: "", team_limit: "", company_size: "", website: "" });
+  const [exhibitorForm, setExhibitorForm] = useState({ name: "", contact_email: "", contact_name: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
   const [tierForm, setTierForm] = useState({ name: "", color: "#6366f1", rank: 1, seat_limit: 5, perks: {} as Record<string, boolean | number> });
 
   const sponsors = companies.filter((c) => c.capabilities.includes("sponsor"));
@@ -145,6 +145,7 @@ export default function PartnersPage() {
             body: JSON.stringify({
               name: sponsorForm.name,
               contact_email: sponsorForm.contact_email,
+              contact_name: sponsorForm.contact_name || undefined,
               capabilities: ["sponsor"],
               tier_id: sponsorForm.tier_id || undefined,
               team_limit: sponsorForm.team_limit ? parseInt(sponsorForm.team_limit) : undefined,
@@ -164,7 +165,7 @@ export default function PartnersPage() {
         }
       );
       mutateCompanies(); mutateTiers();
-      setSponsorForm({ name: "", contact_email: "", tier_id: "", team_limit: "", company_size: "", website: "" });
+      setSponsorForm({ name: "", contact_email: "", contact_name: "", tier_id: "", team_limit: "", company_size: "", website: "" });
       setShowAddSponsor(false);
     } finally {
       setSaving(false);
@@ -186,6 +187,7 @@ export default function PartnersPage() {
             body: JSON.stringify({
               name: exhibitorForm.name,
               contact_email: exhibitorForm.contact_email,
+              contact_name: exhibitorForm.contact_name || undefined,
               capabilities: ["exhibitor"],
               booth_type: exhibitorForm.booth_type || undefined,
               booth_number: exhibitorForm.booth_number || undefined,
@@ -206,7 +208,7 @@ export default function PartnersPage() {
         }
       );
       mutateCompanies(); mutateTiers();
-      setExhibitorForm({ name: "", contact_email: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
+      setExhibitorForm({ name: "", contact_email: "", contact_name: "", booth_type: "", booth_number: "", team_limit: "", company_size: "", website: "" });
       setShowAddExhibitor(false);
     } finally {
       setSaving(false);
@@ -417,6 +419,11 @@ export default function PartnersPage() {
                     <Input value={sponsorForm.contact_email} onChange={(e) => setSponsorForm((f) => ({ ...f, contact_email: e.target.value }))} placeholder="contact@company.com" type="email" />
                   </div>
                   <div>
+                    <label className="text-caption font-medium mb-1.5 block">Contact person name <span className="text-muted-foreground font-normal">(optional)</span></label>
+                    <Input value={sponsorForm.contact_name} onChange={(e) => setSponsorForm((f) => ({ ...f, contact_name: e.target.value }))} placeholder="Jane Smith" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Pre-fills their registration form</p>
+                  </div>
+                  <div>
                     <label className="text-caption font-medium mb-1.5 block">Tier</label>
                     <select
                       value={sponsorForm.tier_id}
@@ -520,6 +527,11 @@ export default function PartnersPage() {
                   <div>
                     <label className="text-caption font-medium mb-1.5 block">Contact email *</label>
                     <Input value={exhibitorForm.contact_email} onChange={(e) => setExhibitorForm((f) => ({ ...f, contact_email: e.target.value }))} placeholder="contact@company.com" type="email" />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium mb-1.5 block">Contact person name <span className="text-muted-foreground font-normal">(optional)</span></label>
+                    <Input value={exhibitorForm.contact_name} onChange={(e) => setExhibitorForm((f) => ({ ...f, contact_name: e.target.value }))} placeholder="Jane Smith" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Pre-fills their registration form</p>
                   </div>
                   <div>
                     <label className="text-caption font-medium mb-1.5 block">Booth type</label>

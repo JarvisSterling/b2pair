@@ -78,6 +78,13 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invite already used or expired" }, { status: 400 });
   }
 
+  // Verify the signed-in user's email matches the invite email
+  if (user.email !== member.email) {
+    return NextResponse.json({
+      error: `This invite was sent to ${member.email}. Please sign in with that email address.`,
+    }, { status: 403 });
+  }
+
   const company = Array.isArray(member.company) ? member.company[0] : member.company;
   if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
 

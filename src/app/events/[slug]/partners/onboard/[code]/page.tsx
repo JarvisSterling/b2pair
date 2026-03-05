@@ -10,12 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
   Check,
-  Upload,
   ArrowRight,
   ArrowLeft,
   Building2,
   Palette,
-  FileText,
   Crown,
   ShoppingBag,
   Users,
@@ -23,8 +21,10 @@ import {
   AlertCircle,
   Plus,
   X,
-  Image as ImageIcon,
+  User,
+  Sparkles,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { SafeImage } from "@/components/ui/safe-image";
 
 interface OnboardData {
@@ -49,7 +49,7 @@ interface OnboardData {
   event: { id: string; name: string; slug: string; banner_url: string | null; logo_url: string | null };
 }
 
-type WizardStep = "auth" | "brand" | "profile" | "sponsor" | "exhibitor" | "team" | "review";
+type WizardStep = "auth" | "brand" | "profile" | "sponsor" | "exhibitor" | "team" | "personal" | "review";
 
 export default function OnboardWizardPage() {
   const params = useParams();
@@ -67,9 +67,19 @@ export default function OnboardWizardPage() {
 
   // Auth form
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
-  const [authForm, setAuthForm] = useState({ full_name: "", email: "", password: "" });
+  const [authForm, setAuthForm] = useState({ first_name: "", last_name: "", email: "", password: "" });
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Editable company name (pre-filled from invite)
+  const [companyName, setCompanyName] = useState("");
+
+  // Personal profile (makes admin a participant)
+  const [personalTitle, setPersonalTitle] = useState("");
+  const [personalIntents, setPersonalIntents] = useState<string[]>([]);
+  const [personalLookingFor, setPersonalLookingFor] = useState("");
+  const [personalOffering, setPersonalOffering] = useState("");
+  const [personalSuggesting, setPersonalSuggesting] = useState(false);
 
   // Company form state
   const [logo, setLogo] = useState("");
@@ -106,7 +116,7 @@ export default function OnboardWizardPage() {
       const json = await res.json();
       if (!res.ok) {
         if (json.alreadyAccepted) {
-          setError("This invite has already been used. Please sign in to continue onboarding.");
+          setError("__ALREADY_ACCEPTED__");
         } else {
           setError(json.error || "Invalid invite");
         }
@@ -115,7 +125,16 @@ export default function OnboardWizardPage() {
       }
       setData(json);
       if (json.event?.id) setEventId(json.event.id);
-      setAuthForm((f) => ({ ...f, email: json.member.email, full_name: json.member.name || "" }));
+      // Pre-fill name fields from member data (contact name set by organizer)
+      const nameParts = (json.member.name || "").trim().split(/\s+/);
+      setAuthForm((f) => ({
+        ...f,
+        email: json.member.email,
+        first_name: nameParts[0] || "",
+        last_name: nameParts.slice(1).join(" ") || "",
+      }));
+      // Pre-fill company name (editable)
+      setCompanyName(json.company.name || "");
 
       // Pre-fill form from existing data
       const c = json.company;
@@ -186,8 +205,8 @@ export default function OnboardWizardPage() {
     const supabase = createClient();
 
     if (authMode === "signup") {
-      if (!authForm.full_name.trim()) {
-        setAuthError("Full name is required");
+      if (!authForm.first_name.trim()) {
+        setAuthError("First name is required");
         setAuthLoading(false);
         return;
       }
@@ -196,6 +215,7 @@ export default function OnboardWizardPage() {
         setAuthLoading(false);
         return;
       }
+      const fullName = `${authForm.first_name.trim()} ${authForm.last_name.trim()}`.trim();
       // Use server-side account creation (auto-confirms, consistent with registration flow)
       const res = await fetch("/api/auth/create-account", {
         method: "POST",
@@ -203,7 +223,7 @@ export default function OnboardWizardPage() {
         body: JSON.stringify({
           email: authForm.email,
           password: authForm.password,
-          fullName: authForm.full_name,
+          fullName,
         }),
       });
       const result = await res.json();
@@ -243,6 +263,7 @@ export default function OnboardWizardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         company: {
+          name: companyName || undefined,
           logo_url: logo || null,
           banner_url: banner || null,
           brand_colors: { primary: brandPrimary, secondary: brandSecondary },
@@ -278,9 +299,18 @@ export default function OnboardWizardPage() {
     // Save first
     await saveProgress();
 
-    // Then submit
+    // Then submit (with personal profile so we can create participant record)
     const res = await fetch(`/api/partners/onboard/${code}/submit`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        personal_profile: personalTitle ? {
+          title: personalTitle,
+          intents: personalIntents,
+          looking_for: personalLookingFor || null,
+          offering: personalOffering || null,
+        } : null,
+      }),
     });
     const json = await res.json();
 
@@ -323,6 +353,7 @@ export default function OnboardWizardPage() {
       steps.push({ key: "exhibitor", label: "Exhibitor Setup", icon: ShoppingBag });
     }
     steps.push({ key: "team", label: "Team", icon: Users });
+    steps.push({ key: "personal", label: "Your Profile", icon: User });
     steps.push({ key: "review", label: "Review & Submit", icon: Send });
     return steps;
   }
@@ -349,6 +380,26 @@ export default function OnboardWizardPage() {
   }
 
   if (error) {
+    if (error === "__ALREADY_ACCEPTED__") {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-8 pb-8 text-center">
+              <Check className="mx-auto mb-4 h-12 w-12 text-green-500" />
+              <h1 className="text-h2 font-semibold mb-2">Already submitted</h1>
+              <p className="text-body text-muted-foreground mb-6">
+                Your company profile has been submitted and is under review. You can view it in the dashboard.
+              </p>
+              <div className="space-y-2">
+                <a href="/dashboard">
+                  <Button className="w-full">Go to Dashboard</Button>
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
@@ -378,7 +429,7 @@ export default function OnboardWizardPage() {
             )}
             <div>
               <p className="text-caption text-muted-foreground">{data.event.name}</p>
-              <h1 className="text-body font-semibold">{data.company.name} — Partner Setup</h1>
+              <h1 className="text-body font-semibold">{companyName || data.company.name} — Partner Setup</h1>
             </div>
             <div className="ml-auto flex gap-1.5">
               {data.company.capabilities.map((cap) => (
@@ -446,14 +497,21 @@ export default function OnboardWizardPage() {
               </div>
               <form onSubmit={handleAuth} className="space-y-4 max-w-sm mx-auto">
                 {authMode === "signup" && (
-                  <div>
-                    <label className="text-caption font-medium mb-1.5 block">Full name</label>
-                    <Input value={authForm.full_name} onChange={(e) => setAuthForm((f) => ({ ...f, full_name: e.target.value }))} placeholder="Your name" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-caption font-medium mb-1.5 block">First name <span className="text-destructive">*</span></label>
+                      <Input value={authForm.first_name} onChange={(e) => setAuthForm((f) => ({ ...f, first_name: e.target.value }))} placeholder="Jane" />
+                    </div>
+                    <div>
+                      <label className="text-caption font-medium mb-1.5 block">Last name</label>
+                      <Input value={authForm.last_name} onChange={(e) => setAuthForm((f) => ({ ...f, last_name: e.target.value }))} placeholder="Smith" />
+                    </div>
                   </div>
                 )}
                 <div>
                   <label className="text-caption font-medium mb-1.5 block">Email</label>
-                  <Input value={authForm.email} onChange={(e) => setAuthForm((f) => ({ ...f, email: e.target.value }))} type="email" placeholder="email@company.com" />
+                  <Input value={authForm.email} onChange={(e) => setAuthForm((f) => ({ ...f, email: e.target.value }))} type="email" placeholder="email@company.com" disabled={!!data?.member.email} />
+                  {data?.member.email && <p className="text-[10px] text-muted-foreground mt-1">Pre-filled from your invite</p>}
                 </div>
                 <div>
                   <label className="text-caption font-medium mb-1.5 block">Password</label>
@@ -525,6 +583,11 @@ export default function OnboardWizardPage() {
             </div>
             <Card>
               <CardContent className="pt-6 space-y-5">
+                <div>
+                  <label className="text-caption font-medium mb-1.5 block">Company name *</label>
+                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Your company name" />
+                  <p className="text-[10px] text-muted-foreground mt-1">This is shown publicly — update if needed</p>
+                </div>
                 <div>
                   <label className="text-caption font-medium mb-1.5 block">Short description * <span className="text-muted-foreground font-normal">(max 300 chars)</span></label>
                   <textarea
@@ -808,6 +871,128 @@ export default function OnboardWizardPage() {
           </div>
         )}
 
+        {/* YOUR PROFILE STEP */}
+        {step === "personal" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-h2 font-semibold">Your Networking Profile</h2>
+              <p className="text-body text-muted-foreground mt-1">
+                Set up your personal profile so attendees can find and match with you. You can skip this and do it later.
+              </p>
+            </div>
+            <Card>
+              <CardContent className="pt-6 space-y-5">
+                <div>
+                  <label className="text-caption font-medium mb-1.5 block">Your job title</label>
+                  <Input value={personalTitle} onChange={(e) => setPersonalTitle(e.target.value)} placeholder="e.g. Sales Director" />
+                </div>
+                <div>
+                  <label className="text-caption font-medium mb-1.5 block">What are you here for?</label>
+                  <p className="text-[11px] text-muted-foreground mb-2">Select up to 3 — powers your matching.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: "selling", label: "Sell / Promote" },
+                      { key: "networking", label: "Network" },
+                      { key: "partnering", label: "Partner" },
+                      { key: "learning", label: "Learn" },
+                      { key: "investing", label: "Invest" },
+                      { key: "buying", label: "Buy / Source" },
+                    ].map((intent) => {
+                      const selected = personalIntents.includes(intent.key);
+                      return (
+                        <button
+                          key={intent.key}
+                          type="button"
+                          onClick={() => setPersonalIntents((prev) =>
+                            selected ? prev.filter((i) => i !== intent.key)
+                            : prev.length < 3 ? [...prev, intent.key] : prev
+                          )}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-xs transition-all",
+                            selected
+                              ? "border-primary bg-primary/10 text-primary font-medium"
+                              : "border-border text-muted-foreground hover:border-primary/30",
+                            !selected && personalIntents.length >= 3 && "opacity-40 cursor-not-allowed"
+                          )}
+                        >
+                          {intent.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {personalTitle && personalIntents.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-caption font-medium">What are you looking for?</label>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setPersonalSuggesting(true);
+                          try {
+                            const res = await fetch("/api/participants/suggest-profile", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                title: personalTitle,
+                                companyName,
+                                intents: personalIntents,
+                                expertiseAreas: [],
+                                interests: [],
+                              }),
+                            });
+                            if (res.ok) {
+                              const d = await res.json();
+                              if (d.lookingFor && !personalLookingFor.trim()) setPersonalLookingFor(d.lookingFor);
+                              if (d.offering && !personalOffering.trim()) setPersonalOffering(d.offering);
+                            }
+                          } finally {
+                            setPersonalSuggesting(false);
+                          }
+                        }}
+                        className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                        disabled={personalSuggesting}
+                      >
+                        {personalSuggesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        Suggest for me
+                      </button>
+                    </div>
+                    <textarea
+                      value={personalLookingFor}
+                      onChange={(e) => setPersonalLookingFor(e.target.value)}
+                      rows={2}
+                      placeholder="e.g. Enterprise clients, partnership opportunities..."
+                      className="flex w-full rounded bg-input px-4 py-3 text-body border border-border placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary/50 resize-none"
+                    />
+                    <div>
+                      <label className="text-caption font-medium mb-1.5 block">What do you offer?</label>
+                      <textarea
+                        value={personalOffering}
+                        onChange={(e) => setPersonalOffering(e.target.value)}
+                        rows={2}
+                        placeholder="e.g. Cloud platform, consulting services..."
+                        className="flex w-full rounded bg-input px-4 py-3 text-body border border-border placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary/50 resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={prevStep}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button variant="ghost" onClick={nextStep} className="ml-auto text-muted-foreground">
+                Skip for now
+              </Button>
+              <Button onClick={nextStep} disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save & Continue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* REVIEW & SUBMIT STEP */}
         {step === "review" && (
           <div className="space-y-6">
@@ -824,11 +1009,11 @@ export default function OnboardWizardPage() {
                     <SafeImage src={logo} alt="" className="h-16 w-16 rounded-xl object-cover border" width={64} height={64} />
                   ) : (
                     <div className="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-h2 font-bold">
-                      {data.company.name[0]}
+                      {(companyName || data.company.name)[0]}
                     </div>
                   )}
                   <div>
-                    <h3 className="text-h3 font-semibold">{data.company.name}</h3>
+                    <h3 className="text-h3 font-semibold">{companyName || data.company.name}</h3>
                     {descShort && <p className="text-body text-muted-foreground mt-1">{descShort}</p>}
                     <div className="flex gap-2 mt-2">
                       {website && <Badge variant="outline" className="text-[10px]">Website ✓</Badge>}

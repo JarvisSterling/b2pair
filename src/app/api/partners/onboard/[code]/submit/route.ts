@@ -64,5 +64,63 @@ export async function POST(request: Request, { params }: Params) {
     .update({ status: "submitted", rejection_reason: null, updated_at: new Date().toISOString() })
     .eq("id", member.company_id);
 
+  // Optionally create a participant record for the admin
+  const body = await request.json().catch(() => ({}));
+  const { personal_profile } = body;
+
+  if (personal_profile?.title && personal_profile?.intents?.length > 0) {
+    const validIntents = ["buying", "selling", "investing", "partnering", "learning", "networking"];
+    const cleanIntents = (personal_profile.intents as string[]).filter((i) => validIntents.includes(i));
+
+    // Determine role
+    const companyRole = company.capabilities.includes("sponsor") ? "sponsor_rep"
+      : company.capabilities.includes("exhibitor") ? "exhibitor_staff"
+      : "attendee";
+    const participantRole = company.capabilities.includes("sponsor") ? "sponsor"
+      : company.capabilities.includes("exhibitor") ? "exhibitor"
+      : "attendee";
+
+    // Upsert participant (admin may already have one if they registered separately)
+    const { data: existing } = await admin
+      .from("participants")
+      .select("id")
+      .eq("event_id", company.event_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      await admin.from("participants").update({
+        company_id: company.id,
+        company_role: companyRole,
+        intents: cleanIntents,
+        intent: cleanIntents[0] || "networking",
+        looking_for: personal_profile.looking_for || null,
+        offering: personal_profile.offering || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", existing.id);
+    } else {
+      await admin.from("participants").insert({
+        event_id: company.event_id,
+        user_id: user.id,
+        role: participantRole,
+        status: "approved",
+        company_id: company.id,
+        company_role: companyRole,
+        intent: cleanIntents[0] || "networking",
+        intents: cleanIntents,
+        looking_for: personal_profile.looking_for || null,
+        offering: personal_profile.offering || null,
+      });
+    }
+
+    // Also update the profile table with their title
+    await admin.from("profiles").upsert({
+      id: user.id,
+      title: personal_profile.title,
+      company_name: company.name,
+      onboarding_completed: true,
+    }, { onConflict: "id" });
+  }
+
   return NextResponse.json({ success: true });
 }

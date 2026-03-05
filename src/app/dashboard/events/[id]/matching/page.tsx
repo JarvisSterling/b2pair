@@ -7,8 +7,25 @@ import { useEventId } from "@/hooks/use-event-id";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Save, Loader2, Zap, Check, Sparkles, Brain } from "lucide-react";
+import {
+  Save, Loader2, Zap, Check, Sparkles, Brain, RotateCcw,
+  ChevronRight, RefreshCw, Settings2, AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
+
+// ─── Recommended defaults ────────────────────────────────────────────────────
+// Based on B2B matchmaking best practices:
+//   • Intent is the strongest signal (why are you here?)
+//   • Industry + complementarity roughly equal
+//   • AI similarity catches non-obvious connections
+//   • Interest is often sparse early, keep low
+const RECOMMENDED_WEIGHTS = {
+  intent_weight: 0.40,
+  industry_weight: 0.20,
+  interest_weight: 0.05,
+  complementarity_weight: 0.20,
+  embedding_weight: 0.15,
+};
 
 interface MatchingRules {
   id: string;
@@ -30,7 +47,7 @@ interface MatchingRules {
 
 export default function MatchingRulesPage() {
   const eventId = useEventId();
-  // SWR: load matching rules + stats with caching
+
   const { data: matchingData, isLoading: loading, mutate } = useSWR(
     eventId ? `matching-rules-${eventId}` : null,
     async () => {
@@ -38,22 +55,21 @@ export default function MatchingRulesPage() {
 
       const [rulesRes, participantsRes] = await Promise.all([
         supabase.from("matching_rules").select("*").eq("event_id", eventId).single(),
-        supabase.from("participants").select("id, intent_vector, intent_confidence, ai_intent_classification").eq("event_id", eventId).eq("status", "approved"),
+        supabase
+          .from("participants")
+          .select("id, intent_vector, intent_confidence, ai_intent_classification")
+          .eq("event_id", eventId)
+          .eq("status", "approved"),
       ]);
 
       let rules = rulesRes.data as MatchingRules | null;
-
-      // Create default rules if none exist
       if (!rules) {
         const { data: newRules } = await supabase
           .from("matching_rules")
           .insert({
             event_id: eventId,
-            intent_weight: 0.35,
-            industry_weight: 0.25,
-            interest_weight: 0.25,
-            complementarity_weight: 0.15,
-            minimum_score: 0.3,
+            ...RECOMMENDED_WEIGHTS,
+            minimum_score: 50,
             max_recommendations: 20,
             exclude_same_company: true,
             exclude_same_role: false,
@@ -65,22 +81,33 @@ export default function MatchingRulesPage() {
         rules = newRules as MatchingRules | null;
       }
 
-      // Embedding count
       const pIds = (participantsRes.data || []).map((p: any) => p.id);
       const { count: embCount } = pIds.length > 0
-        ? await supabase.from("profile_embeddings").select("id", { count: "exact", head: true }).in("participant_id", pIds)
+        ? await supabase
+            .from("profile_embeddings")
+            .select("id", { count: "exact", head: true })
+            .in("participant_id", pIds)
         : { count: 0 };
 
-      // Intent stats
       const allP = participantsRes.data || [];
       const intentStats = {
         total: allP.length,
-        withVector: allP.filter((p: any) => p.intent_vector && Object.keys(p.intent_vector).length > 0 && p.intent_confidence > 0).length,
+        withVector: allP.filter(
+          (p: any) => p.intent_vector && Object.keys(p.intent_vector).length > 0 && p.intent_confidence > 0
+        ).length,
         highConfidence: allP.filter((p: any) => p.intent_confidence >= 50).length,
-        withAI: allP.filter((p: any) => p.ai_intent_classification && Object.keys(p.ai_intent_classification).length > 0).length,
+        withAI: allP.filter(
+          (p: any) => p.ai_intent_classification && Object.keys(p.ai_intent_classification).length > 0
+        ).length,
       };
 
-      return { rules, embeddingCount: embCount || 0, intentStats };
+      // Check if matches exist
+      const { count: matchCount } = await supabase
+        .from("matches")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId);
+
+      return { rules, embeddingCount: embCount || 0, intentStats, matchCount: matchCount || 0 };
     },
     { revalidateOnFocus: false }
   );
@@ -88,27 +115,28 @@ export default function MatchingRulesPage() {
   const [rules, setRules] = useState<MatchingRules | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
   const [embeddingCount, setEmbeddingCount] = useState<number | null>(null);
-  const [embeddingResult, setEmbeddingResult] = useState<string | null>(null);
-  const [intentStats, setIntentStats] = useState<{ total: number; withVector: number; highConfidence: number; withAI: number } | null>(null);
+  const [matchCount, setMatchCount] = useState<number | null>(null);
+  const [intentStats, setIntentStats] = useState<{
+    total: number; withVector: number; highConfidence: number; withAI: number;
+  } | null>(null);
+  const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
   const [computingIntents, setComputingIntents] = useState(false);
   const [classifyingAI, setClassifyingAI] = useState(false);
-  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [generatingMatches, setGeneratingMatches] = useState(false);
 
-  // Sync SWR data into local state for form editing
   const [initialized, setInitialized] = useState(false);
   if (matchingData && !initialized) {
     setRules(matchingData.rules);
     setEmbeddingCount(matchingData.embeddingCount);
     setIntentStats(matchingData.intentStats);
+    setMatchCount(matchingData.matchCount);
     setInitialized(true);
   }
 
   async function handleSave() {
     if (!rules) return;
     setSaving(true);
-
     const supabase = createClient();
     try {
       await toast.promise(
@@ -133,16 +161,103 @@ export default function MatchingRulesPage() {
             .eq("id", rules.id);
           if (error) throw error;
         })(),
-        {
-          loading: "Saving...",
-          success: "Rules updated",
-          error: "Failed to save",
-        }
+        { loading: "Saving...", success: "Rules saved", error: "Failed to save" }
       );
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
       setSaving(false);
+    }
+  }
+
+  function handleResetWeights() {
+    if (!rules) return;
+    setRules({ ...rules, ...RECOMMENDED_WEIGHTS });
+    toast.success("Weights reset to recommended defaults");
+  }
+
+  async function handleGenerateEmbeddings() {
+    setGeneratingEmbeddings(true);
+    const toastId = toast.loading("Generating AI embeddings…");
+    try {
+      const res = await fetch("/api/embeddings/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed");
+      toast.success(`${data.generated} embeddings generated`, { id: toastId });
+      setEmbeddingCount(data.generated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed", { id: toastId });
+    } finally {
+      setGeneratingEmbeddings(false);
+    }
+  }
+
+  async function handleClassifyAI() {
+    setClassifyingAI(true);
+    const toastId = toast.loading("Classifying intents with AI…");
+    try {
+      const res = await fetch("/api/intent/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed");
+      toast.success(`Classified ${data.classified} participants`, { id: toastId });
+      mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed", { id: toastId });
+    } finally {
+      setClassifyingAI(false);
+    }
+  }
+
+  async function handleComputeIntents() {
+    setComputingIntents(true);
+    try {
+      await toast.promise(
+        (async () => {
+          const res = await fetch("/api/intent/compute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ eventId }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || "Failed");
+        })(),
+        { loading: "Recomputing intent vectors…", success: "Intent vectors updated", error: (e) => e.message }
+      );
+      mutate();
+    } finally {
+      setComputingIntents(false);
+    }
+  }
+
+  async function handleGenerateMatches() {
+    setGeneratingMatches(true);
+    const toastId = toast.loading("Generating matches — this may take a moment…");
+    try {
+      const res = await fetch("/api/matching/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed");
+      toast.success(
+        `${data.matchCount} matches generated for ${data.participantCount} participants`,
+        { id: toastId }
+      );
+      setMatchCount(data.matchCount);
+      mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed", { id: toastId });
+    } finally {
+      setGeneratingMatches(false);
     }
   }
 
@@ -154,15 +269,62 @@ export default function MatchingRulesPage() {
     );
   }
 
-  const totalWeight = rules.intent_weight + rules.industry_weight + rules.interest_weight + rules.complementarity_weight + rules.embedding_weight;
+  const totalWeight =
+    rules.intent_weight +
+    rules.industry_weight +
+    rules.interest_weight +
+    rules.complementarity_weight +
+    rules.embedding_weight;
+
+  const isRecommended =
+    Math.abs(rules.intent_weight - RECOMMENDED_WEIGHTS.intent_weight) < 0.01 &&
+    Math.abs(rules.industry_weight - RECOMMENDED_WEIGHTS.industry_weight) < 0.01 &&
+    Math.abs(rules.interest_weight - RECOMMENDED_WEIGHTS.interest_weight) < 0.01 &&
+    Math.abs(rules.complementarity_weight - RECOMMENDED_WEIGHTS.complementarity_weight) < 0.01 &&
+    Math.abs(rules.embedding_weight - RECOMMENDED_WEIGHTS.embedding_weight) < 0.01;
+
+  // Setup steps status
+  const steps = [
+    {
+      id: "weights",
+      label: "Configure matching weights",
+      sublabel: "Set how each factor influences scores",
+      done: true, // Always considered done (has defaults)
+    },
+    {
+      id: "classify",
+      label: "Classify intents with AI",
+      sublabel: `${intentStats?.withAI ?? 0} of ${intentStats?.total ?? 0} participants classified`,
+      done: (intentStats?.withAI ?? 0) > 0,
+    },
+    {
+      id: "embeddings",
+      label: "Generate AI embeddings",
+      sublabel:
+        (embeddingCount ?? 0) > 0
+          ? `${embeddingCount} embeddings generated`
+          : "Not generated yet",
+      done: (embeddingCount ?? 0) > 0,
+    },
+    {
+      id: "matches",
+      label: "Generate matches",
+      sublabel: (matchCount ?? 0) > 0 ? `${matchCount} matches generated` : "Not run yet",
+      done: (matchCount ?? 0) > 0,
+    },
+  ];
+
+  const allSetupDone = steps.every((s) => s.done);
 
   return (
     <div className="mx-auto max-w-3xl animate-fade-in">
+
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-h1 font-semibold tracking-tight">Matching rules</h1>
+          <h1 className="text-h1 font-semibold tracking-tight">Matching engine</h1>
           <p className="mt-1 text-body text-muted-foreground">
-            Configure how the AI matching algorithm scores participants.
+            Configure scoring, run AI analysis, and generate matches for your participants.
           </p>
         </div>
         <div className="flex gap-2 items-center">
@@ -178,54 +340,114 @@ export default function MatchingRulesPage() {
         </div>
       </div>
 
-      {/* Weights */}
+      {/* Setup checklist */}
+      <Card className={`mb-6 ${allSetupDone ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            {allSetupDone ? (
+              <Check className="h-4 w-4 text-success" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-warning" />
+            )}
+            {allSetupDone ? "Matching engine ready" : "Complete setup before opening event"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol className="space-y-2">
+            {steps.map((step, i) => (
+              <li key={step.id} className="flex items-start gap-3">
+                <span
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold border ${
+                    step.done
+                      ? "bg-success/20 border-success/40 text-success"
+                      : "bg-muted border-border text-muted-foreground"
+                  }`}
+                >
+                  {step.done ? <Check className="h-3 w-3" /> : i + 1}
+                </span>
+                <div>
+                  <p className={`text-body font-medium leading-tight ${step.done ? "line-through text-muted-foreground" : ""}`}>
+                    {step.label}
+                  </p>
+                  <p className="text-caption text-muted-foreground">{step.sublabel}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
+
+      {/* Matching weights */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Matching weights</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Matching weights</CardTitle>
+            {!isRecommended && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetWeights}
+                className="text-caption gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Recommended
+              </Button>
+            )}
+            {isRecommended && (
+              <span className="flex items-center gap-1 text-caption text-success">
+                <Check className="h-3.5 w-3.5" /> Using recommended
+              </span>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <p className="text-caption text-muted-foreground">
-            Adjust how much each factor contributes to the match score. Higher weight means more importance.
+          <p className="text-caption text-muted-foreground -mt-2">
+            Adjust how much each factor contributes to the match score. Weights are automatically normalized.
           </p>
 
           <WeightSlider
             label="Intent alignment"
-            description="Buyer-seller, investor-startup, partner compatibility"
+            description="Are participants here for complementary reasons? (buyer/seller, investor/startup)"
             value={rules.intent_weight}
+            recommended={RECOMMENDED_WEIGHTS.intent_weight}
             onChange={(v) => setRules({ ...rules, intent_weight: v })}
           />
           <WeightSlider
             label="Industry overlap"
-            description="Same or complementary industries"
+            description="Same or related industries — tiered scoring across 40+ industry pairs"
             value={rules.industry_weight}
+            recommended={RECOMMENDED_WEIGHTS.industry_weight}
             onChange={(v) => setRules({ ...rules, industry_weight: v })}
           />
           <WeightSlider
             label="Interest match"
-            description="Shared expertise areas and interests"
+            description="Shared expertise areas and interests — most useful once participants have complete profiles"
             value={rules.interest_weight}
+            recommended={RECOMMENDED_WEIGHTS.interest_weight}
             onChange={(v) => setRules({ ...rules, interest_weight: v })}
           />
           <WeightSlider
             label="Complementarity"
-            description="Company size, stage, and geographic fit"
+            description="Company size and stage fit — enterprise buyers + startups, SMB + SMB, etc."
             value={rules.complementarity_weight}
+            recommended={RECOMMENDED_WEIGHTS.complementarity_weight}
             onChange={(v) => setRules({ ...rules, complementarity_weight: v })}
           />
           <WeightSlider
-            label="AI Profile Similarity"
-            description="Deep semantic matching using AI embeddings"
+            label="AI profile similarity"
+            description="Deep semantic matching from bio, expertise, and intent text — catches non-obvious connections"
             value={rules.embedding_weight}
+            recommended={RECOMMENDED_WEIGHTS.embedding_weight}
+            icon={<Sparkles className="h-3.5 w-3.5 text-primary" />}
             onChange={(v) => setRules({ ...rules, embedding_weight: v })}
-            icon={<Brain className="h-4 w-4 text-primary" />}
           />
 
-          <div className="flex items-center justify-between rounded-sm border border-border p-3">
+          <div className="flex items-center justify-between rounded-sm border border-border p-3 bg-muted/30">
             <p className="text-caption font-medium">Total weight</p>
             <p className={`text-body font-semibold ${Math.abs(totalWeight - 1) < 0.01 ? "text-success" : "text-warning"}`}>
-              {totalWeight.toFixed(2)}
+              {(totalWeight * 100).toFixed(0)}%
               {Math.abs(totalWeight - 1) > 0.01 && (
-                <span className="text-caption font-normal text-muted-foreground ml-2">(will be normalized)</span>
+                <span className="text-caption font-normal text-muted-foreground ml-2">(auto-normalized)</span>
               )}
             </p>
           </div>
@@ -265,229 +487,158 @@ export default function MatchingRulesPage() {
         </CardContent>
       </Card>
 
-      {/* AI Embeddings */}
+      {/* Pre-event setup — one-time operations */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            AI Profile Embeddings
+            <Settings2 className="h-5 w-5 text-primary" />
+            Pre-event setup
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-caption text-muted-foreground">
-            Generate AI embeddings from participant profiles to enable deep semantic matching.
-            This analyzes bios, expertise, interests, and intent to find non-obvious connections
-            that rule-based matching might miss.
+          <p className="text-caption text-muted-foreground -mt-2">
+            Run these once when your participant list is mostly locked in — typically 24–48 hours before opening matches.
+            Each step takes a minute or less.
           </p>
 
-          <div className="flex items-center justify-between rounded-sm border border-border p-4">
-            <div>
-              <p className="text-body font-medium">Embeddings status</p>
-              <p className="text-caption text-muted-foreground">
-                {embeddingCount === null
-                  ? "Loading..."
-                  : embeddingCount > 0
-                  ? `${embeddingCount} participant embeddings generated`
-                  : "No embeddings generated yet"}
-              </p>
-            </div>
-            {embeddingCount !== null && embeddingCount > 0 && (
-              <span className="flex items-center gap-1.5 text-caption text-success">
-                <Check className="h-4 w-4" /> Active
-              </span>
-            )}
-          </div>
+          {/* Step 1: Classify intents */}
+          <SetupStep
+            number={1}
+            icon={<Brain className="h-4 w-4" />}
+            title="Classify intents with AI"
+            description="Uses GPT to read each participant's bio, title, and profile text and classify what they're actually looking for. Improves intent alignment scoring significantly."
+            when="Run once before opening matches. Re-run mid-event only if many participants have been very active in chat."
+            status={
+              (intentStats?.withAI ?? 0) > 0
+                ? `${intentStats?.withAI} of ${intentStats?.total} classified`
+                : "Not run yet"
+            }
+            done={(intentStats?.withAI ?? 0) > 0}
+            loading={classifyingAI}
+            onRun={handleClassifyAI}
+            buttonLabel={
+              classifyingAI
+                ? "Classifying…"
+                : (intentStats?.withAI ?? 0) > 0
+                ? "Re-classify"
+                : "Classify intents"
+            }
+          />
 
-          <Button
-            onClick={async () => {
-              setGeneratingEmbeddings(true);
-              setEmbeddingResult(null);
-              const toastId = toast.loading("Generating embeddings...");
-              try {
-                const res = await fetch("/api/embeddings/generate", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ eventId }),
-                });
-                const data = await res.json();
-                if (!res.ok || !data.success) throw new Error(data.error || "Failed to generate embeddings");
-                toast.success("Embeddings generated", { id: toastId });
-                if (data.success) {
-                  setEmbeddingCount(data.generated);
-                  setEmbeddingResult(`Generated ${data.generated} embeddings (${data.dimensions}D)`);
-                }
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to generate", { id: toastId });
-                setEmbeddingResult("Failed to generate embeddings");
-              } finally {
-                setGeneratingEmbeddings(false);
-              }
-            }}
-            disabled={generatingEmbeddings}
-            variant="outline"
-            className="w-full"
-          >
-            {generatingEmbeddings ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="mr-2 h-4 w-4" />
-            )}
-            {generatingEmbeddings
-              ? "Generating embeddings..."
-              : embeddingCount && embeddingCount > 0
-              ? "Regenerate embeddings"
-              : "Generate AI embeddings"}
-          </Button>
+          {/* Step 2: Generate embeddings */}
+          <SetupStep
+            number={2}
+            icon={<Sparkles className="h-4 w-4" />}
+            title="Generate AI embeddings"
+            description="Converts each participant's full profile into a semantic vector using OpenAI. Powers the AI Similarity score — catches connections that rule-based matching misses."
+            when="Run once, costs a small number of OpenAI tokens. Re-run only if a batch of new participants joined or profiles were significantly updated."
+            status={
+              (embeddingCount ?? 0) > 0
+                ? `${embeddingCount} embeddings active`
+                : "Not generated yet"
+            }
+            done={(embeddingCount ?? 0) > 0}
+            loading={generatingEmbeddings}
+            onRun={handleGenerateEmbeddings}
+            buttonLabel={
+              generatingEmbeddings
+                ? "Generating…"
+                : (embeddingCount ?? 0) > 0
+                ? "Regenerate"
+                : "Generate embeddings"
+            }
+          />
 
-          {embeddingResult && (
-            <p className={`text-caption ${embeddingResult.startsWith("Error") ? "text-destructive" : "text-success"}`}>
-              {embeddingResult}
-            </p>
-          )}
+          {/* Step 3: Generate matches */}
+          <SetupStep
+            number={3}
+            icon={<Zap className="h-4 w-4" />}
+            title="Generate matches"
+            description="Runs the full matching engine across all approved participants using your current weights and AI data. Participants see results immediately."
+            when="Run after steps 1 and 2. Re-run any time you adjust weights or after significant participant profile changes."
+            status={
+              (matchCount ?? 0) > 0
+                ? `${matchCount} matches generated`
+                : "Not run yet"
+            }
+            done={(matchCount ?? 0) > 0}
+            loading={generatingMatches}
+            onRun={handleGenerateMatches}
+            buttonLabel={generatingMatches ? "Generating…" : (matchCount ?? 0) > 0 ? "Regenerate matches" : "Generate matches"}
+            primary
+          />
         </CardContent>
       </Card>
 
-      {/* Intent Intelligence */}
+      {/* During event — intent signals */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" />
-            Intent Intelligence
+            <RefreshCw className="h-5 w-5 text-primary" />
+            During the event
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-caption text-muted-foreground">
-            The intent engine infers what each participant is looking to do at the event.
-            It combines their explicit selections with signals from their profile, title, and bio.
+          <p className="text-caption text-muted-foreground -mt-2">
+            As participants interact — viewing profiles, requesting meetings, sending messages — their intent signals
+            improve. Recomputing intent vectors refreshes these signals. Run this every few hours during the event.
           </p>
 
-          {/* Data quality indicator */}
+          {/* Intent quality stats */}
           {intentStats && (
-            <div className="rounded-sm border border-border p-4 space-y-3">
+            <div className="rounded-sm border border-border p-4 space-y-3 bg-muted/20">
               <div className="flex items-center justify-between">
-                <p className="text-body font-medium">Intent data quality</p>
-                <span className={`text-[10px] font-medium px-2 py-px rounded-full border ${
-                  intentStats.highConfidence / Math.max(intentStats.total, 1) >= 0.6
-                    ? "bg-emerald-950 text-emerald-400 border-emerald-800"
-                    : intentStats.highConfidence / Math.max(intentStats.total, 1) >= 0.3
-                    ? "bg-amber-950 text-amber-400 border-amber-800"
-                    : "bg-red-950 text-red-400 border-red-800"
-                }`}>
-                  {intentStats.total === 0 ? "No data" :
-                    `${Math.round((intentStats.highConfidence / intentStats.total) * 100)}% high confidence`}
+                <p className="text-body font-medium">Intent signal quality</p>
+                <span
+                  className={`text-[10px] font-medium px-2 py-px rounded-full border ${
+                    (intentStats.highConfidence / Math.max(intentStats.total, 1)) >= 0.6
+                      ? "bg-emerald-950 text-emerald-400 border-emerald-800"
+                      : (intentStats.highConfidence / Math.max(intentStats.total, 1)) >= 0.3
+                      ? "bg-amber-950 text-amber-400 border-amber-800"
+                      : "bg-red-950 text-red-400 border-red-800"
+                  }`}
+                >
+                  {intentStats.total === 0
+                    ? "No data"
+                    : `${Math.round((intentStats.highConfidence / intentStats.total) * 100)}% high confidence`}
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-3 text-center">
-                <div>
-                  <p className="text-h3 font-bold">{intentStats.total}</p>
-                  <p className="text-small text-muted-foreground">Participants</p>
-                </div>
-                <div>
-                  <p className="text-h3 font-bold">{intentStats.withVector}</p>
-                  <p className="text-small text-muted-foreground">With vectors</p>
-                </div>
-                <div>
-                  <p className="text-h3 font-bold">{intentStats.highConfidence}</p>
-                  <p className="text-small text-muted-foreground">High confidence</p>
-                </div>
-                <div>
-                  <p className="text-h3 font-bold">{intentStats.withAI}</p>
-                  <p className="text-small text-muted-foreground">AI classified</p>
-                </div>
+                {[
+                  { value: intentStats.total, label: "Participants" },
+                  { value: intentStats.withVector, label: "With vectors" },
+                  { value: intentStats.highConfidence, label: "High confidence" },
+                  { value: intentStats.withAI, label: "AI classified" },
+                ].map(({ value, label }) => (
+                  <div key={label}>
+                    <p className="text-h3 font-bold">{value}</p>
+                    <p className="text-small text-muted-foreground">{label}</p>
+                  </div>
+                ))}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                disabled={computingIntents}
-                onClick={async () => {
-                  setComputingIntents(true);
-                  try {
-                    await toast.promise(
-                      (async () => {
-                        const res = await fetch("/api/intent/compute", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ eventId }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok || !data.success) throw new Error(data.error || "Failed to compute intents");
-                      })(),
-                      {
-                        loading: "Computing intents...",
-                        success: "Intent vectors updated",
-                        error: (error) => (error instanceof Error ? error.message : "Failed to compute intents"),
-                      }
-                    );
-                    mutate();
-                  } finally {
-                    setComputingIntents(false);
-                  }
-                }}
-              >
-                {computingIntents ? (
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Zap className="mr-2 h-3.5 w-3.5" />
-                )}
-                {intentStats.withVector > 0 ? "Recompute intent vectors" : "Compute intent vectors"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                disabled={classifyingAI}
-                onClick={async () => {
-                  setClassifyingAI(true);
-                  setAiResult(null);
-                  const toastId = toast.loading("Classifying intents...");
-                  try {
-                    const res = await fetch("/api/intent/classify", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ eventId }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok || !data.success) throw new Error(data.error || "Failed to classify");
-                    toast.success("Intent classification complete", { id: toastId });
-                    setAiResult(`Classified ${data.classified} of ${data.total} participants`);
-                    mutate(); // Refresh stats
-                  } catch (error) {
-                    toast.error(error instanceof Error ? error.message : "Failed to classify", { id: toastId });
-                    setAiResult("Failed to classify");
-                  } finally {
-                    setClassifyingAI(false);
-                  }
-                }}
-              >
-                {classifyingAI ? (
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Brain className="mr-2 h-3.5 w-3.5" />
-                )}
-                {classifyingAI ? "Classifying with AI..." : "Classify intents with AI"}
-              </Button>
-              {aiResult && (
-                <p className={`text-caption ${aiResult.startsWith("Error") ? "text-destructive" : "text-success"}`}>
-                  {aiResult}
-                </p>
-              )}
             </div>
           )}
 
-          <ToggleRow
-            label="Behavioral intent inference"
-            description="Learn participant intent from their activity, not just explicit selections"
-            checked={rules.use_behavioral_intent}
-            onChange={(v) => setRules({ ...rules, use_behavioral_intent: v })}
-          />
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={computingIntents}
+            onClick={handleComputeIntents}
+          >
+            {computingIntents ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {computingIntents ? "Recomputing…" : "Recompute intent vectors"}
+          </Button>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-body font-medium">Confidence threshold</p>
                 <p className="text-caption text-muted-foreground">
-                  Minimum intent confidence to fully influence matching
+                  Minimum intent confidence needed to fully influence matching
                 </p>
               </div>
               <span className="text-body font-semibold tabular-nums w-12 text-right">
@@ -499,14 +650,23 @@ export default function MatchingRulesPage() {
               min={10}
               max={90}
               value={rules.intent_confidence_threshold}
-              onChange={(e) => setRules({ ...rules, intent_confidence_threshold: parseInt(e.target.value) })}
+              onChange={(e) =>
+                setRules({ ...rules, intent_confidence_threshold: parseInt(e.target.value) })
+              }
               className="w-full h-1.5 rounded-full appearance-none bg-border cursor-pointer accent-primary"
             />
           </div>
+
+          <ToggleRow
+            label="Behavioral intent inference"
+            description="Improve intent signals from participant activity — profile views, meeting requests, messages"
+            checked={rules.use_behavioral_intent ?? true}
+            onChange={(v) => setRules({ ...rules, use_behavioral_intent: v })}
+          />
         </CardContent>
       </Card>
 
-      {/* Exclusions & Priority */}
+      {/* Exclusions & priority */}
       <Card>
         <CardHeader>
           <CardTitle>Exclusions & priority</CardTitle>
@@ -542,29 +702,110 @@ export default function MatchingRulesPage() {
   );
 }
 
+// ─── Setup step component ─────────────────────────────────────────────────────
+function SetupStep({
+  number,
+  icon,
+  title,
+  description,
+  when,
+  status,
+  done,
+  loading,
+  onRun,
+  buttonLabel,
+  primary = false,
+}: {
+  number: number;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  when: string;
+  status: string;
+  done: boolean;
+  loading: boolean;
+  onRun: () => void;
+  buttonLabel: string;
+  primary?: boolean;
+}) {
+  return (
+    <div className={`rounded-md border p-4 space-y-3 ${done ? "border-success/30 bg-success/5" : "border-border"}`}>
+      <div className="flex items-start gap-3">
+        <span
+          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold border ${
+            done
+              ? "bg-success/20 border-success/40 text-success"
+              : "bg-primary/10 border-primary/20 text-primary"
+          }`}
+        >
+          {done ? <Check className="h-3.5 w-3.5" /> : number}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-body font-medium flex items-center gap-1.5">
+              {icon}
+              {title}
+            </p>
+            <span className={`text-caption shrink-0 ${done ? "text-success" : "text-muted-foreground"}`}>
+              {status}
+            </span>
+          </div>
+          <p className="text-caption text-muted-foreground mt-0.5">{description}</p>
+          <p className="text-small text-muted-foreground/70 mt-1.5 flex items-center gap-1">
+            <ChevronRight className="h-3 w-3 shrink-0" />
+            {when}
+          </p>
+        </div>
+      </div>
+      <Button
+        onClick={onRun}
+        disabled={loading}
+        variant={primary ? "default" : "outline"}
+        size="sm"
+        className="w-full"
+      >
+        {loading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : icon}
+        <span className="ml-1.5">{buttonLabel}</span>
+      </Button>
+    </div>
+  );
+}
+
+// ─── Weight slider ────────────────────────────────────────────────────────────
 function WeightSlider({
   label,
   description,
   value,
+  recommended,
   onChange,
   icon,
 }: {
   label: string;
   description: string;
   value: number;
+  recommended: number;
   onChange: (v: number) => void;
   icon?: React.ReactNode;
 }) {
+  const isAtRecommended = Math.abs(value - recommended) < 0.01;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-body font-medium flex items-center gap-1.5">{icon}{label}</p>
+          <p className="text-body font-medium flex items-center gap-1.5">
+            {icon}
+            {label}
+          </p>
           <p className="text-caption text-muted-foreground">{description}</p>
         </div>
-        <span className="text-body font-semibold tabular-nums w-12 text-right">
-          {(value * 100).toFixed(0)}%
-        </span>
+        <div className="text-right">
+          <span className="text-body font-semibold tabular-nums">
+            {(value * 100).toFixed(0)}%
+          </span>
+          {!isAtRecommended && (
+            <p className="text-[10px] text-muted-foreground">rec. {(recommended * 100).toFixed(0)}%</p>
+          )}
+        </div>
       </div>
       <input
         type="range"
@@ -578,6 +819,7 @@ function WeightSlider({
   );
 }
 
+// ─── Toggle row ───────────────────────────────────────────────────────────────
 function ToggleRow({
   label,
   description,
@@ -604,9 +846,11 @@ function ToggleRow({
           checked ? "bg-primary" : "bg-border-strong"
         }`}
       >
-        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-          checked ? "translate-x-6" : "translate-x-1"
-        }`} />
+        <span
+          className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+            checked ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
       </button>
     </div>
   );

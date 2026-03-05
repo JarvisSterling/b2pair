@@ -1,52 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const INTENT_CONTEXT: Record<string, string> = {
-  buying: "actively looking to purchase products, solutions, or services",
-  selling: "offering products, solutions, or services to potential customers",
-  investing: "looking to invest capital in companies or seeking investment",
-  partnering: "seeking strategic partnerships, collaborations, or joint ventures",
-  learning: "here to learn industry trends, best practices, and gain knowledge",
-  networking: "focused on building professional relationships and connections",
+  buying: "looking to purchase solutions or services",
+  selling: "offering products or services to potential customers",
+  investing: "looking to invest capital or find investment",
+  partnering: "seeking strategic partnerships or collaborations",
+  learning: "here to learn industry trends and best practices",
+  networking: "building professional relationships and connections",
 };
 
 /**
- * Fallback to deterministic generation when OpenAI is unavailable.
- * More specific than old version — uses title/company/industry context.
+ * Fallback when OpenAI is unavailable.
+ * Produces minimal but honest output instead of generic filler.
  */
 function generateFallback(
   title: string,
   companyName: string,
   industry: string,
-  bio: string,
   intents: string[],
   expertiseAreas: string[],
   interests: string[]
 ): { lookingFor: string; offering: string } {
   const role = title || "professional";
   const company = companyName ? ` at ${companyName}` : "";
-  const industryCtx = industry ? ` in ${industry}` : "";
-  const intentDescriptions = intents
-    .map((i) => INTENT_CONTEXT[i])
-    .filter(Boolean)
-    .join(" and ");
-  const expertiseCtx =
+  const industryTag = industry ? ` in ${industry}` : "";
+
+  // Build what they're looking for from intents
+  const intentPhrases = intents.map((i) => INTENT_CONTEXT[i]).filter(Boolean);
+  const lookingFor =
+    intentPhrases.length > 0
+      ? `${intentPhrases.join(" and ")}${industryTag}.${interests.length > 0 ? ` Interested in ${interests.slice(0, 2).join(" and ")}.` : ""}`
+      : `Open to meaningful connections and opportunities${industryTag}.`;
+
+  // Build offering from expertise
+  const offering =
     expertiseAreas.length > 0
-      ? ` My expertise spans ${expertiseAreas.slice(0, 3).join(", ")}.`
-      : "";
-  const interestCtx =
-    interests.length > 0
-      ? ` Particular interest in ${interests.slice(0, 2).join(" and ")}.`
-      : "";
-
-  const lookingFor = intentDescriptions
-    ? `As a ${role}${company}${industryCtx}, I am ${intentDescriptions}.${interestCtx}`
-    : `Looking to connect with the right people and explore meaningful opportunities.`;
-
-  const offering = expertiseAreas.length > 0
-    ? `${role}${company} with hands-on expertise in ${expertiseAreas.slice(0, 3).join(", ")}.${expertiseCtx}`
-    : bio
-    ? bio.slice(0, 200)
-    : `Experienced ${role}${company} open to collaboration and value exchange.`;
+      ? `${role}${company} with expertise in ${expertiseAreas.slice(0, 3).join(", ")}.`
+      : `${role}${company}${industryTag} — open to collaboration.`;
 
   return { lookingFor, offering };
 }
@@ -72,36 +62,53 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
-
-    // If no API key, fall back to deterministic generation
     if (!apiKey) {
-      const fallback = generateFallback(title, companyName, industry, bio, intents, expertiseAreas, interests);
-      return NextResponse.json(fallback);
+      return NextResponse.json(
+        generateFallback(title, companyName, industry, intents, expertiseAreas, interests)
+      );
     }
 
-    // Build a rich context prompt
-    const profileContext = [
-      title && `Job title: ${title}`,
+    // Build profile context — put bio first since it has the most specific details
+    const profileLines = [
+      bio && `Bio: ${bio}`,
+      title && `Title: ${title}`,
       companyName && `Company: ${companyName}`,
       industry && `Industry: ${industry}`,
-      bio && `Bio: ${bio}`,
-      intents.length > 0 && `Attending to: ${intents.join(", ")}`,
+      intents.length > 0 && `Here to: ${intents.join(", ")}`,
       expertiseAreas.length > 0 && `Expertise: ${expertiseAreas.join(", ")}`,
       interests.length > 0 && `Interests: ${interests.join(", ")}`,
     ]
       .filter(Boolean)
       .join("\n");
 
-    const prompt = `You are writing a professional matchmaking profile for a B2B event attendee. Based on their profile below, write two short, specific, first-person statements.
+    const prompt = `You are filling in a professional matchmaking profile for a B2B event. Write two short, punchy, first-person statements that a real professional would actually write.
 
 Profile:
-${profileContext}
+${profileLines}
+
+GOOD examples (specific and direct):
+- Looking for: "Series A founders in enterprise SaaS or fintech raising $3–8M."
+- Looking for: "CTOs modernizing their analytics stack, and SI partners for reseller deals in EMEA."
+- Looking for: "Senior HR and Operations buyers at mid-market companies evaluating workforce tools."
+- Offering: "$2M check, hands-on portfolio support, and 200+ enterprise CXO introductions."
+- Offering: "10 years in B2B sales at Oracle — pipeline building, deal structuring, enterprise contracts."
+- Offering: "Payments infrastructure processing $2B/yr for mid-market SaaS — open to API partnerships."
+
+BAD examples (never write like this):
+- "I'm looking for innovative companies to collaborate with and explore synergies."
+- "As a CEO at Acme, I seek strategic partnerships and growth opportunities."
+- "I bring extensive industry expertise and a robust professional network."
+- "Looking to connect with like-minded professionals to drive mutual success."
 
 Rules:
-- "Looking for" should be 1-2 sentences. Be specific to their role, industry, and stated intents. Mention concrete things they want to find (people, deals, knowledge, partnerships, etc). Do NOT start with "As a".
-- "Offering" should be 1-2 sentences. Be specific about what value they bring — expertise, products, network, capital, etc. Do NOT start with "As a".
-- Use natural, professional language. Avoid clichés like "synergies", "leverage", "passionate".
-- Keep each under 200 characters.
+1. Be specific — use actual roles, company types, deal sizes, technologies, or facts from the profile.
+2. If the bio has specific numbers (revenue, customers, team size, AUM, etc.), use them in the offering.
+3. Maximum 2 sentences each. No lists or bullet points.
+4. Never start with "As a", "I'm a", "I am a", "I seek", or "I'm looking to connect".
+5. Banned phrases: synergies, innovative, robust, extensive expertise, passionate, leverage, cutting-edge, value-add, thought leader, like-minded.
+6. "Looking for" = exactly who or what they want to meet at this event.
+7. "Offering" = the concrete value, product, capital, or expertise they bring.
+8. If the profile is thin (no bio, no expertise), write short and honest — don't pad with filler.
 
 Respond with ONLY valid JSON: {"lookingFor": "...", "offering": "..."}`;
 
@@ -114,23 +121,24 @@ Respond with ONLY valid JSON: {"lookingFor": "...", "offering": "..."}`;
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 300,
+        temperature: 0.6,
+        max_tokens: 200,
         response_format: { type: "json_object" },
       }),
     });
 
     if (!response.ok) {
-      const fallback = generateFallback(title, companyName, industry, bio, intents, expertiseAreas, interests);
-      return NextResponse.json(fallback);
+      return NextResponse.json(
+        generateFallback(title, companyName, industry, intents, expertiseAreas, interests)
+      );
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-
     if (!content) {
-      const fallback = generateFallback(title, companyName, industry, bio, intents, expertiseAreas, interests);
-      return NextResponse.json(fallback);
+      return NextResponse.json(
+        generateFallback(title, companyName, industry, intents, expertiseAreas, interests)
+      );
     }
 
     const parsed = JSON.parse(content);

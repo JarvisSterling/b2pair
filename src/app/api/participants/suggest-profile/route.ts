@@ -72,11 +72,15 @@ export async function POST(req: NextRequest) {
     // Skip AI when there's not enough grounded context to prevent hallucination.
     // Two cases:
     //  1. Sparse: no bio, no expertise, no interests at all.
-    //  2. Vague bio: short bio (<100 chars) with no numbers and no expertise.
+    //  2. Vague bio: short bio (<100 chars) with no meaningful numbers and no expertise.
     //     Without specific numbers/facts, models hallucinate revenue figures,
     //     company sizes, sector names, and client counts that don't exist.
+    //
+    // "Meaningful numbers" = standalone digits 2+ chars ($500K, $2M, 150, 3000)
+    // Acronyms like B2B, B2C, Web3 don't count — use /\$\d|\b\d{2,}\b/ not /\d/
+    const hasMeaningfulNumbers = /\$\d|\b\d{2,}\b/.test(bio);
     const isSparse = !bio.trim() && expertiseAreas.length === 0 && interests.length === 0;
-    const isVagueBio = bio.trim().length < 100 && !/\d/.test(bio) && expertiseAreas.length === 0;
+    const isVagueBio = bio.trim().length < 100 && !hasMeaningfulNumbers && expertiseAreas.length === 0;
     if (isSparse || isVagueBio) {
       return NextResponse.json(
         generateFallback(title, companyName, industry, intents, expertiseAreas, interests)

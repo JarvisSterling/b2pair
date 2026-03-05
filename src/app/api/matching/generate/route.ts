@@ -371,7 +371,7 @@ const INDUSTRY_RELATIONS: Record<string, Record<string, number>> = {
   "Consumer Goods":   { "Retail": 80, "E-commerce": 70, "Marketing": 70, "Logistics": 65 },
   "Logistics":        { "E-commerce": 75, "Retail": 75, "Manufacturing": 70, "Supply Chain": 90 },
   "Supply Chain":     { "Logistics": 90, "Manufacturing": 80, "Retail": 65 },
-  "Manufacturing":    { "Supply Chain": 80, "Logistics": 70, "Automotive": 75, "Industrial": 80 },
+  "Manufacturing":    { "Supply Chain": 80, "Logistics": 70, "Automotive": 75, "Industrial": 80, "CleanTech": 65, "Engineering": 80 },
 
   // Professional Services cluster
   "Consulting":       { "Management Consulting": 90, "Technology": 65, "Finance & Banking": 65 },
@@ -385,7 +385,7 @@ const INDUSTRY_RELATIONS: Record<string, Record<string, number>> = {
 
   // Energy & Environment cluster
   "Energy":           { "CleanTech": 80, "Oil & Gas": 70, "Renewable Energy": 85, "Industrial": 65 },
-  "CleanTech":        { "Energy": 80, "Renewable Energy": 90, "Technology": 65 },
+  "CleanTech":        { "Energy": 80, "Renewable Energy": 90, "Technology": 65, "Manufacturing": 65, "Industrial": 60 },
   "Renewable Energy": { "CleanTech": 90, "Energy": 85 },
   "Oil & Gas":        { "Energy": 70, "Industrial": 70 },
 
@@ -409,13 +409,33 @@ const INDUSTRY_RELATIONS: Record<string, Record<string, number>> = {
   "Defense":          { "Government": 70, "Technology": 60, "Cybersecurity": 75 },
 };
 
+/**
+ * Normalize an industry string to the canonical key used in INDUSTRY_RELATIONS.
+ * Handles case variations (e.g. "FinTech" → "Fintech", "B2B SaaS" → "B2B SaaS").
+ */
+function normalizeIndustry(industry: string): string {
+  if (!industry) return industry;
+  // Exact match first
+  if (INDUSTRY_RELATIONS[industry]) return industry;
+  // Case-insensitive match
+  const lower = industry.toLowerCase();
+  for (const key of Object.keys(INDUSTRY_RELATIONS)) {
+    if (key.toLowerCase() === lower) return key;
+  }
+  return industry;
+}
+
 function computeIndustryScore(a: any, b: any): number {
   if (!a.industry || !b.industry) return 50;
-  if (a.industry === b.industry) return 100;
+  const indA = normalizeIndustry(a.industry);
+  const indB = normalizeIndustry(b.industry);
+
+  // Same industry (case-insensitive)
+  if (indA.toLowerCase() === indB.toLowerCase()) return 100;
 
   // Check related-industry table (both directions)
-  const relatedScore = INDUSTRY_RELATIONS[a.industry]?.[b.industry]
-    ?? INDUSTRY_RELATIONS[b.industry]?.[a.industry]
+  const relatedScore = INDUSTRY_RELATIONS[indA]?.[indB]
+    ?? INDUSTRY_RELATIONS[indB]?.[indA]
     ?? 40;
 
   return relatedScore;

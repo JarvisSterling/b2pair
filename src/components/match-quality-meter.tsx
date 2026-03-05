@@ -13,26 +13,32 @@ interface MatchQualityMeterProps {
   companyWebsite: string;
 }
 
-const FIELD_WEIGHTS = {
-  title: 15,
-  companyName: 15,
-  intents: 20,
-  lookingFor: 20,
-  offering: 20,
+// Weights reflect actual matching engine importance:
+// • Intents = 40% (mirrors engine weight; required to reach "Good")
+// • lookingFor + offering = 30% combined (unlock complementarity bonus)
+// • title + company = 20% (useful identity context)
+// • companySize + website = 10% (nice-to-have)
+//
+// Key invariant: with all text fields filled but NO intents selected,
+// the score is exactly 50% ("Medium") — you need intents to reach "Good".
+const FIELD_WEIGHTS: Record<string, number> = {
+  intents: 40,
+  lookingFor: 15,
+  offering: 15,
+  title: 10,
+  companyName: 10,
   companySize: 5,
   companyWebsite: 5,
 };
 
-type FieldKey = keyof typeof FIELD_WEIGHTS;
-
-const FIELD_LABELS: Record<FieldKey, string> = {
-  title: "Job Title",
-  companyName: "Company",
-  intents: "Intents",
-  lookingFor: "Looking For",
-  offering: "Offering",
-  companySize: "Company Size",
-  companyWebsite: "Website",
+const FIELD_HINTS: Record<string, string> = {
+  intents: "Select your goals — it's the #1 factor in finding great matches",
+  lookingFor: "Describe what you're looking for to unlock better matches",
+  offering: "Add what you offer so others can find you",
+  title: "Add your job title",
+  companyName: "Add your company name",
+  companySize: "Add company size",
+  companyWebsite: "Add your website",
 };
 
 function getLevel(score: number) {
@@ -51,35 +57,36 @@ export function MatchQualityMeter({
   companySize,
   companyWebsite,
 }: MatchQualityMeterProps) {
-  const { score, missingFields } = useMemo(() => {
-    const fields: Record<FieldKey, boolean> = {
-      title: title.trim().length > 0,
-      companyName: companyName.trim().length > 0,
+  const { score, topMissingHint } = useMemo(() => {
+    const filled: Record<string, boolean> = {
       intents: intents.length > 0,
       lookingFor: lookingFor.trim().length > 0,
       offering: offering.trim().length > 0,
+      title: title.trim().length > 0,
+      companyName: companyName.trim().length > 0,
       companySize: companySize.length > 0,
       companyWebsite: companyWebsite.trim().length > 0,
     };
 
     let total = 0;
-    const missing: string[] = [];
+    // Collect missing fields sorted by weight descending (highest-impact hint first)
+    const missing: { key: string; weight: number }[] = [];
 
-    for (const [key, filled] of Object.entries(fields)) {
-      if (filled) {
-        total += FIELD_WEIGHTS[key as FieldKey];
+    for (const [key, isFilled] of Object.entries(filled)) {
+      if (isFilled) {
+        total += FIELD_WEIGHTS[key];
       } else {
-        missing.push(FIELD_LABELS[key as FieldKey]);
+        missing.push({ key, weight: FIELD_WEIGHTS[key] });
       }
     }
 
-    return { score: total, missingFields: missing };
+    missing.sort((a, b) => b.weight - a.weight);
+    const topHint = missing.length > 0 ? FIELD_HINTS[missing[0].key] : null;
+
+    return { score: total, topMissingHint: topHint };
   }, [title, companyName, intents, lookingFor, offering, companySize, companyWebsite]);
 
   const level = getLevel(score);
-
-  // Find the highest-weight missing field for the hint
-  const topMissing = missingFields.length > 0 ? missingFields[0] : null;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
@@ -98,10 +105,10 @@ export function MatchQualityMeter({
         />
       </div>
 
-      {/* Hint */}
-      {topMissing && score < 100 && (
+      {/* Hint — always shows highest-impact missing field */}
+      {topMissingHint && score < 100 && (
         <p className="text-xs text-muted-foreground">
-          💡 Add <span className="font-medium text-foreground">{topMissing}</span> to improve your matches
+          💡 {topMissingHint}
         </p>
       )}
       {score === 100 && (

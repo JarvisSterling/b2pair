@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 
@@ -8,13 +7,6 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Kiosk runs on unattended tablets — render children directly, no auth required
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") ?? "";
-  if (pathname.includes("/check-in/kiosk")) {
-    return <>{children}</>;
-  }
-
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

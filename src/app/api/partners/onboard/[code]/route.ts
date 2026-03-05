@@ -91,7 +91,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const { data: member } = await admin
     .from("company_members")
-    .select("id, company_id, invite_status")
+    .select("id, company_id, invite_status, user_id")
     .eq("invite_code", code)
     .single();
 

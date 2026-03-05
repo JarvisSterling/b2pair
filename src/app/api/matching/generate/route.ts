@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   computeParticipantVector,
   type IntentVector,
+  type IntentKey,
   INTENT_KEYS,
   COMPATIBILITY_MATRIX,
 } from "@/lib/intent-engine";

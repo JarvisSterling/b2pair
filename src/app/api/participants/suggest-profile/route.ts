@@ -27,9 +27,10 @@ function generateFallback(
 
   // Build what they're looking for from intents
   const intentPhrases = intents.map((i) => INTENT_CONTEXT[i]).filter(Boolean);
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const lookingFor =
     intentPhrases.length > 0
-      ? `${intentPhrases.join(" and ")}${industryTag}.${interests.length > 0 ? ` Interested in ${interests.slice(0, 2).join(" and ")}.` : ""}`
+      ? `${capitalize(intentPhrases[0])}${intentPhrases.length > 1 ? `, and ${intentPhrases.slice(1).join(" and ")}` : ""}${industryTag}.${interests.length > 0 ? ` Particularly interested in ${interests.slice(0, 2).join(" and ")}.` : ""}`
       : `Open to meaningful connections and opportunities${industryTag}.`;
 
   // Build offering from expertise

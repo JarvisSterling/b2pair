@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { QrCameraScanner } from "@/components/qr-camera-scanner";
 import { CheckCircle2, XCircle, Clock, QrCode, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,13 +28,11 @@ export default function KioskPage() {
 
   useEffect(() => {
     async function loadEvent() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("events")
-        .select("name")
-        .eq("id", eventId)
-        .single();
-      if (data) setEventName(data.name);
+      try {
+        const res = await fetch(`/api/kiosk/${eventId}`);
+        const data = await res.json();
+        if (data.eventName) setEventName(data.eventName);
+      } catch { /* silently ignore — event name is display only */ }
     }
     loadEvent();
   }, [eventId]);

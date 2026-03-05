@@ -10,8 +10,8 @@ const INTENT_CONTEXT: Record<string, string> = {
 };
 
 /**
- * Fallback when OpenAI is unavailable.
- * Produces minimal but honest output instead of generic filler.
+ * Fallback when OpenAI is unavailable or profile is too thin for safe AI generation.
+ * Produces minimal but honest output instead of hallucinated specifics.
  */
 function generateFallback(
   title: string,
@@ -25,15 +25,13 @@ function generateFallback(
   const company = companyName ? ` at ${companyName}` : "";
   const industryTag = industry ? ` in ${industry}` : "";
 
-  // Build what they're looking for from intents
-  const intentPhrases = intents.map((i) => INTENT_CONTEXT[i]).filter(Boolean);
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const intentPhrases = intents.map((i) => INTENT_CONTEXT[i]).filter(Boolean);
   const lookingFor =
     intentPhrases.length > 0
       ? `${capitalize(intentPhrases[0])}${intentPhrases.length > 1 ? `, and ${intentPhrases.slice(1).join(" and ")}` : ""}${industryTag}.${interests.length > 0 ? ` Particularly interested in ${interests.slice(0, 2).join(" and ")}.` : ""}`
       : `Open to meaningful connections and opportunities${industryTag}.`;
 
-  // Build offering from expertise
   const offering =
     expertiseAreas.length > 0
       ? `${role}${company} with expertise in ${expertiseAreas.slice(0, 3).join(", ")}.`
@@ -70,24 +68,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Skip AI when there's not enough grounded context to prevent hallucination.
-    // Two cases:
-    //  1. Sparse: no bio, no expertise, no interests at all.
-    //  2. Vague bio: short bio (<100 chars) with no meaningful numbers and no expertise.
-    //     Without specific numbers/facts, models hallucinate revenue figures,
-    //     company sizes, sector names, and client counts that don't exist.
     //
-    // "Meaningful numbers" = standalone digits 2+ chars ($500K, $2M, 150, 3000)
-    // Acronyms like B2B, B2C, Web3 don't count — use /\$\d|\b\d{2,}\b/ not /\d/
+    // "Meaningful numbers" = $-amounts or standalone 2+ digit numbers.
+    // Acronyms like B2B, B2C, Web3 contain digits but are NOT specific facts —
+    // use /\$\d|\b\d{2,}\b/ instead of /\d/ to avoid false positives.
+    //
+    // We skip AI when:
+    //  1. Sparse: no bio, no expertise, no interests.
+    //  2. Vague bio: bio <100 chars, no meaningful numbers, AND no expertise.
+    //     (expertise present = enough anchor for AI even without bio details)
     const hasMeaningfulNumbers = /\$\d|\b\d{2,}\b/.test(bio);
     const isSparse = !bio.trim() && expertiseAreas.length === 0 && interests.length === 0;
-    const isVagueBio = bio.trim().length < 100 && !hasMeaningfulNumbers && expertiseAreas.length === 0;
+    const isVagueBio =
+      bio.trim().length < 100 && !hasMeaningfulNumbers && expertiseAreas.length === 0;
     if (isSparse || isVagueBio) {
       return NextResponse.json(
         generateFallback(title, companyName, industry, intents, expertiseAreas, interests)
       );
     }
 
-    // Build profile context — put bio first since it has the most specific details
+    // Build profile context — bio first since it has the most specific details
     const profileLines = [
       bio && `Bio: ${bio}`,
       title && `Title: ${title}`,
@@ -100,18 +100,22 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
       .join("\n");
 
-    const prompt = `You are filling in a professional matchmaking profile for a B2B event. Write two short, punchy, first-person statements that a real professional would actually write.
+    const prompt = `You are filling in a professional matchmaking profile for a B2B event. Write two short, honest, first-person statements based STRICTLY on what is in the profile below.
 
 Profile:
 ${profileLines}
 
-GOOD examples (specific and direct):
+GOOD examples when profile has rich context (bio with specific facts):
 - Looking for: "Series A founders in enterprise SaaS or fintech raising $3–8M."
 - Looking for: "CTOs modernizing their analytics stack, and SI partners for reseller deals in EMEA."
-- Looking for: "Senior HR and Operations buyers at mid-market companies evaluating workforce tools."
 - Offering: "$2M check, hands-on portfolio support, and 200+ enterprise CXO introductions."
-- Offering: "10 years in B2B sales at Oracle — pipeline building, deal structuring, enterprise contracts."
 - Offering: "Payments infrastructure processing $2B/yr for mid-market SaaS — open to API partnerships."
+
+GOOD examples when profile context is thin (no bio details, only expertise/interest tags):
+- Looking for: "Product leaders and digital transformation practitioners open to partnerships."
+- Looking for: "B2B professionals in Technology open to partnerships and meaningful connections."
+- Offering: "Product management background — open to collaboration and knowledge exchange."
+- Offering: "B2B sales experience — open to partnerships in the Technology space."
 
 BAD examples (never write like this):
 - "I'm looking for innovative companies to collaborate with and explore synergies."
@@ -120,15 +124,16 @@ BAD examples (never write like this):
 - "Looking to connect with like-minded professionals to drive mutual success."
 
 Rules:
-1. Be specific — use actual roles, company types, deal sizes, technologies, or facts from the profile.
-2. If the bio has specific numbers (revenue, customers, team size, AUM, etc.), use them in the offering.
+1. ONLY use details explicitly stated in the profile — never add anything that is not there.
+2. If the bio has specific numbers (revenue, customers, team size, AUM, etc.), use them.
 3. Maximum 2 sentences each. No lists or bullet points.
 4. Never start with "As a", "I'm a", "I am a", "I seek", or "I'm looking to connect".
 5. Banned phrases: synergies, innovative, robust, extensive expertise, passionate, leverage, cutting-edge, value-add, thought leader, like-minded.
-6. "Looking for" = exactly who or what they want to meet at this event.
-7. "Offering" = the concrete value, product, capital, or expertise they bring.
-8. If the profile is thin (no bio, no expertise), write short and honest — don't pad with filler.
-9. NEVER invent numbers, revenue figures, client counts, team sizes, or budget amounts not explicitly stated in the profile. If the bio has no specific numbers, do not add any.
+6. "Looking for" = who or what they want to meet at this event.
+7. "Offering" = the value, product, capital, or expertise they bring.
+8. NEVER invent numbers, revenue figures, client counts, years of experience, team sizes, or budget amounts not in the profile.
+9. NEVER add company size descriptors (mid-market, enterprise, SMB, large-scale, Fortune 500, mid-sized) unless the profile explicitly states them.
+10. If the profile has no specific product, technology, or metric in the bio, keep both statements SHORT and derive them only from the expertise and interest tags provided.
 
 Respond with ONLY valid JSON: {"lookingFor": "...", "offering": "..."}`;
 

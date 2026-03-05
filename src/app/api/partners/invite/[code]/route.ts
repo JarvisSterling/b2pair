@@ -67,7 +67,7 @@ export async function POST(request: Request, { params }: Params) {
   const { data: member } = await admin
     .from("company_members")
     .select(`
-      id, invite_status, role, company_id,
+      id, email, invite_status, role, company_id,
       company:companies(id, name, event_id, capabilities)
     `)
     .eq("invite_code", code)

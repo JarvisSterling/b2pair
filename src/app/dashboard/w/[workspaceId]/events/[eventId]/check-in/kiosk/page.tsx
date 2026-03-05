@@ -171,6 +171,16 @@ export default function KioskPage() {
                 You were already checked in. Enjoy the event!
               </p>
             </div>
+            {result.participantId && (
+              <PrintBadgeButton
+                participantId={result.participantId}
+                eventId={eventId}
+                size="default"
+                variant="outline"
+                label="Print Badge"
+                className="mt-2 gap-2 px-6"
+              />
+            )}
           </div>
         )}
 

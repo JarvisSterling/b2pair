@@ -299,6 +299,47 @@ export async function POST(request: Request) {
     }
   }
 
+  // Send one summary notification per participant instead of one per match
+  if (matches.length > 0) {
+    // Fetch event name for notification body
+    const { data: eventData } = await admin
+      .from("events")
+      .select("name")
+      .eq("id", eventId)
+      .single();
+    const eventName = eventData?.name ?? "your event";
+
+    // Count matches per participant
+    const matchCountByParticipant = new Map<string, number>();
+    for (const m of matches) {
+      matchCountByParticipant.set(m.participant_a_id, (matchCountByParticipant.get(m.participant_a_id) ?? 0) + 1);
+      matchCountByParticipant.set(m.participant_b_id, (matchCountByParticipant.get(m.participant_b_id) ?? 0) + 1);
+    }
+
+    // Resolve participant IDs → user IDs
+    const participantIds = Array.from(matchCountByParticipant.keys());
+    const { data: participantUsers } = await admin
+      .from("participants")
+      .select("id, user_id")
+      .in("id", participantIds);
+
+    if (participantUsers && participantUsers.length > 0) {
+      const notifications = participantUsers
+        .filter((p: any) => p.user_id)
+        .map((p: any) => ({
+          user_id: p.user_id,
+          type: "new_match",
+          title: "Your matches are ready",
+          body: `You have ${matchCountByParticipant.get(p.id)} new matches at ${eventName}`,
+          link: "/dashboard/matches",
+        }));
+
+      if (notifications.length > 0) {
+        await admin.from("notifications").insert(notifications);
+      }
+    }
+  }
+
   return NextResponse.json({
     success: true,
     participantCount: participants.length,

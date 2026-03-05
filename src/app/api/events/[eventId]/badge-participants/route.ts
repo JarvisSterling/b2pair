@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Returns all approved participants with profile + QR token for badge generation.
  * Organizer-only.
  */
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,8 +24,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ eve
 
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Get all approved participants with profile + participant type
-  const { data: participants, error: partError } = await admin
+  // Optional: filter to a single participant (for print-single-badge)
+  const singleParticipantId = req.nextUrl.searchParams.get("participantId");
+
+  // Get approved participants with profile
+  let query = admin
     .from("participants")
     .select(`
       id, user_id, status,
@@ -33,6 +36,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ eve
     `)
     .eq("event_id", eventId)
     .eq("status", "approved");
+
+  if (singleParticipantId) {
+    query = query.eq("id", singleParticipantId);
+  }
+
+  const { data: participants, error: partError } = await query;
 
   if (partError) return NextResponse.json({ error: partError.message, participants: [] });
   if (!participants) return NextResponse.json({ participants: [] });

@@ -162,6 +162,7 @@ export async function POST(request: Request) {
       success: true,
       alreadyCheckedIn: true,
       checkedInAt: existing.checked_in_at,
+      participantId: resolvedParticipantId,
       participant: (participant as any).profiles,
     });
   }
@@ -185,6 +186,7 @@ export async function POST(request: Request) {
     success: true,
     alreadyCheckedIn: false,
     checkedInAt: checkIn?.checked_in_at,
+    participantId: resolvedParticipantId,
     participant: (participant as any).profiles,
   });
 }

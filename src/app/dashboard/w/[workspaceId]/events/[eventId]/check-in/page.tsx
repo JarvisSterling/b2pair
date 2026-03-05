@@ -25,6 +25,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { QrCameraScanner } from "@/components/qr-camera-scanner";
+import { PrintBadgeButton } from "@/components/badges/print-badge-button";
 import Link from "next/link";
 import { SafeImage } from "@/components/ui/safe-image";
 import { toast } from "sonner";
@@ -70,6 +71,7 @@ export default function CheckInDashboard() {
     success: boolean;
     alreadyCheckedIn: boolean;
     participant: any;
+    participantId?: string;
   } | null>(null);
 
   const scanInputRef = useRef<HTMLInputElement>(null);
@@ -116,6 +118,7 @@ export default function CheckInDashboard() {
         success: true,
         alreadyCheckedIn: data.alreadyCheckedIn,
         participant: data.participant,
+        participantId: data.participantId,
       });
       if (!data.alreadyCheckedIn) {
         mutate();
@@ -153,17 +156,18 @@ export default function CheckInDashboard() {
         success: true,
         alreadyCheckedIn: data.alreadyCheckedIn,
         participant: data.participant,
+        participantId: data.participantId,
       });
       if (!data.alreadyCheckedIn) mutate();
     } catch {
       setLastResult({ success: false, alreadyCheckedIn: false, participant: null });
     }
 
-    // Resume scanner after 3 seconds
+    // Resume scanner after 5 seconds (extra time for print badge tap)
     setTimeout(() => {
       setLastResult(null);
       setCameraPaused(false);
-    }, 3000);
+    }, 5000);
   }
 
   async function handleSearch() {
@@ -417,7 +421,7 @@ export default function CheckInDashboard() {
                   ) : (
                     <XCircle className="h-6 w-6 text-red-500 shrink-0" />
                   )}
-                  <div>
+                  <div className="flex-1 min-w-0">
                     {lastResult.success ? (
                       <>
                         <p className="text-body font-semibold">
@@ -435,6 +439,14 @@ export default function CheckInDashboard() {
                       </p>
                     )}
                   </div>
+                  {lastResult.success && lastResult.participantId && (
+                    <PrintBadgeButton
+                      participantId={lastResult.participantId}
+                      eventId={eventId}
+                      size="sm"
+                      variant="outline"
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -468,7 +480,7 @@ export default function CheckInDashboard() {
                   ) : (
                     <XCircle className="h-6 w-6 text-red-500 shrink-0" />
                   )}
-                  <div>
+                  <div className="flex-1 min-w-0">
                     {lastResult.success ? (
                       <>
                         <p className="text-body font-semibold">{lastResult.participant?.full_name}</p>
@@ -480,6 +492,14 @@ export default function CheckInDashboard() {
                       <p className="text-body font-medium text-red-600">Invalid QR code</p>
                     )}
                   </div>
+                  {lastResult.success && lastResult.participantId && (
+                    <PrintBadgeButton
+                      participantId={lastResult.participantId}
+                      eventId={eventId}
+                      size="sm"
+                      variant="outline"
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -533,10 +553,18 @@ export default function CheckInDashboard() {
                         </p>
                       </div>
                       {p.isCheckedIn ? (
-                        <Badge variant="success" className="gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Checked in
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="success" className="gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Checked in
+                          </Badge>
+                          <PrintBadgeButton
+                            participantId={p.id}
+                            eventId={eventId}
+                            size="sm"
+                            variant="ghost"
+                          />
+                        </div>
                       ) : (
                         <Button
                           size="sm"
@@ -606,13 +634,25 @@ export default function CheckInDashboard() {
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-[9px]">{ci.method}</Badge>
                     <span className="text-caption text-muted-foreground">{time}</span>
-                    <button
-                      onClick={() => undoCheckIn(ci.id, (ci.participant as any)?.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-secondary transition-opacity"
-                      title="Undo check-in"
-                    >
-                      <Undo2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    </button>
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                      {(ci.participant as any)?.id && (
+                        <PrintBadgeButton
+                          participantId={(ci.participant as any).id}
+                          eventId={eventId}
+                          size="sm"
+                          variant="ghost"
+                          label=""
+                          className="h-7 w-7 p-0"
+                        />
+                      )}
+                      <button
+                        onClick={() => undoCheckIn(ci.id, (ci.participant as any)?.id)}
+                        className="p-1 rounded hover:bg-secondary"
+                        title="Undo check-in"
+                      >
+                        <Undo2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

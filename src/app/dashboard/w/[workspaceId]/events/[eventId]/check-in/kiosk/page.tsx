@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { QrCameraScanner } from "@/components/qr-camera-scanner";
 import { CheckCircle2, XCircle, Clock, QrCode } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
+import { PrintBadgeButton } from "@/components/badges/print-badge-button";
 
 type KioskState = "idle" | "processing" | "success" | "already" | "error";
 
@@ -14,6 +15,7 @@ interface CheckInResult {
   title: string | null;
   company_name: string | null;
   avatar_url: string | null;
+  participantId?: string;
 }
 
 export default function KioskPage() {
@@ -52,19 +54,26 @@ export default function KioskPage() {
 
       if (!res.ok) throw new Error(data?.error || "Invalid QR code");
 
-      setResult(data.participant);
+      const isSuccess = !data.alreadyCheckedIn && res.ok;
+      setResult({ ...data.participant, participantId: data.participantId });
       setState(data.alreadyCheckedIn ? "already" : "success");
+
+      // Give more time on fresh success so organizer can tap Print Badge
+      const delay = isSuccess ? 8000 : 4000;
+      setTimeout(() => {
+        setState("idle");
+        setResult(null);
+        setPaused(false);
+      }, delay);
     } catch {
       setState("error");
       setResult(null);
+      setTimeout(() => {
+        setState("idle");
+        setResult(null);
+        setPaused(false);
+      }, 4000);
     }
-
-    // Auto-reset after 4 seconds
-    setTimeout(() => {
-      setState("idle");
-      setResult(null);
-      setPaused(false);
-    }, 4000);
   }
 
   const initials = result?.full_name
@@ -136,6 +145,16 @@ export default function KioskPage() {
                 You&apos;re checked in. Enjoy the event! 🎉
               </p>
             </div>
+            {result.participantId && (
+              <PrintBadgeButton
+                participantId={result.participantId}
+                eventId={eventId}
+                size="default"
+                variant="outline"
+                label="Print Badge"
+                className="mt-2 gap-2 px-6"
+              />
+            )}
           </div>
         )}
 

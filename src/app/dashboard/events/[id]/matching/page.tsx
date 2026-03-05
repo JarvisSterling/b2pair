@@ -188,7 +188,7 @@ export default function MatchingRulesPage() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed");
       toast.success(`${data.generated} embeddings generated`, { id: toastId });
-      setEmbeddingCount(data.generated);
+      setEmbeddingCount(data.generated ?? data.embedded ?? data.total ?? 0);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed", { id: toastId });
     } finally {
@@ -208,6 +208,8 @@ export default function MatchingRulesPage() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed");
       toast.success(`Classified ${data.classified} participants`, { id: toastId });
+      // Update local state immediately — mutate() alone won't work due to init guard
+      setIntentStats((prev) => prev ? { ...prev, withAI: data.classified } : prev);
       mutate();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed", { id: toastId });
@@ -252,7 +254,7 @@ export default function MatchingRulesPage() {
         `${data.matchCount} matches generated for ${data.participantCount} participants`,
         { id: toastId }
       );
-      setMatchCount(data.matchCount);
+      setMatchCount(data.matchCount ?? 0);
       mutate();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed", { id: toastId });

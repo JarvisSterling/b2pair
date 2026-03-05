@@ -68,6 +68,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Skip AI for sparse profiles — no bio, no expertise, no interests.
+    // Without real facts to anchor the output, models hallucinate specific
+    // numbers and details (revenue, client counts, budgets) that don't exist.
+    const isSparse = !bio.trim() && expertiseAreas.length === 0 && interests.length === 0;
+    if (isSparse) {
+      return NextResponse.json(
+        generateFallback(title, companyName, industry, intents, expertiseAreas, interests)
+      );
+    }
+
     // Build profile context — put bio first since it has the most specific details
     const profileLines = [
       bio && `Bio: ${bio}`,
@@ -109,6 +119,7 @@ Rules:
 6. "Looking for" = exactly who or what they want to meet at this event.
 7. "Offering" = the concrete value, product, capital, or expertise they bring.
 8. If the profile is thin (no bio, no expertise), write short and honest — don't pad with filler.
+9. NEVER invent numbers, revenue figures, client counts, team sizes, or budget amounts not explicitly stated in the profile. If the bio has no specific numbers, do not add any.
 
 Respond with ONLY valid JSON: {"lookingFor": "...", "offering": "..."}`;
 

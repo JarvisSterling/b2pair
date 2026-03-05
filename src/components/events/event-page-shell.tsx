@@ -169,7 +169,7 @@ export function EventPageShell({
 
         {/* Render page blocks */}
         {currentPage && currentPage.content.length > 0 && (
-          <BlockRenderer blocks={currentPage.content as ContentBlock[]} />
+          <BlockRenderer blocks={currentPage.content as ContentBlock[]} eventId={event.id} />
         )}
 
         {/* Participant types on Home tab */}

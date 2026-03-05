@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ChevronDown, ExternalLink, Play, Search, Building2, Crown, Globe, ArrowRight, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,10 @@ import type { ContentBlock, SponsorBlock as SponsorBlockType, ExhibitorDirectory
 import { cn } from "@/lib/utils";
 import { SafeImage } from "@/components/ui/safe-image";
 
+// Context so any block sub-renderer can access the event ID even when
+// the URL params don't contain it (e.g. public event pages use "slug" not "eventId")
+const EventIdContext = createContext<string | null>(null);
+
 interface BlockRendererProps {
   blocks: ContentBlock[];
   eventId?: string;
@@ -18,11 +22,13 @@ interface BlockRendererProps {
 
 export function BlockRenderer({ blocks, className, eventId }: BlockRendererProps) {
   return (
-    <div className={cn("space-y-8", className)}>
-      {blocks.map((block) => (
-        <RenderBlock key={block.id} block={block} />
-      ))}
-    </div>
+    <EventIdContext.Provider value={eventId ?? null}>
+      <div className={cn("space-y-8", className)}>
+        {blocks.map((block) => (
+          <RenderBlock key={block.id} block={block} />
+        ))}
+      </div>
+    </EventIdContext.Provider>
   );
 }
 
@@ -363,6 +369,8 @@ function VideoEmbed({ url, title }: { url: string; title?: string }) {
 // ============================================================
 
 function useEventIdFromParams(): string | null {
+  const fromContext = useContext(EventIdContext);
+  if (fromContext) return fromContext;
   const params = useParams();
   return (params?.eventId as string) || (params?.id as string) || null;
 }

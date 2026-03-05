@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect } from "react";
+import { use, useEffect, useState } from "react";
 import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import {
   Eye,
   Link2,
   ScanLine,
+  Copy,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { PublishEventButton } from "@/components/events/publish-button";
@@ -66,6 +68,14 @@ export default function EventControlPanel({ params }: PageProps) {
 
   const eventUrl = `/events/${event.slug}`;
   const basePath = `/dashboard/w/${workspaceId}/events/${eventId}`;
+  const [copied, setCopied] = useState(false);
+
+  function copyRegistrationLink() {
+    const full = `${window.location.origin}${eventUrl}`;
+    navigator.clipboard.writeText(full);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
     <div className="mx-auto max-w-5xl animate-fade-in">
@@ -151,19 +161,30 @@ export default function EventControlPanel({ params }: PageProps) {
 
       {/* Event link */}
       {event.status !== "draft" && (
-        <Card className="mb-8">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-center gap-3">
-              <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-caption font-medium">Registration link</p>
-                <p className="text-sm text-primary truncate">
-                  {eventUrl}
-                </p>
+        <button
+          onClick={copyRegistrationLink}
+          className="w-full mb-8 text-left group"
+        >
+          <Card className="transition-all duration-150 group-hover:border-blue-500/50 group-hover:shadow-sm">
+            <CardContent className="pt-5 pb-5">
+              <div className="flex items-center gap-3">
+                <Link2 className="h-4 w-4 text-blue-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-caption font-medium text-muted-foreground">Registration link</p>
+                  <p className="text-sm font-medium text-blue-500 truncate underline-offset-2 group-hover:underline">
+                    b2pair.com{eventUrl}
+                  </p>
+                </div>
+                <div className={`shrink-0 flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-all ${copied ? "bg-emerald-500/10 text-emerald-600" : "bg-blue-500/10 text-blue-500"}`}>
+                  {copied
+                    ? <><Check className="h-3 w-3" /> Copied!</>
+                    : <><Copy className="h-3 w-3" /> Copy link</>
+                  }
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </button>
       )}
 
       {/* Management cards */}

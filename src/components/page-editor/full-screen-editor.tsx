@@ -204,6 +204,22 @@ export function FullScreenEditor({
       case "sponsor":
         newBlock = { id, type: "sponsor", title: "Our Sponsors" };
         break;
+      case "exhibitor-directory":
+        newBlock = {
+          id,
+          type: "exhibitor-directory",
+          title: "Exhibitors",
+          showSearch: true,
+          showCategoryFilter: true,
+          columns: 3,
+        };
+        break;
+      case "featured-sponsor":
+        newBlock = { id, type: "featured-sponsor" };
+        break;
+      case "sponsor-banner":
+        newBlock = { id, type: "sponsor-banner" };
+        break;
       case "agenda":
         newBlock = { id, type: "agenda" };
         break;

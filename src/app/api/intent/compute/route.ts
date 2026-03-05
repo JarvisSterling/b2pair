@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
       profiles!inner(title, bio, company_name)
     `)
     .eq("event_id", eventId)
-    .eq("status", "approved");
+    .eq("status", "approved")
+    .neq("role", "organizer");
 
   if (fetchError || !participants) {
     return NextResponse.json({ error: "Failed to fetch participants" }, { status: 500 });

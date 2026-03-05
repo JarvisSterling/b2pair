@@ -24,16 +24,14 @@ export function prefetchEventOverviews(eventIds: string[]) {
 /**
  * Prefetch all tab data for an event.
  * Call this on event overview page load.
+ * NOTE: Only include routes that actually exist as API endpoints.
+ * Pages that use Supabase client directly (participants, matching, configure, etc.)
+ * should NOT be in this list — they'd return 404 and pollute the SWR cache.
  */
 export function prefetchEventTabs(eventId: string) {
   const urls = [
     `/api/events/${eventId}/analytics`,
-    `/api/events/${eventId}/participants`,
-    `/api/events/${eventId}/matching`,
-    `/api/events/${eventId}/partners`,
-    `/api/events/${eventId}/checkin`,
-    `/api/events/${eventId}/configure`,
-    `/api/events/${eventId}/participant-types`,
+    `/api/events/${eventId}/overview`,
     `/api/events/${eventId}/sponsors`,
   ];
   urls.forEach((url) => prefetch(url));

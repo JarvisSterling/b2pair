@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdmin();
 
-  // Fetch participants with profile text
+  // Fetch participants with profile text (exclude organizers)
   const { data: participants, error } = await admin
     .from("participants")
     .select(`
@@ -59,7 +59,8 @@ export async function POST(req: NextRequest) {
       profiles!inner(full_name, title, bio, company_name, industry)
     `)
     .eq("event_id", eventId)
-    .eq("status", "approved");
+    .eq("status", "approved")
+    .neq("role", "organizer");
 
   if (error || !participants) {
     return NextResponse.json({ error: "Failed to fetch participants" }, { status: 500 });

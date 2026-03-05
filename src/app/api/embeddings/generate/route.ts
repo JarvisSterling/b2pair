@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "OPENAI_API_KEY not configured" }, { status: 500 });
   }
 
-  // Fetch all approved participants with profile data
+  // Fetch all approved non-organizer participants with profile data
   const { data: participants, error: fetchError } = await admin
     .from("participants")
     .select(`
@@ -96,7 +96,8 @@ export async function POST(request: Request) {
       profiles!inner(full_name, title, company_name, industry, expertise_areas, interests, bio)
     `)
     .eq("event_id", eventId)
-    .eq("status", "approved");
+    .eq("status", "approved")
+    .neq("role", "organizer");
 
   if (fetchError || !participants) {
     return NextResponse.json(

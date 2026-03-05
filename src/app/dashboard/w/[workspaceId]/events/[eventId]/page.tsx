@@ -70,11 +70,22 @@ export default function EventControlPanel({ params }: PageProps) {
   const eventUrl = `/events/${event.slug}`;
   const basePath = `/dashboard/w/${workspaceId}/events/${eventId}`;
 
-  function copyRegistrationLink() {
+  async function copyRegistrationLink() {
     const full = `${window.location.origin}${eventUrl}`;
-    navigator.clipboard.writeText(full);
+    try {
+      await navigator.clipboard.writeText(full);
+    } catch {
+      // Fallback for browsers that block clipboard API
+      const ta = document.createElement("textarea");
+      ta.value = full;
+      ta.style.cssText = "position:fixed;opacity:0;";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
   }
 
   return (

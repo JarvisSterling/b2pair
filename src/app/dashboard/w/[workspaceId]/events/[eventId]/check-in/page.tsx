@@ -300,7 +300,7 @@ export default function CheckInDashboard() {
               <span className="hidden sm:inline">Badges</span>
             </Button>
           </Link>
-          <Link href={`/dashboard/w/${params.workspaceId}/events/${eventId}/check-in/kiosk`} target="_blank">
+          <Link href={`/kiosk/${eventId}`} target="_blank">
             <Button variant="outline" className="gap-2">
               <Maximize2 className="h-4 w-4" />
               <span className="hidden sm:inline">Kiosk mode</span>

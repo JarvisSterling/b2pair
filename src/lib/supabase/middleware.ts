@@ -6,8 +6,12 @@ import { NextResponse, type NextRequest } from "next/server";
  * This keeps the session alive and syncs cookies.
  */
 export async function updateSession(request: NextRequest) {
+  // Forward the pathname so server-component layouts can read it via headers()
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: { headers: requestHeaders },
   });
 
   const supabase = createServerClient(
@@ -23,7 +27,7 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
-            request,
+            request: { headers: requestHeaders },
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
@@ -46,7 +50,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/events/") ||
     pathname.startsWith("/partners/") ||
     pathname.startsWith("/api/") ||
-    pathname.includes("/check-in/kiosk"); // Kiosk runs on unattended tablets — no sign-in required
+    pathname.includes("/check-in/kiosk") || // legacy — kept for backward compat
+    pathname.startsWith("/kiosk/");         // Public kiosk route — no sign-in required
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();

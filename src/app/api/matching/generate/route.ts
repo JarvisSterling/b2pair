@@ -32,6 +32,7 @@ export async function POST(request: Request) {
   const admin = getAdmin();
 
   // Fetch all approved participants with profiles (left join so participants without profiles aren't silently dropped)
+  // Exclude organizers — they should not appear as match candidates
   const { data: rawParticipants, error: fetchError } = await admin
     .from("participants")
     .select(`
@@ -41,7 +42,8 @@ export async function POST(request: Request) {
       profiles(full_name, title, company_name, company_size, industry, bio)
     `)
     .eq("event_id", eventId)
-    .eq("status", "approved");
+    .eq("status", "approved")
+    .neq("role", "organizer");
 
   if (fetchError || !rawParticipants) {
     return NextResponse.json({ error: "Failed to fetch participants" }, { status: 500 });
@@ -337,10 +339,86 @@ function computeCompanySizeScore(a: any, b: any): number {
   return 65; // same size = peer networking
 }
 
+// Related-industry clusters — industries within the same cluster get elevated scores
+// Format: [industryA, industryB] → score (70-85 for related, 40 for unrelated)
+const INDUSTRY_RELATIONS: Record<string, Record<string, number>> = {
+  // Tech cluster
+  "Technology":       { "Software": 90, "AI & Machine Learning": 85, "Cybersecurity": 80, "Cloud Computing": 85, "Fintech": 70, "E-commerce": 70, "Healthcare Technology": 70 },
+  "Software":         { "Technology": 90, "AI & Machine Learning": 85, "Cloud Computing": 85, "Cybersecurity": 80, "E-commerce": 75, "Fintech": 70 },
+  "AI & Machine Learning": { "Technology": 85, "Software": 85, "Data & Analytics": 90, "Cloud Computing": 80, "Healthcare Technology": 70, "Fintech": 70 },
+  "Cloud Computing":  { "Technology": 85, "Software": 85, "AI & Machine Learning": 80, "Cybersecurity": 80 },
+  "Cybersecurity":    { "Technology": 80, "Software": 80, "Cloud Computing": 80 },
+  "Data & Analytics": { "AI & Machine Learning": 90, "Technology": 80, "Software": 80, "Fintech": 70, "Healthcare Technology": 65 },
+
+  // Finance cluster
+  "Fintech":          { "Finance & Banking": 85, "Technology": 70, "Insurance": 70, "Software": 70, "AI & Machine Learning": 70, "E-commerce": 65 },
+  "Finance & Banking":{ "Fintech": 85, "Investment": 85, "Insurance": 75, "Real Estate": 65 },
+  "Investment":       { "Finance & Banking": 85, "Fintech": 75, "Venture Capital": 90, "Private Equity": 90, "Real Estate": 70 },
+  "Venture Capital":  { "Investment": 90, "Private Equity": 80, "Finance & Banking": 75, "Technology": 65 },
+  "Private Equity":   { "Investment": 90, "Venture Capital": 80, "Finance & Banking": 75 },
+  "Insurance":        { "Finance & Banking": 75, "Fintech": 70, "Healthcare": 65 },
+
+  // Healthcare cluster
+  "Healthcare":       { "Healthcare Technology": 85, "Pharmaceutical": 80, "Biotech": 80, "Medical Devices": 80, "Insurance": 65 },
+  "Healthcare Technology": { "Healthcare": 85, "Technology": 70, "AI & Machine Learning": 70, "Pharmaceutical": 65 },
+  "Pharmaceutical":   { "Healthcare": 80, "Biotech": 90, "Medical Devices": 75 },
+  "Biotech":          { "Pharmaceutical": 90, "Healthcare": 80, "Medical Devices": 75, "AI & Machine Learning": 65 },
+  "Medical Devices":  { "Healthcare": 80, "Pharmaceutical": 75, "Biotech": 75 },
+
+  // Commerce & Retail cluster
+  "E-commerce":       { "Retail": 85, "Logistics": 75, "Marketing": 70, "Fintech": 65, "Technology": 70 },
+  "Retail":           { "E-commerce": 85, "Logistics": 75, "Marketing": 70, "Consumer Goods": 80 },
+  "Consumer Goods":   { "Retail": 80, "E-commerce": 70, "Marketing": 70, "Logistics": 65 },
+  "Logistics":        { "E-commerce": 75, "Retail": 75, "Manufacturing": 70, "Supply Chain": 90 },
+  "Supply Chain":     { "Logistics": 90, "Manufacturing": 80, "Retail": 65 },
+  "Manufacturing":    { "Supply Chain": 80, "Logistics": 70, "Automotive": 75, "Industrial": 80 },
+
+  // Professional Services cluster
+  "Consulting":       { "Management Consulting": 90, "Technology": 65, "Finance & Banking": 65 },
+  "Management Consulting": { "Consulting": 90, "Technology": 65 },
+  "Marketing":        { "Advertising": 90, "PR & Communications": 85, "E-commerce": 70, "Media": 70 },
+  "Advertising":      { "Marketing": 90, "PR & Communications": 80, "Media": 75 },
+  "PR & Communications": { "Marketing": 85, "Advertising": 80, "Media": 80 },
+  "Legal":            { "Finance & Banking": 65, "Real Estate": 65 },
+  "Real Estate":      { "Finance & Banking": 65, "Investment": 70, "Construction": 80 },
+  "Construction":     { "Real Estate": 80, "Engineering": 80, "Industrial": 70 },
+
+  // Energy & Environment cluster
+  "Energy":           { "CleanTech": 80, "Oil & Gas": 70, "Renewable Energy": 85, "Industrial": 65 },
+  "CleanTech":        { "Energy": 80, "Renewable Energy": 90, "Technology": 65 },
+  "Renewable Energy": { "CleanTech": 90, "Energy": 85 },
+  "Oil & Gas":        { "Energy": 70, "Industrial": 70 },
+
+  // Other clusters
+  "Education":        { "E-learning": 90, "Technology": 65, "Healthcare": 55 },
+  "E-learning":       { "Education": 90, "Technology": 70 },
+  "Media":            { "Entertainment": 80, "Marketing": 70, "Advertising": 75 },
+  "Entertainment":    { "Media": 80, "Gaming": 70 },
+  "Gaming":           { "Entertainment": 70, "Technology": 75, "Software": 70 },
+  "Automotive":       { "Manufacturing": 75, "Technology": 65, "Logistics": 65 },
+  "Industrial":       { "Manufacturing": 80, "Engineering": 80, "Construction": 70 },
+  "Engineering":      { "Industrial": 80, "Construction": 80, "Technology": 65 },
+  "Agriculture":      { "Food & Beverage": 75, "CleanTech": 60, "Logistics": 55 },
+  "Food & Beverage":  { "Agriculture": 75, "Retail": 65, "Consumer Goods": 70 },
+  "Telecommunications": { "Technology": 80, "Cloud Computing": 75, "Media": 65 },
+  "Travel & Hospitality": { "Tourism": 90, "E-commerce": 60, "Logistics": 55 },
+  "Tourism":          { "Travel & Hospitality": 90 },
+  "HR & Recruitment": { "Technology": 60, "Consulting": 60 },
+  "Nonprofit":        { "Education": 65, "Healthcare": 60 },
+  "Government":       { "Nonprofit": 55, "Defense": 70 },
+  "Defense":          { "Government": 70, "Technology": 60, "Cybersecurity": 75 },
+};
+
 function computeIndustryScore(a: any, b: any): number {
   if (!a.industry || !b.industry) return 50;
   if (a.industry === b.industry) return 100;
-  return 40;
+
+  // Check related-industry table (both directions)
+  const relatedScore = INDUSTRY_RELATIONS[a.industry]?.[b.industry]
+    ?? INDUSTRY_RELATIONS[b.industry]?.[a.industry]
+    ?? 40;
+
+  return relatedScore;
 }
 
 function computeInterestScore(a: any, b: any): number {
@@ -452,8 +530,10 @@ function generateReasons(
     }
   }
 
-  if (industryScore >= 90) {
+  if (industryScore === 100) {
     reasons.push(`Both in ${a.profiles.industry}`);
+  } else if (industryScore >= 70) {
+    reasons.push(`Related industries: ${a.profiles.industry} & ${b.profiles.industry}`);
   }
 
   const sharedExpertise = (a.expertise_areas || []).filter(

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -9,7 +9,7 @@ type Params = { params: Promise<{ eventId: string }> };
  */
 export async function GET(request: Request, { params }: Params) {
   const { eventId } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Get tiers
   const { data: tiers } = await supabase

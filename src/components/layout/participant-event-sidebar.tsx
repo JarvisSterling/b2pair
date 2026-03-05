@@ -395,10 +395,12 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
           <nav className="flex-1 px-3 py-2 space-y-0.5">
             {[
               { id: "overview", label: "Dashboard", icon: LayoutDashboard, path: "" },
+              { id: "agenda", label: "Agenda", icon: CalendarDays, path: "/agenda" },
               { id: "matches", label: "Matches", icon: Zap, path: "/matches" },
               { id: "meetings", label: "Meetings", icon: Users, path: "/meetings", gate: perms.can_book_meetings },
               { id: "messages", label: "Messages", icon: MessageSquare, path: "/messages", gate: perms.can_message },
               { id: "directory", label: "Directory", icon: Search, path: "/directory", gate: perms.can_view_directory },
+              { id: "exhibitors", label: "Exhibitors", icon: Building2, path: "/exhibitors" },
               { id: "availability", label: "Availability", icon: Clock, path: "/availability", gate: perms.can_book_meetings },
               { id: "qr-code", label: "My QR Code", icon: QrCode, path: "/qr-code" },
             ].filter((i) => i.gate !== false).map((item) => {

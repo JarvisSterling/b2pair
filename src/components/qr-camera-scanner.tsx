@@ -9,17 +9,20 @@ interface QrCameraScannerProps {
   paused?: boolean;
 }
 
+/** Brief pause needed on iOS/Safari after releasing a stream before reacquiring */
+const IOS_CAMERA_RELEASE_DELAY_MS = 500;
+
 export function QrCameraScanner({ onScan, paused = false }: QrCameraScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<any>(null);
 
-  // Keep live refs so the scanner callback never captures stale values
+  // Stable refs so the scanner callback never captures stale closures
   const onScanRef = useRef(onScan);
   const pausedRef = useRef(paused);
   useEffect(() => { onScanRef.current = onScan; }, [onScan]);
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
-  // Camera list (populated once on first start)
+  // Populated once during first startScanner() call
   const camerasRef = useRef<{ id: string; label: string }[]>([]);
   const cameraIndexRef = useRef(0);
 
@@ -28,30 +31,42 @@ export function QrCameraScanner({ onScan, paused = false }: QrCameraScannerProps
   const [error, setError] = useState<string | null>(null);
   const [cameraCount, setCameraCount] = useState(0);
 
-  async function startCamera(cameraId?: string) {
+  // ── Destroy helper — waits for iOS to actually release the stream ──────────
+  async function destroyScanner() {
+    if (!scannerRef.current) return;
+    try {
+      scannerRef.current.stop();
+      scannerRef.current.destroy();
+    } catch { /* ignore */ }
+    scannerRef.current = null;
+    // iOS Safari holds the camera stream briefly after destroy —
+    // starting a new one too quickly causes NotReadableError / black frame.
+    await new Promise<void>((r) => setTimeout(r, IOS_CAMERA_RELEASE_DELAY_MS));
+  }
+
+  // ── Full scanner init (used on mount and retry) ────────────────────────────
+  async function startScanner(cameraId?: string) {
     if (!videoRef.current) return;
 
-    // Tear down any existing scanner first
-    try { scannerRef.current?.destroy(); } catch {}
-    scannerRef.current = null;
+    await destroyScanner();
+    setError(null);
 
     try {
       const QrScanner = (await import("qr-scanner")).default;
 
-      // Enumerate cameras exactly once (listCameras also triggers the permission prompt)
+      // Enumerate cameras once (also triggers permission prompt)
       if (camerasRef.current.length === 0) {
         try {
           const cams = await QrScanner.listCameras(true);
           camerasRef.current = cams;
           setCameraCount(cams.length);
-
-          // Default: last camera in the list — back camera on phones & tablets
+          // Default: last camera = back camera on phones & tablets
           if (!cameraId && cams.length > 0) {
             cameraIndexRef.current = cams.length - 1;
             cameraId = cams[cameraIndexRef.current].id;
           }
         } catch {
-          // listCameras failed — fall back to facing-mode hint below
+          // listCameras denied or unavailable — fall back to facing-mode hint
         }
       }
 
@@ -61,7 +76,6 @@ export function QrCameraScanner({ onScan, paused = false }: QrCameraScannerProps
           if (!pausedRef.current) onScanRef.current(result.data);
         },
         {
-          // Prefer explicit device ID; fall back to back-camera hint
           preferredCamera: cameraId ?? "environment",
           highlightScanRegion: true,
           highlightCodeOutline: true,
@@ -74,11 +88,14 @@ export function QrCameraScanner({ onScan, paused = false }: QrCameraScannerProps
       setLoading(false);
       setSwitching(false);
     } catch (err: any) {
+      scannerRef.current = null;
       const msg = (err?.message ?? "").toLowerCase();
       if (msg.includes("permission") || msg.includes("notallowed")) {
-        setError("Camera permission denied. Please allow camera access and try again.");
+        setError("Camera permission denied. Please allow camera access in your browser settings.");
       } else if (msg.includes("notfound") || msg.includes("devicenotfound") || msg.includes("no camera")) {
         setError("No camera found on this device.");
+      } else if (msg.includes("notreadable") || msg.includes("could not start video source") || msg.includes("starting videoinput failed")) {
+        setError("Camera is in use by another app. Close other apps and try again.");
       } else {
         setError("Could not start the camera. Please try again.");
       }
@@ -87,68 +104,94 @@ export function QrCameraScanner({ onScan, paused = false }: QrCameraScannerProps
     }
   }
 
-  // Mount — start the scanner once
+  // ── Switch camera — uses setCamera() to avoid stream teardown on iOS ───────
+  async function handleSwitchCamera() {
+    const cams = camerasRef.current;
+    if (cams.length < 2) return;
+
+    const nextIndex = (cameraIndexRef.current + 1) % cams.length;
+    cameraIndexRef.current = nextIndex;
+    setSwitching(true);
+
+    // Preferred path: setCamera() keeps the existing scanner alive and just
+    // switches the stream — no destroy/recreate, no iOS release timing issue.
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.setCamera(cams[nextIndex].id);
+        setSwitching(false);
+        return;
+      } catch {
+        // setCamera() failed — fall through to full restart below
+      }
+    }
+
+    // Fallback: full restart with the new camera
+    await startScanner(cams[nextIndex].id);
+  }
+
+  // ── Retry after error ──────────────────────────────────────────────────────
+  async function handleRetry() {
+    setLoading(true);
+    setError(null);
+    // Reset camera list so enumeration runs again (handles permission re-grant)
+    camerasRef.current = [];
+    cameraIndexRef.current = 0;
+    setCameraCount(0);
+    await startScanner();
+  }
+
+  // ── Mount ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    startCamera();
+    startScanner();
     return () => {
-      try { scannerRef.current?.destroy(); } catch {}
+      // Fire-and-forget cleanup on unmount
+      try {
+        scannerRef.current?.stop();
+        scannerRef.current?.destroy();
+      } catch { /* ignore */ }
       scannerRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pause / resume when the kiosk is processing a scan
+  // ── Pause / resume during check-in processing ─────────────────────────────
   useEffect(() => {
     if (!scannerRef.current) return;
     if (paused) {
-      scannerRef.current.pause();
+      try { scannerRef.current.pause(); } catch { /* ignore */ }
     } else {
-      scannerRef.current.start().catch(() => {});
+      scannerRef.current.start().catch(() => { /* ignore if already running */ });
     }
   }, [paused]);
 
-  async function handleSwitchCamera() {
-    const cams = camerasRef.current;
-    if (cams.length < 2) return;
-    const nextIndex = (cameraIndexRef.current + 1) % cams.length;
-    cameraIndexRef.current = nextIndex;
-    setSwitching(true);
-    setError(null);
-    await startCamera(cams[nextIndex].id);
-  }
-
-  function handleRetry() {
-    setLoading(true);
-    setError(null);
-    // Reset camera list so enumeration runs again
-    camerasRef.current = [];
-    cameraIndexRef.current = 0;
-    setCameraCount(0);
-    startCamera();
-  }
-
-  /* ── Error state ─────────────────────────────────────────────── */
+  /* ── Error state ──────────────────────────────────────────────────────── */
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-muted/30 border border-border aspect-square max-w-sm mx-auto p-8 text-center">
         <CameraOff className="h-10 w-10 text-muted-foreground/40" />
         <p className="text-caption text-muted-foreground">{error}</p>
-        <Button size="sm" variant="outline" onClick={handleRetry}>
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Try again
+        <Button size="sm" variant="outline" onClick={handleRetry} disabled={loading}>
+          {loading
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+            : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+          }
+          {loading ? "Starting camera…" : "Try again"}
         </Button>
       </div>
     );
   }
 
-  /* ── Scanner ─────────────────────────────────────────────────── */
+  /* ── Scanner ──────────────────────────────────────────────────────────── */
   return (
     <div className="relative mx-auto max-w-sm w-full">
 
       {/* Loading / switching overlay — prevents black flash */}
       {(loading || switching) && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 rounded-xl">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 rounded-xl">
           <Loader2 className="h-8 w-8 animate-spin text-white" />
+          {switching && (
+            <p className="text-xs text-white/70">Switching camera…</p>
+          )}
         </div>
       )}
 
@@ -159,6 +202,7 @@ export function QrCameraScanner({ onScan, paused = false }: QrCameraScannerProps
           className="w-full h-full object-cover"
           playsInline
           muted
+          autoPlay
         />
 
         {/* Corner-bracket scan frame */}
@@ -175,7 +219,7 @@ export function QrCameraScanner({ onScan, paused = false }: QrCameraScannerProps
         )}
       </div>
 
-      {/* Switch camera — only rendered when 2+ cameras are detected */}
+      {/* Switch camera — only shown when 2+ cameras detected */}
       {!loading && cameraCount > 1 && (
         <Button
           size="sm"

@@ -343,39 +343,44 @@ function computeCompanySizeScore(a: any, b: any): number {
 // Format: [industryA, industryB] → score (70-85 for related, 40 for unrelated)
 const INDUSTRY_RELATIONS: Record<string, Record<string, number>> = {
   // Tech cluster
-  "Technology":       { "Software": 90, "AI & Machine Learning": 85, "Cybersecurity": 80, "Cloud Computing": 85, "Fintech": 70, "E-commerce": 70, "Healthcare Technology": 70 },
-  "Software":         { "Technology": 90, "AI & Machine Learning": 85, "Cloud Computing": 85, "Cybersecurity": 80, "E-commerce": 75, "Fintech": 70 },
-  "AI & Machine Learning": { "Technology": 85, "Software": 85, "Data & Analytics": 90, "Cloud Computing": 80, "Healthcare Technology": 70, "Fintech": 70 },
-  "Cloud Computing":  { "Technology": 85, "Software": 85, "AI & Machine Learning": 80, "Cybersecurity": 80 },
-  "Cybersecurity":    { "Technology": 80, "Software": 80, "Cloud Computing": 80 },
-  "Data & Analytics": { "AI & Machine Learning": 90, "Technology": 80, "Software": 80, "Fintech": 70, "Healthcare Technology": 65 },
+  "Technology":           { "Software": 90, "Enterprise Software": 85, "AI & Machine Learning": 85, "Artificial Intelligence": 85, "Cybersecurity": 80, "Cloud Computing": 85, "Fintech": 70, "FinTech": 70, "E-commerce": 70, "Healthcare Technology": 70, "B2B SaaS": 75, "Data and Analytics": 75, "Data & Analytics": 75 },
+  "Software":             { "Technology": 90, "Enterprise Software": 90, "AI & Machine Learning": 85, "Artificial Intelligence": 85, "Cloud Computing": 85, "Cybersecurity": 80, "E-commerce": 75, "Fintech": 70, "FinTech": 70, "B2B SaaS": 80 },
+  "Enterprise Software":  { "Software": 90, "Technology": 85, "B2B SaaS": 85, "Cloud Computing": 80, "Cybersecurity": 75, "AI & Machine Learning": 75, "Artificial Intelligence": 75, "Data and Analytics": 75, "Data & Analytics": 75 },
+  "B2B SaaS":             { "Enterprise Software": 85, "Software": 80, "Technology": 75, "Cloud Computing": 80, "AI & Machine Learning": 70, "Artificial Intelligence": 70, "Fintech": 65, "FinTech": 65 },
+  "Artificial Intelligence": { "AI & Machine Learning": 100, "Technology": 85, "Software": 85, "Enterprise Software": 75, "Data and Analytics": 90, "Data & Analytics": 90, "Cloud Computing": 80, "Healthcare Technology": 75, "Fintech": 70, "FinTech": 70, "B2B SaaS": 70 },
+  "AI & Machine Learning": { "Artificial Intelligence": 100, "Technology": 85, "Software": 85, "Data & Analytics": 90, "Data and Analytics": 90, "Cloud Computing": 80, "Healthcare Technology": 70, "Fintech": 70, "FinTech": 70 },
+  "Cloud Computing":      { "Technology": 85, "Software": 85, "Enterprise Software": 80, "AI & Machine Learning": 80, "Artificial Intelligence": 80, "Cybersecurity": 80, "B2B SaaS": 80 },
+  "Cybersecurity":        { "Technology": 80, "Software": 80, "Cloud Computing": 80, "Enterprise Software": 75 },
+  "Data and Analytics":   { "Data & Analytics": 100, "Artificial Intelligence": 90, "AI & Machine Learning": 90, "Technology": 80, "Software": 80, "Enterprise Software": 75, "Fintech": 70, "FinTech": 70, "Healthcare Technology": 65 },
+  "Data & Analytics":     { "Data and Analytics": 100, "AI & Machine Learning": 90, "Artificial Intelligence": 90, "Technology": 80, "Software": 80, "Fintech": 70, "FinTech": 70, "Healthcare Technology": 65 },
 
   // Finance cluster
-  "Fintech":          { "Finance & Banking": 85, "Technology": 70, "Insurance": 70, "Software": 70, "AI & Machine Learning": 70, "E-commerce": 65 },
-  "Finance & Banking":{ "Fintech": 85, "Investment": 85, "Insurance": 75, "Real Estate": 65 },
-  "Investment":       { "Finance & Banking": 85, "Fintech": 75, "Venture Capital": 90, "Private Equity": 90, "Real Estate": 70 },
-  "Venture Capital":  { "Investment": 90, "Private Equity": 80, "Finance & Banking": 75, "Technology": 65 },
+  "Fintech":          { "FinTech": 100, "Finance & Banking": 85, "Technology": 70, "Insurance": 70, "Software": 70, "AI & Machine Learning": 70, "Artificial Intelligence": 70, "E-commerce": 65, "Venture Capital": 70, "B2B SaaS": 65 },
+  "FinTech":          { "Fintech": 100, "Finance & Banking": 85, "Technology": 70, "Insurance": 70, "Software": 70, "AI & Machine Learning": 70, "Artificial Intelligence": 70, "E-commerce": 65, "Venture Capital": 70, "B2B SaaS": 65 },
+  "Finance & Banking":{ "Fintech": 85, "FinTech": 85, "Investment": 85, "Insurance": 75, "Real Estate": 65 },
+  "Investment":       { "Finance & Banking": 85, "Fintech": 75, "FinTech": 75, "Venture Capital": 90, "Private Equity": 90, "Real Estate": 70 },
+  "Venture Capital":  { "Investment": 90, "Private Equity": 80, "Finance & Banking": 75, "Technology": 65, "Fintech": 70, "FinTech": 70, "Artificial Intelligence": 65 },
   "Private Equity":   { "Investment": 90, "Venture Capital": 80, "Finance & Banking": 75 },
-  "Insurance":        { "Finance & Banking": 75, "Fintech": 70, "Healthcare": 65 },
+  "Insurance":        { "Finance & Banking": 75, "Fintech": 70, "FinTech": 70, "Healthcare": 65 },
 
   // Healthcare cluster
-  "Healthcare":       { "Healthcare Technology": 85, "Pharmaceutical": 80, "Biotech": 80, "Medical Devices": 80, "Insurance": 65 },
-  "Healthcare Technology": { "Healthcare": 85, "Technology": 70, "AI & Machine Learning": 70, "Pharmaceutical": 65 },
+  "Healthcare":           { "Healthcare Technology": 85, "Pharmaceutical": 80, "Biotech": 80, "Medical Devices": 80, "Insurance": 65 },
+  "Healthcare Technology":{ "Healthcare": 85, "Technology": 70, "AI & Machine Learning": 75, "Artificial Intelligence": 75, "Software": 65, "Enterprise Software": 65, "Pharmaceutical": 65, "B2B SaaS": 60, "Data and Analytics": 70, "Data & Analytics": 70 },
   "Pharmaceutical":   { "Healthcare": 80, "Biotech": 90, "Medical Devices": 75 },
   "Biotech":          { "Pharmaceutical": 90, "Healthcare": 80, "Medical Devices": 75, "AI & Machine Learning": 65 },
   "Medical Devices":  { "Healthcare": 80, "Pharmaceutical": 75, "Biotech": 75 },
 
   // Commerce & Retail cluster
   "E-commerce":       { "Retail": 85, "Logistics": 75, "Marketing": 70, "Fintech": 65, "Technology": 70 },
-  "Retail":           { "E-commerce": 85, "Logistics": 75, "Marketing": 70, "Consumer Goods": 80 },
+  "Retail":           { "E-commerce": 85, "Logistics": 75, "Marketing": 70, "Consumer Goods": 80, "Supply Chain": 65, "Manufacturing": 60 },
   "Consumer Goods":   { "Retail": 80, "E-commerce": 70, "Marketing": 70, "Logistics": 65 },
   "Logistics":        { "E-commerce": 75, "Retail": 75, "Manufacturing": 70, "Supply Chain": 90 },
-  "Supply Chain":     { "Logistics": 90, "Manufacturing": 80, "Retail": 65 },
-  "Manufacturing":    { "Supply Chain": 80, "Logistics": 70, "Automotive": 75, "Industrial": 80, "CleanTech": 65, "Engineering": 80 },
+  "Supply Chain":     { "Logistics": 90, "Manufacturing": 80, "Retail": 65, "CleanTech": 60 },
+  "Manufacturing":    { "Supply Chain": 80, "Logistics": 70, "Automotive": 75, "Industrial": 80, "CleanTech": 65, "Engineering": 80, "Retail": 60 },
 
   // Professional Services cluster
   "Consulting":       { "Management Consulting": 90, "Technology": 65, "Finance & Banking": 65 },
-  "Management Consulting": { "Consulting": 90, "Technology": 65 },
+  "Management Consulting": { "Consulting": 90, "Technology": 65, "Enterprise Software": 60, "B2B SaaS": 60, "Fintech": 60, "FinTech": 60, "Healthcare Technology": 60 },
   "Marketing":        { "Advertising": 90, "PR & Communications": 85, "E-commerce": 70, "Media": 70 },
   "Advertising":      { "Marketing": 90, "PR & Communications": 80, "Media": 75 },
   "PR & Communications": { "Marketing": 85, "Advertising": 80, "Media": 80 },
@@ -494,9 +499,7 @@ function computeInterestScore(a: any, b: any): number {
 function computeComplementarityScore(a: any, b: any): number {
   let score = 50;
 
-  if (a.role !== b.role) score += 20;
-
-  // Tokenize and use partial stemming (first 5 chars of words > 3 chars)
+  // Tokenize and use partial stemming (first 6 chars of words > 3 chars)
   function tokenize(text: string): string[] {
     if (!text) return [];
     return text.toLowerCase()
@@ -506,15 +509,17 @@ function computeComplementarityScore(a: any, b: any): number {
       .map((w) => w.substring(0, 6)); // stem to 6 chars
   }
 
+  // +25 for each direction of looking_for ↔ offering text overlap
+  // Max: 50 + 25 + 25 = 100 for a perfect bilateral buyer↔seller match
   if (a.looking_for && b.offering) {
     const aTokens = new Set(tokenize(a.looking_for));
     const bTokens = tokenize(b.offering);
-    if (bTokens.some((t) => aTokens.has(t))) score += 15;
+    if (bTokens.some((t) => aTokens.has(t))) score += 25;
   }
   if (b.looking_for && a.offering) {
     const bTokens = new Set(tokenize(b.looking_for));
     const aTokens = tokenize(a.offering);
-    if (aTokens.some((t) => bTokens.has(t))) score += 15;
+    if (aTokens.some((t) => bTokens.has(t))) score += 25;
   }
 
   return Math.min(score, 100);

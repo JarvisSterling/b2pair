@@ -28,18 +28,22 @@ function buildEmbeddingText(participant: any): string {
   if (p.company_name) parts.push(`Company: ${p.company_name}`);
   if (p.industry) parts.push(`Industry: ${p.industry}`);
   if (p.bio) parts.push(`Bio: ${p.bio}`);
-  if (participant.intent) parts.push(`Intent: ${participant.intent}`);
-  if (participant.role) parts.push(`Role: ${participant.role}`);
+
+  // Use intents array (richer than single intent field)
+  const intents: string[] = participant.intents || (participant.intent ? [participant.intent] : []);
+  if (intents.length > 0) parts.push(`Goals: ${intents.join(", ")}`);
+
   if (participant.looking_for) parts.push(`Looking for: ${participant.looking_for}`);
   if (participant.offering) parts.push(`Offering: ${participant.offering}`);
 
-  const expertise = p.expertise_areas || [];
+  // Participant-level expertise/interests (event-specific, most relevant for matching)
+  const expertise: string[] = participant.expertise_areas || [];
   if (expertise.length > 0) parts.push(`Expertise: ${expertise.join(", ")}`);
 
-  const interests = p.interests || [];
+  const interests: string[] = participant.interests || [];
   if (interests.length > 0) parts.push(`Interests: ${interests.join(", ")}`);
 
-  const tags = participant.tags || [];
+  const tags: string[] = participant.tags || [];
   if (tags.length > 0) parts.push(`Tags: ${tags.join(", ")}`);
 
   return parts.join(". ") || "No profile information";
@@ -92,8 +96,8 @@ export async function POST(request: Request) {
   const { data: participants, error: fetchError } = await admin
     .from("participants")
     .select(`
-      id, role, intent, tags, looking_for, offering,
-      profiles!inner(full_name, title, company_name, industry, expertise_areas, interests, bio)
+      id, role, intent, intents, tags, looking_for, offering, expertise_areas, interests,
+      profiles!inner(full_name, title, company_name, industry, bio)
     `)
     .eq("event_id", eventId)
     .eq("status", "approved")

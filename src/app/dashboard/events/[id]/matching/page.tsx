@@ -25,6 +25,8 @@ const RECOMMENDED_WEIGHTS = {
   interest_weight: 0.05,
   complementarity_weight: 0.20,
   embedding_weight: 0.15,
+  // company_size_weight excluded (set to 0) so the 5 core weights sum to exactly 1.00
+  company_size_weight: 0,
 };
 
 interface MatchingRules {
@@ -35,6 +37,7 @@ interface MatchingRules {
   interest_weight: number;
   complementarity_weight: number;
   embedding_weight: number;
+  company_size_weight: number;
   minimum_score: number;
   max_recommendations: number;
   exclude_same_company: boolean;
@@ -149,6 +152,7 @@ export default function MatchingRulesPage() {
               interest_weight: rules.interest_weight,
               complementarity_weight: rules.complementarity_weight,
               embedding_weight: rules.embedding_weight,
+              company_size_weight: rules.company_size_weight ?? 0,
               minimum_score: rules.minimum_score,
               max_recommendations: rules.max_recommendations,
               exclude_same_company: rules.exclude_same_company,
@@ -276,14 +280,16 @@ export default function MatchingRulesPage() {
     rules.industry_weight +
     rules.interest_weight +
     rules.complementarity_weight +
-    rules.embedding_weight;
+    rules.embedding_weight +
+    (rules.company_size_weight ?? 0);
 
   const isRecommended =
     Math.abs(rules.intent_weight - RECOMMENDED_WEIGHTS.intent_weight) < 0.01 &&
     Math.abs(rules.industry_weight - RECOMMENDED_WEIGHTS.industry_weight) < 0.01 &&
     Math.abs(rules.interest_weight - RECOMMENDED_WEIGHTS.interest_weight) < 0.01 &&
     Math.abs(rules.complementarity_weight - RECOMMENDED_WEIGHTS.complementarity_weight) < 0.01 &&
-    Math.abs(rules.embedding_weight - RECOMMENDED_WEIGHTS.embedding_weight) < 0.01;
+    Math.abs(rules.embedding_weight - RECOMMENDED_WEIGHTS.embedding_weight) < 0.01 &&
+    (rules.company_size_weight ?? 0) === 0;
 
   // Setup steps status
   const steps = [

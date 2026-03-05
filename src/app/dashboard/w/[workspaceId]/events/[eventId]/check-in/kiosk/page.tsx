@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { QrCameraScanner } from "@/components/qr-camera-scanner";
-import { CheckCircle2, XCircle, Clock, QrCode } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, QrCode, ScanLine } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SafeImage } from "@/components/ui/safe-image";
 import { PrintBadgeButton } from "@/components/badges/print-badge-button";
 
@@ -39,6 +40,12 @@ export default function KioskPage() {
     loadEvent();
   }, [eventId]);
 
+  function scanAnother() {
+    setState("idle");
+    setResult(null);
+    setPaused(false);
+  }
+
   async function handleScan(token: string) {
     if (paused) return;
     setPaused(true);
@@ -54,25 +61,12 @@ export default function KioskPage() {
 
       if (!res.ok) throw new Error(data?.error || "Invalid QR code");
 
-      const isSuccess = !data.alreadyCheckedIn && res.ok;
       setResult({ ...data.participant, participantId: data.participantId });
       setState(data.alreadyCheckedIn ? "already" : "success");
-
-      // Give more time on fresh success so organizer can tap Print Badge
-      const delay = isSuccess ? 8000 : 4000;
-      setTimeout(() => {
-        setState("idle");
-        setResult(null);
-        setPaused(false);
-      }, delay);
+      // No auto-reset — user taps "Scan another" when ready
     } catch {
       setState("error");
       setResult(null);
-      setTimeout(() => {
-        setState("idle");
-        setResult(null);
-        setPaused(false);
-      }, 4000);
     }
   }
 
@@ -145,16 +139,22 @@ export default function KioskPage() {
                 You&apos;re checked in. Enjoy the event! 🎉
               </p>
             </div>
-            {result.participantId && (
-              <PrintBadgeButton
-                participantId={result.participantId}
-                eventId={eventId}
-                size="default"
-                variant="outline"
-                label="Print Badge"
-                className="mt-2 gap-2 px-6"
-              />
-            )}
+            <div className="flex gap-3 mt-2">
+              {result.participantId && (
+                <PrintBadgeButton
+                  participantId={result.participantId}
+                  eventId={eventId}
+                  size="default"
+                  variant="outline"
+                  label="Print Badge"
+                  className="gap-2 px-6"
+                />
+              )}
+              <Button size="default" onClick={scanAnother} className="gap-2 px-6">
+                <ScanLine className="h-4 w-4" />
+                Scan another
+              </Button>
+            </div>
           </div>
         )}
 
@@ -168,19 +168,25 @@ export default function KioskPage() {
               <h2 className="text-h2 font-bold text-amber-500">Already checked in</h2>
               <p className="text-h3 font-semibold mt-1">{result.full_name}</p>
               <p className="text-caption text-muted-foreground mt-3">
-                You were already checked in. Enjoy the event!
+                Already checked in. You can reprint their badge if needed.
               </p>
             </div>
-            {result.participantId && (
-              <PrintBadgeButton
-                participantId={result.participantId}
-                eventId={eventId}
-                size="default"
-                variant="outline"
-                label="Print Badge"
-                className="mt-2 gap-2 px-6"
-              />
-            )}
+            <div className="flex gap-3">
+              {result.participantId && (
+                <PrintBadgeButton
+                  participantId={result.participantId}
+                  eventId={eventId}
+                  size="default"
+                  variant="outline"
+                  label="Print Badge"
+                  className="gap-2 px-6"
+                />
+              )}
+              <Button size="default" onClick={scanAnother} className="gap-2 px-6">
+                <ScanLine className="h-4 w-4" />
+                Scan another
+              </Button>
+            </div>
           </div>
         )}
 
@@ -196,6 +202,10 @@ export default function KioskPage() {
                 Please make sure you&apos;re using your B2Pair QR code.
               </p>
             </div>
+            <Button size="default" onClick={scanAnother} className="gap-2 px-6">
+              <ScanLine className="h-4 w-4" />
+              Try again
+            </Button>
           </div>
         )}
       </div>

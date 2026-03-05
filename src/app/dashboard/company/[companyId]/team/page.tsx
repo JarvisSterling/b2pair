@@ -120,14 +120,14 @@ export default function CompanyTeamPage() {
         <Link href={`/dashboard/company/${companyId}`} className="text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div className="flex-1">
-          <h1 className="text-h1 font-semibold tracking-tight">Team</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-h1 font-semibold tracking-tight">Team</h1>
           <p className="text-caption text-muted-foreground">Manage your team members and invitations</p>
         </div>
         {!atLimit && (
-          <Button onClick={() => setShowInvite(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Invite Member
+          <Button onClick={() => setShowInvite(true)} size="sm" className="shrink-0">
+            <UserPlus className="mr-1 h-4 w-4" />
+            <span className="hidden sm:inline">Invite </span>Member
           </Button>
         )}
       </div>

@@ -78,7 +78,7 @@ export default function CompanyLeadsPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-h1 font-semibold tracking-tight">Leads</h1>
+          <h1 className="text-2xl sm:text-h1 font-semibold tracking-tight">Leads</h1>
           <p className="text-caption text-muted-foreground">{leads.length} total lead{leads.length !== 1 ? "s" : ""} captured</p>
         </div>
       </div>

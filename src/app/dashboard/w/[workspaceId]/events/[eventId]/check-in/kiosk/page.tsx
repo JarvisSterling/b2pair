@@ -84,7 +84,7 @@ export default function KioskPage() {
     .slice(0, 2);
 
   return (
-    <div className="fixed inset-0 bg-background flex flex-col items-center justify-start overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-start overflow-hidden">
       {/* Header */}
       <div className="w-full flex items-center justify-center py-6 border-b border-border">
         <div className="flex items-center gap-3">

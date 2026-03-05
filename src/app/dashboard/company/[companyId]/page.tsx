@@ -115,13 +115,13 @@ export default function CompanyDashboardPage() {
               {company?.name?.[0] || "C"}
             </div>
           )}
-          <div>
-            <h1 className="text-h1 font-semibold tracking-tight">{company?.name || "Company Dashboard"}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-h1 font-semibold tracking-tight truncate">{company?.name || "Company Dashboard"}</h1>
             {company?.event_name && (
-              <p className="text-caption text-muted-foreground">{company.event_name}</p>
+              <p className="text-caption text-muted-foreground truncate">{company.event_name}</p>
             )}
           </div>
-          <div className="ml-auto flex gap-1.5">
+          <div className="shrink-0 flex gap-1.5">
             {company?.capabilities.map((cap) => (
               <Badge key={cap} variant="outline" className="text-[10px] capitalize">{cap}</Badge>
             ))}

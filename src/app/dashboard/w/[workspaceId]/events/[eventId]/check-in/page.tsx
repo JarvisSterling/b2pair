@@ -297,13 +297,13 @@ export default function CheckInDashboard() {
           <Link href={`/dashboard/w/${params.workspaceId}/events/${eventId}/check-in/badges`}>
             <Button variant="outline" className="gap-2">
               <BadgeCheck className="h-4 w-4" />
-              Badges
+              <span className="hidden sm:inline">Badges</span>
             </Button>
           </Link>
           <Link href={`/dashboard/w/${params.workspaceId}/events/${eventId}/check-in/kiosk`} target="_blank">
             <Button variant="outline" className="gap-2">
               <Maximize2 className="h-4 w-4" />
-              Kiosk mode
+              <span className="hidden sm:inline">Kiosk mode</span>
             </Button>
           </Link>
         </div>
@@ -312,24 +312,24 @@ export default function CheckInDashboard() {
       {/* Stats */}
       <div className="grid gap-3 grid-cols-3 mb-6">
         <Card>
-          <CardContent className="pt-5 pb-5 text-center">
+          <CardContent className="p-3 sm:pt-5 sm:pb-5 text-center">
             <Users className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
             <p className="text-h2 font-semibold">{totalParticipants}</p>
-            <p className="text-caption text-muted-foreground">Registered</p>
+            <p className="text-[10px] sm:text-caption text-muted-foreground">Registered</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-5 text-center">
+          <CardContent className="p-3 sm:pt-5 sm:pb-5 text-center">
             <UserCheck className="h-5 w-5 mx-auto mb-1 text-emerald-500" />
             <p className="text-h2 font-semibold text-emerald-600">{checkedInCount}</p>
-            <p className="text-caption text-muted-foreground">Checked in</p>
+            <p className="text-[10px] sm:text-caption text-muted-foreground">Checked in</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-5 text-center">
+          <CardContent className="p-3 sm:pt-5 sm:pb-5 text-center">
             <Clock className="h-5 w-5 mx-auto mb-1 text-amber-500" />
             <p className="text-h2 font-semibold">{totalParticipants - checkedInCount}</p>
-            <p className="text-caption text-muted-foreground">Remaining</p>
+            <p className="text-[10px] sm:text-caption text-muted-foreground">Remaining</p>
           </CardContent>
         </Card>
       </div>

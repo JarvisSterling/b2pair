@@ -129,7 +129,7 @@ export default function CompanyAnalyticsPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-h1 font-semibold tracking-tight">Analytics</h1>
+          <h1 className="text-2xl sm:text-h1 font-semibold tracking-tight">Analytics</h1>
           <p className="text-caption text-muted-foreground">Last 30 days performance</p>
         </div>
       </div>

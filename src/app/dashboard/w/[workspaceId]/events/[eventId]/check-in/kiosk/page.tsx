@@ -47,6 +47,9 @@ export default function KioskPage() {
   }
 
   async function handleScan(token: string) {
+    // Ignore any QR code that isn't a B2Pair token — prevents ambient
+    // QR codes (posters, screens, etc.) from triggering the error state
+    if (!token.startsWith("b2p_")) return;
     if (paused) return;
     setPaused(true);
     setState("processing");
@@ -90,21 +93,26 @@ export default function KioskPage() {
       {/* Main area */}
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md px-6 gap-8">
 
-        {/* Idle / scanning state */}
-        {(state === "idle" || state === "processing") && (
-          <>
-            <div className="text-center">
-              <h2 className="text-h2 font-semibold mb-1">Check in</h2>
-              <p className="text-body text-muted-foreground">
-                Point your QR code at the camera
-              </p>
-            </div>
-            <QrCameraScanner onScan={handleScan} paused={state === "processing"} />
-            {state === "processing" && (
-              <p className="text-caption text-muted-foreground animate-pulse">Processing...</p>
-            )}
-          </>
-        )}
+        {/* Scanner — always mounted to preserve camera selection across check-ins.
+            Moved off-screen (not display:none) during result states so iOS keeps
+            the stream alive. paused prop stops frame processing when not scanning. */}
+        <div
+          className="flex flex-col items-center gap-8 w-full"
+          style={state !== "idle" && state !== "processing"
+            ? { position: "absolute", transform: "translateX(-9999px)", pointerEvents: "none" }
+            : {}}
+        >
+          <div className="text-center">
+            <h2 className="text-h2 font-semibold mb-1">Check in</h2>
+            <p className="text-body text-muted-foreground">
+              Point your QR code at the camera
+            </p>
+          </div>
+          <QrCameraScanner onScan={handleScan} paused={state !== "idle"} />
+          {state === "processing" && (
+            <p className="text-caption text-muted-foreground animate-pulse">Processing...</p>
+          )}
+        </div>
 
         {/* Success state */}
         {state === "success" && result && (

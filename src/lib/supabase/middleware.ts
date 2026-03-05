@@ -45,11 +45,14 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/events/") ||
     pathname.startsWith("/partners/") ||
-    pathname.startsWith("/api/");
+    pathname.startsWith("/api/") ||
+    pathname.includes("/check-in/kiosk"); // Kiosk runs on unattended tablets — no sign-in required
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/sign-in";
+    // Preserve the original destination so sign-in can redirect back
+    url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

@@ -31,7 +31,8 @@ export default function SignInPage() {
       return;
     }
 
-    router.push("/dashboard");
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(next || "/dashboard");
     router.refresh();
   }
 

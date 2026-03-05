@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 
@@ -95,12 +96,17 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/checkin
- * Check in a participant (by QR token, email, or participant ID)
+ * Check in a participant (by QR token, email, or participant ID).
+ * Works for both authenticated organizers and the public kiosk (no session).
  */
 export async function POST(request: Request) {
+  // Identify the caller if they have a session (organizer dashboard / check-in UI)
+  // Kiosk operates without a session — that's fine, checked_in_by will be null.
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Use admin client so RLS doesn't block unauthenticated kiosk requests
+  const admin = createAdminClient();
 
   const body = await request.json();
   const { eventId, token, email, participantId, sessionId, method = "qr" } = body;
@@ -111,7 +117,7 @@ export async function POST(request: Request) {
 
   // Resolve by QR token
   if (token && !resolvedParticipantId) {
-    const { data: qrToken } = await supabase
+    const { data: qrToken } = await admin
       .from("qr_tokens")
       .select("participant_id, event_id")
       .eq("token", token)
@@ -124,7 +130,7 @@ export async function POST(request: Request) {
 
   // Resolve by email
   if (email && !resolvedParticipantId) {
-    const { data: participant } = await supabase
+    const { data: participant } = await admin
       .from("participants")
       .select("id")
       .eq("event_id", eventId)
@@ -140,7 +146,7 @@ export async function POST(request: Request) {
   }
 
   // Get participant info for response
-  const { data: participant } = await supabase
+  const { data: participant } = await admin
     .from("participants")
     .select("id, profiles!inner(full_name, email, avatar_url, company_name, title)")
     .eq("id", resolvedParticipantId)
@@ -149,7 +155,7 @@ export async function POST(request: Request) {
   if (!participant) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
   // Check if already checked in
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from("check_ins")
     .select("id, checked_in_at")
     .eq("event_id", eventId)
@@ -167,13 +173,13 @@ export async function POST(request: Request) {
     });
   }
 
-  // Check in
-  const { data: checkIn, error } = await supabase
+  // Check in — checked_in_by is null when called from the public kiosk
+  const { data: checkIn, error } = await admin
     .from("check_ins")
     .insert({
       event_id: eventId,
       participant_id: resolvedParticipantId,
-      checked_in_by: user.id,
+      checked_in_by: user?.id ?? null,
       method,
       session_id: sessionId || null,
     })

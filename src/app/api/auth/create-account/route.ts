@@ -48,12 +48,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Set up profile
+  // Set up profile (onboarding_completed stays false until profile is actually filled)
   if (fullName) {
     await admin.from("profiles").update({
       full_name: fullName.trim(),
       platform_role: "participant",
-      onboarding_completed: true,
     }).eq("id", newUser.user.id);
   }
 

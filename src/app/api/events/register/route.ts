@@ -88,11 +88,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Set up their profile (no participant record yet)
+    // Set up their profile (no participant record yet — onboarding_completed stays false)
     await admin.from("profiles").update({
       full_name: fullName.trim(),
       platform_role: "participant",
-      onboarding_completed: true,
     }).eq("id", newUser.user.id);
 
     return NextResponse.json({

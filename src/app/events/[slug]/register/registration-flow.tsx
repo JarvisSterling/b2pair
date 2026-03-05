@@ -140,9 +140,15 @@ export function RegistrationFlow({
   const supabase = createClient();
 
   const startAsLogin = searchParams.get("mode") === "signin";
-  // Skip Steps 1-2 (account + profile) if already logged in (returning user)
+  // Determine starting step: if logged in, check profile completeness
+  // Profile complete = title + company + industry all filled (Step 2 required fields)
+  const profileComplete = !!(
+    existingProfile?.title?.trim() &&
+    existingProfile?.company_name?.trim() &&
+    existingProfile?.industry?.trim()
+  );
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(
-    isLoggedIn ? 3 : 1
+    !isLoggedIn ? 1 : profileComplete ? 3 : 2
   );
   const [isLogin, setIsLogin] = useState(startAsLogin);
   const [showPassword, setShowPassword] = useState(false);
@@ -249,7 +255,7 @@ export function RegistrationFlow({
     }
 
     if (isLogin) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -258,8 +264,18 @@ export function RegistrationFlow({
         setLoading(false);
         return;
       }
-      // Returning user — skip profile basics, go to event-specific step
-      setCurrentStep(3);
+      // Check if their profile is complete — if not, send to step 2 to fill it in
+      if (signInData.user) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("title, company_name, industry")
+          .eq("id", signInData.user.id)
+          .single();
+        const hasProfile = !!(prof?.title?.trim() && prof?.company_name?.trim() && prof?.industry?.trim());
+        setCurrentStep(hasProfile ? 3 : 2);
+      } else {
+        setCurrentStep(3);
+      }
     } else {
       if (!firstName.trim() || !lastName.trim()) {
         setError("First and last name are required");

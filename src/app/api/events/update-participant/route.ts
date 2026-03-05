@@ -97,6 +97,8 @@ export async function POST(req: NextRequest) {
     if (industry) profileUpdates.industry = industry;
     if (bio !== undefined) profileUpdates.bio = bio || null;
     if (Object.keys(profileUpdates).length > 0) {
+      // Mark onboarding as complete when profile fields are actually saved
+      profileUpdates.onboarding_completed = true;
       await admin.from("profiles").update(profileUpdates).eq("id", user.id);
     }
 

@@ -83,7 +83,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbUrl = `postgresql://postgres:${encodeURIComponent("B2PairDB2026!Secure")}@db.eemeremqmqsqsxioycka.supabase.co:5432/postgres`;
+  // Session pooler — supports DDL, free tier accessible
+  const dbUrl = `postgresql://postgres.eemeremqmqsqsxioycka:${encodeURIComponent("B2PairDB2026!Secure")}@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`;
 
   const client = new Client({
     connectionString: dbUrl,

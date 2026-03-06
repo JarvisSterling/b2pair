@@ -270,6 +270,7 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
               { id: "company-leads", label: "Leads", icon: Target, path: "/leads" },
               { id: "company-team", label: "Team", icon: Users, path: "/team" },
             ].map((item) => {
+
                 const Icon = item.icon;
                 const companyBase = `/dashboard/company/${companyMembership.company_id}`;
                 const href = companyBase + item.path;
@@ -293,6 +294,21 @@ export function ParticipantEventSidebar({ eventId, profile }: Props) {
                   </Link>
                 );
               })}
+
+            {/* Edit company profile — only if invite_code is available */}
+            {companyMembership?.invite_code && companyMembership?.event_slug && (
+              <a
+                href={`/events/${companyMembership.event_slug}/partners/onboard/${companyMembership.invite_code}`}
+                className={cn(
+                  "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
+                  "transition-all duration-150 ease-out",
+                  "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                <Settings2 className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                Edit Profile
+              </a>
+            )}
 
             {/* Switch to participant view */}
             <div className="pt-4 mt-4 border-t border-border">

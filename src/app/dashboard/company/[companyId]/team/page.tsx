@@ -4,34 +4,27 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useSWRFetch } from "@/hooks/use-swr-fetch";
 import { useRealtime } from "@/hooks/use-realtime";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Loader2,
-  Users,
-  ArrowLeft,
-  Plus,
-  Trash2,
-  Copy,
-  Check,
-  X,
-  Send,
-  Shield,
-  Crown,
-  UserPlus,
-  AlertCircle,
+  Loader2, Users, ArrowLeft, Plus, Trash2, Copy, Check,
+  X, Send, Shield, Crown, UserPlus, AlertCircle, QrCode, Mic,
 } from "lucide-react";
+import { useEffect } from "react";
 
 const ROLES = [
-  { value: "admin", label: "Admin", desc: "Full access to everything", icon: Crown },
-  { value: "manager", label: "Manager", desc: "Edit profile, view leads & analytics", icon: Shield },
-  { value: "representative", label: "Representative", desc: "View leads, capture leads, chat", icon: Users },
-  { value: "scanner", label: "Scanner", desc: "QR scanning and lead capture only", icon: Users },
-  { value: "speaker", label: "Speaker", desc: "View sessions and chat", icon: Users },
+  { value: "admin",          label: "Admin",          desc: "Full access to everything",               icon: Crown  },
+  { value: "manager",        label: "Manager",         desc: "Edit profile, view leads & analytics",   icon: Shield },
+  { value: "representative", label: "Representative",  desc: "View leads, capture leads, chat",         icon: Users  },
+  { value: "scanner",        label: "Scanner",         desc: "QR scanning and lead capture only",       icon: QrCode },
+  { value: "speaker",        label: "Speaker",         desc: "View sessions and present",               icon: Mic    },
 ];
+
+const CAN_MANAGE = ["admin", "manager"];
 
 interface TeamMember {
   id: string;
@@ -40,7 +33,7 @@ interface TeamMember {
   email: string;
   role: string;
   invite_status: string;
-  invite_code: string;
+  invite_code: string | null;
   created_at: string;
 }
 
@@ -48,19 +41,39 @@ export default function CompanyTeamPage() {
   const params = useParams();
   const companyId = params.companyId as string;
 
-  const { data: membersData, isLoading: loading, mutate } = useSWRFetch<{ members: TeamMember[]; seat_limit: number }>(`/api/companies/${companyId}/members`);
+  const { data: membersData, isLoading: loading, mutate } = useSWRFetch<{ members: TeamMember[]; seat_limit: number }>(
+    `/api/companies/${companyId}/members`
+  );
   const members = membersData?.members || [];
   const seatLimit = membersData?.seat_limit || 5;
 
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [myRole, setMyRole] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [changingRole, setChangingRole] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const [inviteForm, setInviteForm] = useState({ name: "", email: "", role: "representative" });
 
-  // Real-time: refresh when team members change
+  // Get current user
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      if (data.user) setMyUserId(data.user.id);
+    });
+  }, []);
+
+  // Derive own role from member list
+  useEffect(() => {
+    if (myUserId && members.length > 0) {
+      const me = members.find((m) => m.user_id === myUserId);
+      if (me) setMyRole(me.role);
+    }
+  }, [myUserId, members]);
+
+  const canManage = myRole ? CAN_MANAGE.includes(myRole) : false;
+
   useRealtime({
     table: "company_members",
     filter: { company_id: companyId },
@@ -71,24 +84,28 @@ export default function CompanyTeamPage() {
     if (!inviteForm.name || !inviteForm.email) return;
     setSaving(true);
     setError(null);
-
     const res = await fetch(`/api/companies/${companyId}/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(inviteForm),
     });
-
     const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || "Failed to invite member");
-      setSaving(false);
-      return;
-    }
-
+    if (!res.ok) { setError(data.error || "Failed to invite member"); setSaving(false); return; }
     mutate();
     setInviteForm({ name: "", email: "", role: "representative" });
     setShowInvite(false);
     setSaving(false);
+  }
+
+  async function changeRole(memberId: string, newRole: string) {
+    setChangingRole(memberId);
+    await fetch(`/api/companies/${companyId}/members`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: memberId, role: newRole }),
+    });
+    mutate();
+    setChangingRole(null);
   }
 
   async function removeMember(memberId: string) {
@@ -99,6 +116,7 @@ export default function CompanyTeamPage() {
   }
 
   function copyInviteLink(member: TeamMember) {
+    if (!member.invite_code) return;
     const url = `${window.location.origin}/partners/invite/${member.invite_code}`;
     navigator.clipboard.writeText(url);
     setCopiedId(member.id);
@@ -122,9 +140,11 @@ export default function CompanyTeamPage() {
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-h1 font-semibold tracking-tight">Team</h1>
-          <p className="text-caption text-muted-foreground">Manage your team members and invitations</p>
+          <p className="text-caption text-muted-foreground">
+            {seatsUsed} of {seatLimit} seats used
+          </p>
         </div>
-        {!atLimit && (
+        {canManage && !atLimit && (
           <Button onClick={() => setShowInvite(true)} size="sm" className="shrink-0">
             <UserPlus className="mr-1 h-4 w-4" />
             <span className="hidden sm:inline">Invite </span>Member
@@ -132,13 +152,13 @@ export default function CompanyTeamPage() {
         )}
       </div>
 
-      {/* Seat usage */}
+      {/* Seat usage bar */}
       <Card className="mb-6">
         <CardContent className="py-5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-caption font-medium">Team seats</span>
             <span className={`text-caption font-semibold ${atLimit ? "text-red-500" : "text-foreground"}`}>
-              {seatsUsed} of {seatLimit} used
+              {seatsUsed} / {seatLimit}
             </span>
           </div>
           <div className="h-2.5 rounded-full bg-muted overflow-hidden">
@@ -147,7 +167,7 @@ export default function CompanyTeamPage() {
               style={{ width: `${seatPercent}%` }}
             />
           </div>
-          {atLimit && (
+          {atLimit && canManage && (
             <p className="text-caption text-red-500 mt-2 flex items-center gap-1.5">
               <AlertCircle className="h-3.5 w-3.5" />
               Seat limit reached. Contact the event organizer to increase your limit.
@@ -157,7 +177,7 @@ export default function CompanyTeamPage() {
       </Card>
 
       {/* Invite form */}
-      {showInvite && (
+      {showInvite && canManage && (
         <Card className="mb-6 animate-fade-in">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-4">
@@ -197,14 +217,11 @@ export default function CompanyTeamPage() {
                 </select>
               </div>
             </div>
-
             {error && (
               <p className="text-caption text-red-500 mt-3 flex items-center gap-1.5">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {error}
+                <AlertCircle className="h-3.5 w-3.5" />{error}
               </p>
             )}
-
             <div className="flex gap-2 mt-5">
               <Button onClick={inviteMember} disabled={saving || !inviteForm.name || !inviteForm.email}>
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
@@ -241,12 +258,16 @@ export default function CompanyTeamPage() {
       ) : (
         <div className="space-y-2">
           {members.map((member) => {
+            const isMe = member.user_id === myUserId;
+            const isPending = member.invite_status !== "accepted";
+            const roleInfo = ROLES.find((r) => r.value === member.role);
+            const RoleIcon = roleInfo?.icon || Users;
             const initials = member.name
               ? member.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
               : "?";
-            const isPending = member.invite_status !== "accepted";
+
             return (
-              <Card key={member.id}>
+              <Card key={member.id} className={isMe ? "border-primary/30 bg-primary/[0.02]" : ""}>
                 <CardContent className="py-4">
                   <div className="flex items-center gap-4">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-full text-small font-medium shrink-0 ${
@@ -254,42 +275,71 @@ export default function CompanyTeamPage() {
                     }`}>
                       {initials}
                     </div>
+
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-body font-medium truncate">{member.name || member.email}</p>
-                        <Badge variant="outline" className="text-[9px] capitalize">{member.role}</Badge>
+                        {isMe && (
+                          <Badge variant="outline" className="text-[9px] border-primary/40 text-primary">You</Badge>
+                        )}
                         {isPending && (
                           <Badge variant="secondary" className="text-[9px]">Pending</Badge>
                         )}
                       </div>
                       <p className="text-caption text-muted-foreground">{member.email}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {isPending && member.invite_code && (
+
+                    {/* Role — editable for admins/managers (not on self if last admin) */}
+                    <div className="shrink-0">
+                      {canManage && !isMe ? (
+                        <div className="relative flex items-center gap-1">
+                          {changingRole === member.id && (
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground absolute -left-4" />
+                          )}
+                          <select
+                            value={member.role}
+                            onChange={(e) => changeRole(member.id, e.target.value)}
+                            disabled={changingRole === member.id}
+                            className="h-7 rounded border border-border bg-input px-2 text-[11px] text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
+                          >
+                            {ROLES.map((r) => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-muted/50 text-[11px] text-muted-foreground">
+                          <RoleIcon className="h-3 w-3" />
+                          {roleInfo?.label || member.role}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isPending && member.invite_code && canManage && (
                         <button
                           onClick={() => copyInviteLink(member)}
                           className="p-2 rounded-lg hover:bg-secondary transition-colors"
                           title="Copy invite link"
                         >
-                          {copiedId === member.id ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4 text-muted-foreground" />
-                          )}
+                          {copiedId === member.id
+                            ? <Check className="h-4 w-4 text-green-500" />
+                            : <Copy className="h-4 w-4 text-muted-foreground" />}
                         </button>
                       )}
-                      <button
-                        onClick={() => removeMember(member.id)}
-                        disabled={deleting === member.id}
-                        className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
-                        title="Remove member"
-                      >
-                        {deleting === member.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
+                      {canManage && !isMe && (
+                        <button
+                          onClick={() => removeMember(member.id)}
+                          disabled={deleting === member.id}
+                          className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
+                          title="Remove member"
+                        >
+                          {deleting === member.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </CardContent>

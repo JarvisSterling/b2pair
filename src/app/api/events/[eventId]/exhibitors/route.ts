@@ -20,7 +20,8 @@ export async function GET(request: Request, { params }: Params) {
     .select(`
       id, name, slug, website, industry, description_short, description_long,
       logo_url, banner_url,
-      exhibitor_profiles(*)
+      exhibitor_profiles(*),
+      company_members(id, name, role, user_id, invite_status)
     `)
     .eq("event_id", eventId)
     .eq("status", "live")
@@ -34,6 +35,40 @@ export async function GET(request: Request, { params }: Params) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   let result = companies || [];
+
+  // Enrich team members with profile data (title) and participant IDs for messaging
+  const allUserIds = result.flatMap((c: any) =>
+    (c.company_members || [])
+      .filter((m: any) => m.user_id && m.invite_status === "accepted")
+      .map((m: any) => m.user_id)
+  );
+
+  if (allUserIds.length > 0) {
+    const [{ data: profiles }, { data: participants }] = await Promise.all([
+      admin.from("profiles").select("id, full_name, title, avatar_url").in("id", allUserIds),
+      admin.from("participants").select("id, user_id").eq("event_id", eventId).in("user_id", allUserIds),
+    ]);
+
+    const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]));
+    const participantMap = Object.fromEntries((participants || []).map((p: any) => [p.user_id, p.id]));
+
+    result = result.map((c: any) => ({
+      ...c,
+      team: (c.company_members || [])
+        .filter((m: any) => m.user_id && m.invite_status === "accepted")
+        .map((m: any) => ({
+          id: m.id,
+          user_id: m.user_id,
+          participant_id: participantMap[m.user_id] || null,
+          name: profileMap[m.user_id]?.full_name || m.name,
+          title: profileMap[m.user_id]?.title || null,
+          avatar_url: profileMap[m.user_id]?.avatar_url || null,
+          role: m.role,
+        })),
+    }));
+  } else {
+    result = result.map((c: any) => ({ ...c, team: [] }));
+  }
 
   // Filter by product category (post-query since it's in jsonb)
   if (category) {

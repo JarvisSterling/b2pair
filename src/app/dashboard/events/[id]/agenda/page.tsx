@@ -12,11 +12,10 @@ import {
   Loader2,
   MapPin,
   Mic2,
-  Users,
   BookmarkPlus,
   BookmarkCheck,
-  Coffee,
-  Filter,
+  X,
+  ChevronRight,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
 import { toast } from "sonner";
@@ -75,6 +74,7 @@ export default function ParticipantAgendaPage() {
   const [toggling, setToggling] = useState<string | null>(null);
   const [filterTrack, setFilterTrack] = useState<string>("all");
   const [filterView, setFilterView] = useState<"all" | "my-schedule">("all");
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   async function toggleSession(sessionId: string) {
     setToggling(sessionId);
@@ -243,8 +243,9 @@ export default function ParticipantAgendaPage() {
                     <Card
                       key={session.id}
                       className={`transition-all ${
-                        session.is_break ? "opacity-60" : isSaved ? "ring-1 ring-primary/30" : ""
+                        session.is_break ? "opacity-60" : isSaved ? "ring-1 ring-primary/30" : "cursor-pointer hover:border-border-strong hover:shadow-sm"
                       }`}
+                      onClick={() => !session.is_break && setSelectedSession(session)}
                     >
                       <CardContent className="py-4">
                         <div className="flex items-start gap-3">
@@ -322,27 +323,29 @@ export default function ParticipantAgendaPage() {
                           </div>
 
                           {!session.is_break && (
-                            <Button
-                              variant={isSaved ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => toggleSession(session.id)}
-                              disabled={toggling === session.id}
-                              className="shrink-0"
-                            >
-                              {toggling === session.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : isSaved ? (
-                                <>
-                                  <BookmarkCheck className="mr-1 h-3.5 w-3.5" />
-                                  Saved
-                                </>
-                              ) : (
-                                <>
-                                  <BookmarkPlus className="mr-1 h-3.5 w-3.5" />
-                                  Save
-                                </>
-                              )}
-                            </Button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Button
+                                variant={isSaved ? "default" : "outline"}
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); toggleSession(session.id); }}
+                                disabled={toggling === session.id}
+                              >
+                                {toggling === session.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : isSaved ? (
+                                  <>
+                                    <BookmarkCheck className="mr-1 h-3.5 w-3.5" />
+                                    Saved
+                                  </>
+                                ) : (
+                                  <>
+                                    <BookmarkPlus className="mr-1 h-3.5 w-3.5" />
+                                    Save
+                                  </>
+                                )}
+                              </Button>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground/40 hidden sm:block" />
+                            </div>
                           )}
                         </div>
                       </CardContent>
@@ -354,6 +357,115 @@ export default function ParticipantAgendaPage() {
           ))}
         </div>
       )}
+
+      {/* Session detail modal */}
+      {selectedSession && (() => {
+        const s = selectedSession;
+        const track = tracks.find((t) => t.id === s.track_id);
+        const room = rooms.find((r) => r.id === s.room_id);
+        const isSaved = savedSessionIds.includes(s.id);
+        const startTime = new Date(s.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        const endTime = new Date(s.end_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        const date = new Date(s.start_time).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+        const durationMin = Math.round((new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / 60000);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedSession(null)}>
+            <div className="w-full max-w-lg rounded-xl bg-card border border-border shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              {track && (
+                <div className="h-1.5 w-full" style={{ backgroundColor: track.color }} />
+              )}
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <Badge variant="outline" className="text-[10px]">{s.session_type}</Badge>
+                      {track && (
+                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: track.color }} />
+                          {track.name}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-h3 font-semibold">{s.title}</h2>
+                  </div>
+                  <button onClick={() => setSelectedSession(null)} className="text-muted-foreground hover:text-foreground shrink-0 p-1">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Time + room */}
+                <div className="flex flex-wrap gap-4 text-caption text-muted-foreground mb-4">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" /> {date}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" /> {startTime} – {endTime} <span className="text-muted-foreground/60">({durationMin} min)</span>
+                  </span>
+                  {room && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" /> {room.name}
+                    </span>
+                  )}
+                </div>
+
+                {/* Description */}
+                {s.description && (
+                  <p className="text-body text-muted-foreground mb-4 leading-relaxed">{s.description}</p>
+                )}
+
+                {/* Speakers */}
+                {s.session_speakers?.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-caption font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Mic2 className="h-3.5 w-3.5" /> Speakers
+                    </p>
+                    <div className="space-y-2.5">
+                      {s.session_speakers.map((ss) => (
+                        <div key={ss.speaker.id} className="flex items-center gap-3">
+                          {ss.speaker.avatar_url ? (
+                            <SafeImage src={ss.speaker.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-body font-semibold shrink-0">
+                              {ss.speaker.full_name[0]}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-body font-medium">{ss.speaker.full_name}</p>
+                            {(ss.speaker.title || ss.speaker.company) && (
+                              <p className="text-caption text-muted-foreground">
+                                {[ss.speaker.title, ss.speaker.company].filter(Boolean).join(" · ")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Save button */}
+                <Button
+                  variant={isSaved ? "default" : "outline"}
+                  size="sm"
+                  className="w-full"
+                  onClick={() => toggleSession(s.id)}
+                  disabled={toggling === s.id}
+                >
+                  {toggling === s.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : isSaved ? (
+                    <><BookmarkCheck className="mr-2 h-4 w-4" /> Saved to my schedule</>
+                  ) : (
+                    <><BookmarkPlus className="mr-2 h-4 w-4" /> Save to my schedule</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

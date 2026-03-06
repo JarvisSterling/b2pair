@@ -67,6 +67,8 @@ export function FullScreenEditor({
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile" | null>(null);
   const [rightPanel, setRightPanel] = useState<"properties" | "theme">("properties");
+  const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
+  const [dragOverPageId, setDragOverPageId] = useState<string | null>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(event.banner_url || null);
   const [bannerLayout, setBannerLayout] = useState<BannerLayout>(event.banner_layout || "split");
   const [bannerSettings, setBannerSettings] = useState<Record<string, any>>(event.banner_settings || {});
@@ -355,6 +357,23 @@ export function FullScreenEditor({
       .eq("id", pageId);
   }
 
+  function reorderPages(draggedId: string, overId: string) {
+    if (draggedId === overId) return;
+    const from = pages.findIndex((p) => p.id === draggedId);
+    const to = pages.findIndex((p) => p.id === overId);
+    if (from === -1 || to === -1) return;
+    const reordered = [...pages];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    // Assign new sort_order values
+    const updated = reordered.map((p, i) => ({ ...p, sort_order: i }));
+    setPages(updated);
+    // Persist to DB (fire-and-forget)
+    updated.forEach((p) =>
+      supabase.from("event_pages").update({ sort_order: p.sort_order }).eq("id", p.id)
+    );
+  }
+
   const backUrl = `/dashboard/w/${workspaceId}/events/${event.id}`;
 
   // ─── Preview mode ───
@@ -567,17 +586,32 @@ export function FullScreenEditor({
                 {pages.map((page) => (
                   <div
                     key={page.id}
+                    draggable
+                    onDragStart={() => setDraggedPageId(page.id)}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverPageId(page.id); }}
+                    onDragEnd={() => { setDraggedPageId(null); setDragOverPageId(null); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggedPageId) reorderPages(draggedPageId, page.id);
+                      setDraggedPageId(null);
+                      setDragOverPageId(null);
+                    }}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors group",
+                      "flex items-center gap-2 px-2 py-2 rounded-lg text-sm cursor-pointer transition-all group",
                       page.id === selectedPageId
                         ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      dragOverPageId === page.id && draggedPageId !== page.id
+                        ? "ring-2 ring-primary/40 bg-primary/5"
+                        : "",
+                      draggedPageId === page.id ? "opacity-40" : ""
                     )}
                     onClick={() => {
                       setSelectedPageId(page.id);
                       setSelectedBlockId(null);
                     }}
                   >
+                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 cursor-grab active:cursor-grabbing shrink-0 hover:text-muted-foreground transition-colors" />
                     <span className="flex-1 truncate">{page.title}</span>
                     {!page.is_visible && (
                       <EyeOff className="h-3 w-3 opacity-40" />

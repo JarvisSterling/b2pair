@@ -12,13 +12,28 @@ import {
   Building2,
   Globe,
   Loader2,
-  ExternalLink,
   Search,
   ArrowLeft,
   MapPin,
   Tag,
+  MessageSquare,
+  Calendar,
+  ChevronRight,
+  Users,
+  Crown,
 } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
+import Link from "next/link";
+
+interface TeamMember {
+  id: string;
+  user_id: string;
+  participant_id: string | null;
+  name: string;
+  title: string | null;
+  avatar_url: string | null;
+  role: string;
+}
 
 interface Exhibitor {
   id: string;
@@ -30,6 +45,7 @@ interface Exhibitor {
   description_long: string | null;
   logo_url: string | null;
   banner_url: string | null;
+  team: TeamMember[];
   exhibitor_profiles: {
     booth_number: string | null;
     booth_type: string | null;
@@ -46,6 +62,9 @@ export default function ParticipantExhibitorsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [selected, setSelected] = useState<Exhibitor | null>(null);
+  const [meetingTarget, setMeetingTarget] = useState<TeamMember | null>(null);
+  const [meetingNote, setMeetingNote] = useState("");
+  const [meetingLoading, setMeetingLoading] = useState(false);
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
@@ -65,6 +84,34 @@ export default function ParticipantExhibitorsPage() {
 
   const exhibitors = exhibitorData?.exhibitors || [];
   const categories = exhibitorData?.categories || [];
+
+  async function requestMeeting(member: TeamMember) {
+    if (!member.participant_id) return;
+    setMeetingLoading(true);
+    try {
+      const res = await fetch("/api/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          recipientParticipantId: member.participant_id,
+          agendaNote: meetingNote || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Failed to send request");
+        return;
+      }
+      setMeetingTarget(null);
+      setMeetingNote("");
+      alert(`Meeting request sent to ${member.name}!`);
+    } catch {
+      alert("Something went wrong.");
+    } finally {
+      setMeetingLoading(false);
+    }
+  }
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -110,13 +157,64 @@ export default function ParticipantExhibitorsPage() {
           </div>
         </div>
 
-        <div className="flex gap-3 mb-8">
+        <div className="flex gap-3 mb-8 flex-wrap">
           {selected.website && (
             <a href={selected.website} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm"><Globe className="mr-2 h-4 w-4" /> Website</Button>
             </a>
           )}
         </div>
+
+        {/* Team members */}
+        {selected.team && selected.team.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-body font-semibold mb-3 flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" /> Team
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {selected.team.map((member) => (
+                <Card key={member.id}>
+                  <CardContent className="py-4">
+                    <div className="flex items-center gap-3">
+                      {member.avatar_url ? (
+                        <SafeImage src={member.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-body font-semibold shrink-0">
+                          {member.name[0]}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-body font-medium truncate">{member.name}</p>
+                          {member.role === "admin" && <Crown className="h-3 w-3 text-amber-500 shrink-0" />}
+                        </div>
+                        {member.title && <p className="text-caption text-muted-foreground truncate">{member.title}</p>}
+                      </div>
+                      {member.participant_id && (
+                        <div className="flex gap-1.5 shrink-0">
+                          <Link href={`/dashboard/events/${eventId}/messages?to=${member.user_id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Send message">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Request meeting"
+                            onClick={() => { setMeetingTarget(member); setMeetingNote(""); }}
+                          >
+                            <Calendar className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {selected.description_long && (
           <Card className="mb-6">
@@ -176,6 +274,32 @@ export default function ParticipantExhibitorsPage() {
             {ep.product_categories.map((cat: string) => (
               <Badge key={cat} variant="outline" className="text-[10px]"><Tag className="mr-1 h-2.5 w-2.5" />{cat}</Badge>
             ))}
+          </div>
+        )}
+
+        {/* Meeting request modal */}
+        {meetingTarget && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setMeetingTarget(null)}>
+            <div className="w-full max-w-sm rounded-xl bg-card border border-border p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-body font-semibold mb-1">Request a meeting</h3>
+              <p className="text-caption text-muted-foreground mb-4">
+                Send a meeting request to <span className="font-medium text-foreground">{meetingTarget.name}</span>
+              </p>
+              <textarea
+                value={meetingNote}
+                onChange={(e) => setMeetingNote(e.target.value)}
+                placeholder="Add a note (optional)..."
+                rows={3}
+                className="flex w-full rounded bg-input px-4 py-3 text-body border border-border placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary/50 resize-none mb-4"
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setMeetingTarget(null)}>Cancel</Button>
+                <Button className="flex-1" onClick={() => requestMeeting(meetingTarget)} disabled={meetingLoading}>
+                  {meetingLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calendar className="mr-2 h-4 w-4" />}
+                  Send request
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -249,8 +373,14 @@ export default function ParticipantExhibitorsPage() {
                       <div className="flex gap-2 mt-2 flex-wrap">
                         {exhibitor.industry && <Badge variant="outline" className="text-[9px]">{exhibitor.industry}</Badge>}
                         {ep?.booth_number && <Badge variant="secondary" className="text-[9px]">Booth {ep.booth_number}</Badge>}
+                        {(exhibitor.team?.length ?? 0) > 0 && (
+                          <Badge variant="secondary" className="text-[9px]">
+                            <Users className="mr-1 h-2.5 w-2.5" />{exhibitor.team.length} rep{exhibitor.team.length !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
                       </div>
                     </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary/60 transition-colors shrink-0 mt-1" />
                   </div>
                 </CardContent>
               </Card>

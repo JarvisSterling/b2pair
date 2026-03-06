@@ -103,7 +103,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
     .slice(0, 2);
 
   return (<>
-    <aside className="hidden lg:flex w-64 flex-col border-r border-emerald-800 bg-[#011a14]">
+    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background">
       {/* Workspace switcher */}
       <div className="relative">
         <button
@@ -178,8 +178,8 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
                 "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
                 "transition-all duration-150 ease-out",
                 active
-                  ? "bg-emerald-950/80 border border-emerald-800 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-emerald-950/60 hover:text-foreground"
+                  ? "bg-primary/5 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
@@ -193,8 +193,8 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
             "flex items-center gap-3 rounded-sm px-3 py-2.5 text-body",
             "transition-all duration-150 ease-out",
             pathname === "/dashboard/notifications"
-              ? "bg-emerald-950/80 border border-emerald-800 text-primary font-medium"
-              : "text-muted-foreground hover:bg-emerald-950/60 hover:text-foreground"
+              ? "bg-primary/5 text-primary font-medium"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
           )}
         >
           <Bell className="h-[18px] w-[18px]" strokeWidth={pathname === "/dashboard/notifications" ? 2 : 1.5} />
@@ -255,7 +255,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
     {menuOpen && (
       <>
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMenuOpen(false)} />
-        <aside className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-[#011a14] border-r border-emerald-800 flex flex-col overflow-y-auto lg:hidden">
+        <aside className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-background border-r border-border flex flex-col overflow-y-auto lg:hidden">
           <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
             <span className="text-sm font-semibold">{currentWorkspace?.name}</span>
             <button onClick={() => setMenuOpen(false)} className="p-1.5 hover:bg-secondary rounded-md">
@@ -276,7 +276,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
               return (
                 <Link key={item.id} href={href} onClick={() => setMenuOpen(false)}
                   className={cn("flex items-center gap-3 rounded-sm px-3 py-2.5 text-body transition-all",
-                    active ? "bg-emerald-950/80 border border-emerald-800 text-primary font-medium" : "text-muted-foreground hover:bg-emerald-950/60 hover:text-foreground"
+                    active ? "bg-primary/5 text-primary font-medium" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}>
                   <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.5} />
                   {item.label}
@@ -286,8 +286,8 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
             <Link href="/dashboard/notifications" onClick={() => setMenuOpen(false)}
               className={cn("flex items-center gap-3 rounded-sm px-3 py-2.5 text-body transition-all",
                 pathname === "/dashboard/notifications"
-                  ? "bg-emerald-950/80 border border-emerald-800 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-emerald-950/60 hover:text-foreground"
+                  ? "bg-primary/5 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}>
               <Bell className="h-[18px] w-[18px]" strokeWidth={pathname === "/dashboard/notifications" ? 2 : 1.5} />
               Notifications

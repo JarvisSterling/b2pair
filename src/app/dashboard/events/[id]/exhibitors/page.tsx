@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   MapPin,
   Tag,
+  ExternalLink,
   MessageSquare,
   Calendar,
   ChevronRight,

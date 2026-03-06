@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CompanyTracker, TrackCtaClick, TrackDownload } from "@/components/events/company-tracker";
-import { Crown, Globe, Download, Play, ExternalLink, MessageSquare, Calendar } from "lucide-react";
+import { Crown, Globe, Download, ExternalLink, MessageSquare, Calendar } from "lucide-react";
 import Link from "next/link";
 import { SafeImage } from "@/components/ui/safe-image";
 
@@ -30,7 +30,7 @@ export default async function SponsorProfilePage({ params }: PageProps) {
     .select(`
       *,
       sponsor_profiles(*, tier:sponsor_tiers(*)),
-      company_members(id, name, role, participant_id, user_id)
+      company_members(id, name, role, user_id, invite_status)
     `)
     .eq("event_id", event.id)
     .eq("slug", companySlug)
@@ -42,23 +42,32 @@ export default async function SponsorProfilePage({ params }: PageProps) {
 
   const sp = Array.isArray(company.sponsor_profiles) ? company.sponsor_profiles[0] : company.sponsor_profiles;
   const tier = sp?.tier;
-  const members = (company.company_members || []).filter((m: any) => m.participant_id);
 
-  // Get member profiles
-  const memberIds = members.map((m: any) => m.user_id).filter(Boolean);
+  // Only show accepted members who have an account
+  const members = (company.company_members || []).filter(
+    (m: any) => m.invite_status === "accepted" && m.user_id
+  );
+
+  // Get member profiles + participant IDs for messaging links
+  const memberUserIds = members.map((m: any) => m.user_id);
   let profiles: any[] = [];
-  if (memberIds.length > 0) {
-    const { data } = await admin
-      .from("profiles")
-      .select("id, full_name, avatar_url, title")
-      .in("id", memberIds);
-    profiles = data || [];
+  let participantMap: Record<string, string> = {}; // user_id → participant.id
+
+  if (memberUserIds.length > 0) {
+    const [profilesRes, participantsRes] = await Promise.all([
+      admin.from("profiles").select("id, full_name, avatar_url, title").in("id", memberUserIds),
+      admin.from("participants").select("id, user_id").eq("event_id", event.id).in("user_id", memberUserIds),
+    ]);
+    profiles = profilesRes.data || [];
+    for (const p of participantsRes.data || []) {
+      participantMap[p.user_id] = p.id;
+    }
   }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <CompanyTracker companyId={company.id} eventId={event.id} type="profile_view" />
-      <Link href={`/events/${slug}/sponsors`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block">
+      <Link href={`/events/${slug}/sponsors`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
         ← All Sponsors
       </Link>
 
@@ -79,7 +88,7 @@ export default async function SponsorProfilePage({ params }: PageProps) {
           </div>
         )}
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold">{company.name}</h1>
             {tier && (
               <Badge variant="outline" style={{ borderColor: tier.color, color: tier.color }}>
@@ -89,21 +98,27 @@ export default async function SponsorProfilePage({ params }: PageProps) {
             )}
           </div>
           {sp?.tagline && <p className="text-muted-foreground mt-1">{sp.tagline}</p>}
-          {company.industry && <p className="text-sm text-muted-foreground mt-1">{company.industry} · {company.hq_location || ""}</p>}
+          {company.industry && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {company.industry}{company.hq_location ? ` · ${company.hq_location}` : ""}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* CTA Buttons */}
-      {sp?.cta_buttons?.length > 0 && (
+      {/* CTA Buttons — always show website if available */}
+      {(company.website || sp?.cta_buttons?.length > 0) && (
         <div className="flex gap-3 mb-8 flex-wrap">
           {company.website && (
-            <a href={company.website} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm">
-                <Globe className="mr-2 h-4 w-4" /> Website
-              </Button>
-            </a>
+            <TrackCtaClick companyId={company.id} eventId={event.id} ctaLabel="Website">
+              <a href={company.website} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <Globe className="mr-2 h-4 w-4" /> Website
+                </Button>
+              </a>
+            </TrackCtaClick>
           )}
-          {sp.cta_buttons.map((cta: any, i: number) => (
+          {sp?.cta_buttons?.map((cta: any, i: number) => (
             <TrackCtaClick key={i} companyId={company.id} eventId={event.id} ctaLabel={cta.label}>
               <a href={cta.url} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" variant={cta.style === "outline" ? "outline" : cta.style === "secondary" ? "secondary" : "default"}>
@@ -194,8 +209,9 @@ export default async function SponsorProfilePage({ params }: PageProps) {
               const profile = profiles.find((p: any) => p.id === member.user_id);
               const name = profile?.full_name || member.name || "Team Member";
               const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+              const participantId = participantMap[member.user_id];
               return (
-                <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg">
+                <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-secondary/40 transition-colors">
                   {profile?.avatar_url ? (
                     <SafeImage src={profile.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
                   ) : (
@@ -203,10 +219,24 @@ export default async function SponsorProfilePage({ params }: PageProps) {
                       {initials}
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-medium">{name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{name}</p>
                     <p className="text-xs text-muted-foreground">{profile?.title || member.role}</p>
                   </div>
+                  {participantId && (
+                    <div className="flex gap-1 shrink-0">
+                      <Link href={`/dashboard/events/${event.id}/messages?to=${participantId}`}>
+                        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                      <Link href={`/dashboard/events/${event.id}/meetings?request=${participantId}`}>
+                        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
+                          <Calendar className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               );
             })}

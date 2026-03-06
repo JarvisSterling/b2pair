@@ -31,7 +31,7 @@ export async function GET(request: Request, { params }: Params) {
       participant:participants(
         id,
         user_id,
-        profiles(full_name, email, avatar_url)
+        profiles(full_name, avatar_url, title, company_name)
       )
     `)
     .eq("company_id", companyId)
@@ -42,7 +42,26 @@ export async function GET(request: Request, { params }: Params) {
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ leads: data });
+
+  // Batch fetch emails from auth for all participant user_ids
+  const userIds = [...new Set((data || []).map((l: any) => l.participant?.user_id).filter(Boolean))];
+  const emailMap: Record<string, string> = {};
+  if (userIds.length > 0) {
+    const { data: authUsers } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    for (const u of authUsers?.users || []) {
+      if (userIds.includes(u.id)) emailMap[u.id] = u.email || "";
+    }
+  }
+
+  // Merge email into each lead's participant data
+  const enriched = (data || []).map((lead: any) => ({
+    ...lead,
+    participant: lead.participant
+      ? { ...lead.participant, email: emailMap[lead.participant.user_id] || "" }
+      : null,
+  }));
+
+  return NextResponse.json({ leads: enriched });
 }
 
 /**
@@ -102,6 +121,34 @@ export async function POST(request: Request, { params }: Params) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Increment leads_captured in analytics (fire-and-forget)
+  const today = new Date().toISOString().split("T")[0];
+  const { data: existing } = await admin
+    .from("company_analytics")
+    .select("id, leads_captured")
+    .eq("company_id", companyId)
+    .eq("date", today)
+    .maybeSingle();
+
+  if (existing) {
+    await admin.from("company_analytics").update({
+      leads_captured: (existing.leads_captured || 0) + 1,
+    }).eq("id", existing.id);
+  } else {
+    await admin.from("company_analytics").insert({
+      company_id: companyId,
+      event_id,
+      date: today,
+      leads_captured: 1,
+      profile_views: 0,
+      unique_visitors: 0,
+      resource_downloads: 0,
+      cta_clicks: {},
+      meeting_requests_received: 0,
+    });
+  }
+
   return NextResponse.json({ lead: data }, { status: 201 });
 }
 

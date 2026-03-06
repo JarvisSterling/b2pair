@@ -8,14 +8,15 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Loader2,
   Target,
   ArrowLeft,
   Search,
-  Filter,
   Download,
   Mail,
+  Building2,
 } from "lucide-react";
 
 interface Lead {
@@ -26,8 +27,26 @@ interface Lead {
   tags: string[];
   resource_accessed: string | null;
   created_at: string;
-  participant: any;
+  participant: {
+    id: string;
+    user_id: string;
+    email: string;
+    profiles: {
+      full_name: string | null;
+      avatar_url: string | null;
+      title: string | null;
+      company_name: string | null;
+    } | null;
+  } | null;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  profile_view: "Profile view",
+  booth_visit: "Booth visit",
+  resource_download: "Resource download",
+  meeting_request: "Meeting request",
+  manual: "Manual capture",
+};
 
 export default function CompanyLeadsPage() {
   const params = useParams();
@@ -37,7 +56,6 @@ export default function CompanyLeadsPage() {
   const [search, setSearch] = useState("");
   const [filterQual, setFilterQual] = useState<string | null>(null);
 
-  // Real-time: refresh when leads change for this company
   useRealtime({
     table: "company_leads",
     filter: { company_id: companyId },
@@ -53,13 +71,39 @@ export default function CompanyLeadsPage() {
     mutate();
   }
 
+  function exportCSV() {
+    const rows = [
+      ["Name", "Email", "Title", "Company", "Source", "Qualification", "Tags", "Notes", "Date"],
+      ...leads.map((l) => [
+        l.participant?.profiles?.full_name || "",
+        l.participant?.email || "",
+        l.participant?.profiles?.title || "",
+        l.participant?.profiles?.company_name || "",
+        SOURCE_LABELS[l.source] || l.source,
+        l.qualification || "",
+        (l.tags || []).join("; "),
+        l.notes || "",
+        new Date(l.created_at).toLocaleDateString(),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
   const filtered = leads.filter((lead) => {
-    const name = lead.participant?.user?.raw_user_meta_data?.full_name || lead.participant?.user?.email || "";
-    const matchesSearch = !search || name.toLowerCase().includes(search.toLowerCase());
+    const name = lead.participant?.profiles?.full_name || lead.participant?.email || "";
+    const company = lead.participant?.profiles?.company_name || "";
+    const matchesSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || company.toLowerCase().includes(search.toLowerCase());
     const matchesQual = !filterQual || lead.qualification === filterQual;
     return matchesSearch && matchesQual;
   });
@@ -81,22 +125,24 @@ export default function CompanyLeadsPage() {
           <h1 className="text-2xl sm:text-h1 font-semibold tracking-tight">Leads</h1>
           <p className="text-caption text-muted-foreground">{leads.length} total lead{leads.length !== 1 ? "s" : ""} captured</p>
         </div>
+        {leads.length > 0 && (
+          <Button variant="outline" size="sm" onClick={exportCSV}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        )}
       </div>
 
-      {/* Stats */}
+      {/* Qualification filter cards */}
       <div className="grid gap-3 sm:grid-cols-4 mb-6">
         {[
-          { label: "Hot", count: qualCounts.hot, color: "text-red-500", bg: "bg-red-500/10", key: "hot" },
-          { label: "Warm", count: qualCounts.warm, color: "text-amber-500", bg: "bg-amber-500/10", key: "warm" },
-          { label: "Cold", count: qualCounts.cold, color: "text-blue-500", bg: "bg-blue-500/10", key: "cold" },
-          { label: "Unqualified", count: qualCounts.unqualified, color: "text-muted-foreground", bg: "bg-muted", key: null as string | null },
+          { label: "Hot", count: qualCounts.hot, color: "text-red-500", bg: "bg-red-500/10", ring: "ring-red-500/30 border-red-500", key: "hot" },
+          { label: "Warm", count: qualCounts.warm, color: "text-amber-500", bg: "bg-amber-500/10", ring: "ring-amber-500/30 border-amber-500", key: "warm" },
+          { label: "Cold", count: qualCounts.cold, color: "text-blue-500", bg: "bg-blue-500/10", ring: "ring-blue-500/30 border-blue-500", key: "cold" },
+          { label: "Unqualified", count: qualCounts.unqualified, color: "text-muted-foreground", bg: "bg-muted", ring: "ring-primary/30 border-primary", key: null as string | null },
         ].map((q) => (
-          <button
-            key={q.label}
-            onClick={() => setFilterQual(filterQual === q.key ? null : q.key)}
-            className="text-left"
-          >
-            <Card className={`transition-all ${filterQual === q.key ? "ring-2 ring-primary/30 border-primary" : "hover:border-border-strong"}`}>
+          <button key={q.label} onClick={() => setFilterQual(filterQual === q.key ? null : q.key)} className="text-left">
+            <Card className={`transition-all ${filterQual === q.key ? `ring-2 ${q.ring}` : "hover:border-border-strong"}`}>
               <CardContent className="py-4">
                 <div className="flex items-center gap-2">
                   <div className={`h-3 w-3 rounded-full ${q.bg}`} />
@@ -115,7 +161,7 @@ export default function CompanyLeadsPage() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search leads..."
+          placeholder="Search by name or company..."
           className="pl-10"
         />
       </div>
@@ -129,46 +175,68 @@ export default function CompanyLeadsPage() {
               {leads.length === 0 ? "No leads captured yet." : "No leads match your filters."}
             </p>
             {leads.length === 0 && (
-              <p className="text-caption text-muted-foreground mt-1">Leads are automatically captured when attendees view your profile or download resources.</p>
+              <p className="text-caption text-muted-foreground mt-1">
+                Leads are automatically captured when attendees view your profile or download resources.
+              </p>
             )}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
           {filtered.map((lead) => {
-            const name = lead.participant?.profiles?.full_name || lead.participant?.profiles?.email || "Unknown";
-            const email = lead.participant?.profiles?.email || "";
+            const name = lead.participant?.profiles?.full_name || lead.participant?.email || "Unknown";
+            const email = lead.participant?.email || "";
+            const title = lead.participant?.profiles?.title || "";
+            const company = lead.participant?.profiles?.company_name || "";
             const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
             return (
               <Card key={lead.id} className="group">
                 <CardContent className="py-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary text-small font-medium shrink-0">
-                      {initials}
+                      {initials || "?"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-body font-medium truncate">{name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-body font-medium">{name}</p>
                         {lead.qualification && (
-                          <Badge variant={lead.qualification === "hot" ? "destructive" : lead.qualification === "warm" ? "default" : "secondary"} className="text-[9px]">
+                          <Badge
+                            variant={lead.qualification === "hot" ? "destructive" : lead.qualification === "warm" ? "default" : "secondary"}
+                            className="text-[9px]"
+                          >
                             {lead.qualification}
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-caption text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-caption text-muted-foreground mt-0.5">
+                        {(title || company) && (
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {[title, company].filter(Boolean).join(" at ")}
+                          </span>
+                        )}
                         {email && (
                           <span className="flex items-center gap-1">
                             <Mail className="h-3 w-3" />
                             {email}
                           </span>
                         )}
-                        <span>· {lead.source.replace("_", " ")}</span>
-                        {lead.resource_accessed && <span>· {lead.resource_accessed}</span>}
-                        <span>· {new Date(lead.created_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground/60">·</span>
+                        <span>{SOURCE_LABELS[lead.source] || lead.source}</span>
+                        {lead.resource_accessed && (
+                          <>
+                            <span className="text-muted-foreground/60">·</span>
+                            <span>{lead.resource_accessed}</span>
+                          </>
+                        )}
+                        <span className="text-muted-foreground/60">·</span>
+                        <span>{new Date(lead.created_at).toLocaleDateString()}</span>
                       </div>
-                      {lead.notes && <p className="text-caption text-muted-foreground mt-1 italic">&ldquo;{lead.notes}&rdquo;</p>}
+                      {lead.notes && (
+                        <p className="text-caption text-muted-foreground mt-1 italic">&ldquo;{lead.notes}&rdquo;</p>
+                      )}
                       {lead.tags?.length > 0 && (
-                        <div className="flex gap-1 mt-1">
+                        <div className="flex gap-1 mt-1 flex-wrap">
                           {lead.tags.map((tag) => (
                             <Badge key={tag} variant="outline" className="text-[9px]">{tag}</Badge>
                           ))}
@@ -182,7 +250,11 @@ export default function CompanyLeadsPage() {
                           onClick={() => updateLead(lead.id, { qualification: lead.qualification === q ? null : q })}
                           className={`px-2 py-1 text-[10px] rounded font-medium transition-colors ${
                             lead.qualification === q
-                              ? q === "hot" ? "bg-red-500/20 text-red-500" : q === "warm" ? "bg-amber-500/20 text-amber-500" : "bg-blue-500/20 text-blue-500"
+                              ? q === "hot"
+                                ? "bg-red-500/20 text-red-500"
+                                : q === "warm"
+                                ? "bg-amber-500/20 text-amber-500"
+                                : "bg-blue-500/20 text-blue-500"
                               : "bg-muted text-muted-foreground hover:bg-secondary"
                           }`}
                         >

@@ -137,14 +137,17 @@ export default function CompanyDashboardPage() {
             <span className={`text-caption font-semibold ${statusConfig.color}`}>{statusConfig.label}</span>
             <p className="text-caption text-muted-foreground mt-0.5">{statusConfig.description}</p>
           </div>
-          {company?.event_slug && (company.status === "live" || company.status === "approved") && (
-            <Link
-              href={`/events/${company.event_slug}/sponsors/${company.slug}`}
-              className="flex items-center gap-1 text-caption text-primary hover:underline shrink-0"
-            >
-              View public profile <ExternalLink className="h-3 w-3" />
-            </Link>
-          )}
+          {company?.event_slug && (company.status === "live" || company.status === "approved") && (() => {
+            const type = company.capabilities.includes("exhibitor") ? "exhibitors" : "sponsors";
+            return (
+              <Link
+                href={`/events/${company.event_slug}/${type}/${company.slug}`}
+                className="flex items-center gap-1 text-caption text-primary hover:underline shrink-0"
+              >
+                View public profile <ExternalLink className="h-3 w-3" />
+              </Link>
+            );
+          })()}
           {company?.event_slug && company?.invite_code && (company.status === "onboarding" || company.status === "invited") && (
             <Link
               href={`/events/${company.event_slug}/partners/onboard/${company.invite_code}`}

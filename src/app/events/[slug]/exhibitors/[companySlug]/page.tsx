@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CompanyTracker, TrackDownload } from "@/components/events/company-tracker";
-import { Globe, Download, ShoppingBag, FileText, Play, MessageSquare } from "lucide-react";
+import { CompanyTracker, TrackCtaClick, TrackDownload } from "@/components/events/company-tracker";
+import { Globe, Download, ShoppingBag, FileText, Play, MessageSquare, Calendar } from "lucide-react";
 import Link from "next/link";
 import { SafeImage } from "@/components/ui/safe-image";
 
@@ -30,7 +30,7 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
     .select(`
       *,
       exhibitor_profiles(*),
-      company_members(id, name, role, participant_id, user_id)
+      company_members(id, name, role, user_id, invite_status)
     `)
     .eq("event_id", event.id)
     .eq("slug", companySlug)
@@ -41,20 +41,32 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
   if (!company) notFound();
 
   const ep = Array.isArray(company.exhibitor_profiles) ? company.exhibitor_profiles[0] : company.exhibitor_profiles;
-  const members = (company.company_members || []).filter((m: any) => m.participant_id);
 
-  // Get member profiles
-  const memberIds = members.map((m: any) => m.user_id).filter(Boolean);
+  // Only show accepted members who have an account
+  const members = (company.company_members || []).filter(
+    (m: any) => m.invite_status === "accepted" && m.user_id
+  );
+
+  // Get member profiles + participant IDs for messaging/meeting links
+  const memberUserIds = members.map((m: any) => m.user_id);
   let profiles: any[] = [];
-  if (memberIds.length > 0) {
-    const { data } = await admin.from("profiles").select("id, full_name, avatar_url, title").in("id", memberIds);
-    profiles = data || [];
+  let participantMap: Record<string, string> = {}; // user_id → participant.id
+
+  if (memberUserIds.length > 0) {
+    const [profilesRes, participantsRes] = await Promise.all([
+      admin.from("profiles").select("id, full_name, avatar_url, title").in("id", memberUserIds),
+      admin.from("participants").select("id, user_id").eq("event_id", event.id).in("user_id", memberUserIds),
+    ]);
+    profiles = profilesRes.data || [];
+    for (const p of participantsRes.data || []) {
+      participantMap[p.user_id] = p.id;
+    }
   }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <CompanyTracker companyId={company.id} eventId={event.id} type="profile_view" />
-      <Link href={`/events/${slug}/exhibitors`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block">
+      <Link href={`/events/${slug}/exhibitors`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
         ← All Exhibitors
       </Link>
 
@@ -75,15 +87,15 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
           </div>
         )}
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold">{company.name}</h1>
             {ep?.booth_number && (
               <Badge variant="outline">Booth {ep.booth_number}</Badge>
             )}
           </div>
           {company.description_short && <p className="text-muted-foreground mt-1">{company.description_short}</p>}
-          <div className="flex gap-2 mt-2">
-            {ep?.booth_type && <Badge variant="secondary" className="text-xs">{ep.booth_type}</Badge>}
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {ep?.booth_type && <Badge variant="secondary" className="text-xs capitalize">{ep.booth_type}</Badge>}
             {ep?.product_categories?.map((cat: string) => (
               <Badge key={cat} variant="outline" className="text-xs">{cat}</Badge>
             ))}
@@ -94,9 +106,13 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
       {/* Action buttons */}
       {company.website && (
         <div className="flex gap-3 mb-8 flex-wrap">
-          <a href={company.website} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm"><Globe className="mr-2 h-4 w-4" /> Website</Button>
-          </a>
+          <TrackCtaClick companyId={company.id} eventId={event.id} ctaLabel="Website">
+            <a href={company.website} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">
+                <Globe className="mr-2 h-4 w-4" /> Website
+              </Button>
+            </a>
+          </TrackCtaClick>
         </div>
       )}
 
@@ -174,7 +190,7 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Team */}
+      {/* Team at Booth */}
       {members.length > 0 && (
         <div className="rounded-xl border p-6">
           <h2 className="font-semibold mb-3">Team at Booth</h2>
@@ -183,8 +199,9 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
               const profile = profiles.find((p: any) => p.id === member.user_id);
               const name = profile?.full_name || member.name || "Team Member";
               const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+              const participantId = participantMap[member.user_id];
               return (
-                <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg">
+                <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-secondary/40 transition-colors">
                   {profile?.avatar_url ? (
                     <SafeImage src={profile.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
                   ) : (
@@ -192,13 +209,24 @@ export default async function ExhibitorBoothPage({ params }: PageProps) {
                       {initials}
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-medium">{name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{name}</p>
                     <p className="text-xs text-muted-foreground">{profile?.title || member.role}</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="ml-auto text-xs">
-                    <MessageSquare className="h-3.5 w-3.5 mr-1" /> Message
-                  </Button>
+                  {participantId && (
+                    <div className="flex gap-1 shrink-0">
+                      <Link href={`/dashboard/events/${event.id}/messages?to=${participantId}`}>
+                        <Button variant="ghost" size="sm" className="h-8 px-2">
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                      <Link href={`/dashboard/events/${event.id}/meetings?request=${participantId}`}>
+                        <Button variant="ghost" size="sm" className="h-8 px-2">
+                          <Calendar className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               );
             })}

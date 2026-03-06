@@ -35,6 +35,7 @@ interface CompanyInfo {
   event_id: string;
   event_name?: string;
   event_slug?: string;
+  invite_code?: string;
   team_limit: number | null;
 }
 
@@ -67,6 +68,7 @@ export default function CompanyDashboardPage() {
     event_id: membership.event_id,
     event_name: membership.event_name,
     event_slug: membership.event_slug,
+    invite_code: membership.invite_code,
     team_limit: null,
   } : null;
 
@@ -141,6 +143,22 @@ export default function CompanyDashboardPage() {
               className="flex items-center gap-1 text-caption text-primary hover:underline shrink-0"
             >
               View public profile <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+          {company?.event_slug && company?.invite_code && (company.status === "onboarding" || company.status === "invited") && (
+            <Link
+              href={`/events/${company.event_slug}/partners/onboard/${company.invite_code}`}
+              className="flex items-center gap-1.5 text-caption font-semibold shrink-0 rounded-md px-3 py-1.5 bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+            >
+              Continue setup <ArrowRight className="h-3 w-3" />
+            </Link>
+          )}
+          {company?.event_slug && company?.invite_code && company.status === "rejected" && (
+            <Link
+              href={`/events/${company.event_slug}/partners/onboard/${company.invite_code}`}
+              className="flex items-center gap-1.5 text-caption font-medium shrink-0 rounded-md px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 hover:opacity-80 transition-colors"
+            >
+              Fix & resubmit <ArrowRight className="h-3 w-3" />
             </Link>
           )}
         </div>

@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   // Get all company_members rows for this user (using admin to bypass RLS)
   const { data: memberships, error: memErr } = await admin
     .from("company_members")
-    .select("id, company_id, role, invite_status")
+    .select("id, company_id, role, invite_status, invite_code")
     .eq("user_id", user.id)
     .eq("invite_status", "accepted");
 
@@ -67,6 +67,7 @@ export async function GET(request: Request) {
         capabilities: company.capabilities,
         company_status: company.status,
         role: m.role,
+        invite_code: m.invite_code,
         event_id: company.event_id,
         event_name: event?.name || "Unknown Event",
         event_slug: event?.slug || "",

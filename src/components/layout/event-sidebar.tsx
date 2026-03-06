@@ -103,7 +103,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
     .slice(0, 2);
 
   return (<>
-    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background">
+    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-green-50 dark:bg-green-950/20">
       {/* Workspace switcher */}
       <div className="relative">
         <button
@@ -255,7 +255,7 @@ export function EventSidebar({ workspaceId, eventId, workspaces, profile }: Prop
     {menuOpen && (
       <>
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMenuOpen(false)} />
-        <aside className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-background border-r border-border flex flex-col overflow-y-auto lg:hidden">
+        <aside className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-green-50 dark:bg-green-950/20 border-r border-border flex flex-col overflow-y-auto lg:hidden">
           <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
             <span className="text-sm font-semibold">{currentWorkspace?.name}</span>
             <button onClick={() => setMenuOpen(false)} className="p-1.5 hover:bg-secondary rounded-md">

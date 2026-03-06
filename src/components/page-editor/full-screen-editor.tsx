@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -67,6 +67,7 @@ export function FullScreenEditor({
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile" | null>(null);
   const [rightPanel, setRightPanel] = useState<"properties" | "theme">("properties");
+  const draggedPageRef = useRef<string | null>(null);
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [dragOverPageId, setDragOverPageId] = useState<string | null>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(event.banner_url || null);
@@ -587,12 +588,13 @@ export function FullScreenEditor({
                   <div
                     key={page.id}
                     draggable
-                    onDragStart={() => setDraggedPageId(page.id)}
+                    onDragStart={() => { draggedPageRef.current = page.id; setDraggedPageId(page.id); }}
                     onDragOver={(e) => { e.preventDefault(); setDragOverPageId(page.id); }}
-                    onDragEnd={() => { setDraggedPageId(null); setDragOverPageId(null); }}
+                    onDragEnd={() => { draggedPageRef.current = null; setDraggedPageId(null); setDragOverPageId(null); }}
                     onDrop={(e) => {
                       e.preventDefault();
-                      if (draggedPageId) reorderPages(draggedPageId, page.id);
+                      if (draggedPageRef.current) reorderPages(draggedPageRef.current, page.id);
+                      draggedPageRef.current = null;
                       setDraggedPageId(null);
                       setDragOverPageId(null);
                     }}

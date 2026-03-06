@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   const { data: soonMeetings } = await supabaseAdmin
     .from("meetings")
     .select(`
-      id, start_time, duration_minutes, meeting_type, location,
+      id, event_id, start_time, duration_minutes, meeting_type, location,
       requester_id, recipient_id
     `)
     .eq("status", "accepted")
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   const { data: upcomingMeetings } = await supabaseAdmin
     .from("meetings")
     .select(`
-      id, start_time, duration_minutes, meeting_type, location,
+      id, event_id, start_time, duration_minutes, meeting_type, location,
       requester_id, recipient_id
     `)
     .eq("status", "accepted")
@@ -97,13 +97,15 @@ export async function GET(request: Request) {
     const timeLabel = meeting.reminderType === "15min" ? "in 15 minutes" : "in 1 hour";
     const locationStr = meeting.location ? ` at ${meeting.location}` : "";
 
+    const meetingLink = `/dashboard/events/${meeting.event_id}/meetings`;
+
     // Notify requester
     notifications.push({
       user_id: requester.user_id,
       type: "meeting_reminder",
       title: `Meeting with ${recipient.profiles.full_name} ${timeLabel}`,
       body: `${timeStr}${locationStr} · ${meeting.duration_minutes}min`,
-      link: "/dashboard/meetings",
+      link: meetingLink,
     });
 
     // Notify recipient
@@ -112,7 +114,7 @@ export async function GET(request: Request) {
       type: "meeting_reminder",
       title: `Meeting with ${requester.profiles.full_name} ${timeLabel}`,
       body: `${timeStr}${locationStr} · ${meeting.duration_minutes}min`,
-      link: "/dashboard/meetings",
+      link: meetingLink,
     });
   }
 

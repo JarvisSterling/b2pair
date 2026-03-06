@@ -75,7 +75,7 @@ const templates: Record<string, (data: Record<string, string>) => { subject: str
         <strong>Duration:</strong> ${data.duration || "30"} minutes<br>
         ${data.time ? `<strong>Proposed time:</strong> ${data.time}` : ""}
       </p>
-      ${button("View Request", `${BRAND.url}/dashboard/meetings`)}
+      ${button("View Request", `${BRAND.url}${data.eventId ? `/dashboard/events/${data.eventId}/meetings` : "/dashboard/meetings"}`)}
     `),
   }),
 
@@ -88,7 +88,7 @@ const templates: Record<string, (data: Record<string, string>) => { subject: str
         at <strong>${data.eventName}</strong>.
       </p>
       ${data.time ? `<p style="color:#52525b;line-height:1.6;margin:0 0 16px"><strong>When:</strong> ${data.time}</p>` : ""}
-      ${button("View Meeting", `${BRAND.url}/dashboard/meetings`)}
+      ${button("View Meeting", `${BRAND.url}${data.eventId ? `/dashboard/events/${data.eventId}/meetings` : "/dashboard/meetings"}`)}
     `),
   }),
 
@@ -104,7 +104,7 @@ const templates: Record<string, (data: Record<string, string>) => { subject: str
         <p style="margin:0 0 4px;color:#18181b"><strong>Duration:</strong> ${data.duration} min</p>
         ${data.location ? `<p style="margin:0;color:#18181b"><strong>Location:</strong> ${data.location}</p>` : ""}
       </div>
-      ${button("Open Meetings", `${BRAND.url}/dashboard/meetings`)}
+      ${button("Open Meetings", `${BRAND.url}${data.eventId ? `/dashboard/events/${data.eventId}/meetings` : "/dashboard/meetings"}`)}
     `),
   }),
 
@@ -121,7 +121,7 @@ const templates: Record<string, (data: Record<string, string>) => { subject: str
         <p style="margin:0;color:${BRAND.accent};font-weight:600">${data.score}% match</p>
         ${data.reason ? `<p style="margin:4px 0 0;color:#52525b;font-size:13px">${data.reason}</p>` : ""}
       </div>
-      ${button("View Match", `${BRAND.url}/dashboard/matches`)}
+      ${button("View Match", `${BRAND.url}${data.eventId ? `/dashboard/events/${data.eventId}/matches` : "/dashboard/matches"}`)}
     `),
   }),
 };

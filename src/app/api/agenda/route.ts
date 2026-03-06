@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         *,
         session_speakers(
           id, role, sort_order,
-          speaker:speakers(id, full_name, title, company, avatar_url)
+          speaker:speakers(id, full_name, title, company, bio, avatar_url)
         )
       `)
       .eq("event_id", eventId)

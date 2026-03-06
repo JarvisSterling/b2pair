@@ -37,11 +37,13 @@ interface Session {
   end_time: string;
   is_break: boolean;
   session_speakers: {
+    role: string | null;
     speaker: {
       id: string;
       full_name: string;
       title: string | null;
       company: string | null;
+      bio: string | null;
       avatar_url: string | null;
     };
   }[];
@@ -421,22 +423,30 @@ export default function ParticipantAgendaPage() {
                     <p className="text-caption font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
                       <Mic2 className="h-3.5 w-3.5" /> Speakers
                     </p>
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
                       {s.session_speakers.map((ss) => (
-                        <div key={ss.speaker.id} className="flex items-center gap-3">
+                        <div key={ss.speaker.id} className="flex items-start gap-3">
                           {ss.speaker.avatar_url ? (
-                            <SafeImage src={ss.speaker.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" width={40} height={40} />
+                            <SafeImage src={ss.speaker.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover shrink-0 mt-0.5" width={40} height={40} />
                           ) : (
-                            <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-body font-semibold shrink-0">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-body font-semibold shrink-0 mt-0.5">
                               {ss.speaker.full_name[0]}
                             </div>
                           )}
-                          <div>
-                            <p className="text-body font-medium">{ss.speaker.full_name}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-body font-medium">{ss.speaker.full_name}</p>
+                              {ss.role && (
+                                <Badge variant="secondary" className="text-[10px] capitalize">{ss.role}</Badge>
+                              )}
+                            </div>
                             {(ss.speaker.title || ss.speaker.company) && (
                               <p className="text-caption text-muted-foreground">
                                 {[ss.speaker.title, ss.speaker.company].filter(Boolean).join(" · ")}
                               </p>
+                            )}
+                            {ss.speaker.bio && (
+                              <p className="text-caption text-muted-foreground mt-1 leading-relaxed">{ss.speaker.bio}</p>
                             )}
                           </div>
                         </div>

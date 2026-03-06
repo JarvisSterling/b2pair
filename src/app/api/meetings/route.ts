@@ -63,7 +63,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // NOTE: meeting_request notification is handled by the DB trigger `notify_meeting_change`
+  // Notify the recipient about the new meeting request
+  try {
+    const [{ data: recipientParticipant }, { data: myProfile }] = await Promise.all([
+      supabase.from("participants").select("user_id").eq("id", recipientParticipantId).single(),
+      supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+    ]);
+    if (recipientParticipant) {
+      await createNotification(supabase, {
+        userId: recipientParticipant.user_id,
+        eventId,
+        type: "meeting_request",
+        title: "New meeting request",
+        body: `${myProfile?.full_name || "Someone"} wants to meet with you`,
+        link: `/dashboard/events/${eventId}/meetings`,
+      });
+    }
+  } catch {
+    // Don't fail the main request if notification fails
+  }
 
   return NextResponse.json({ success: true, meetingId: meeting.id });
 }
@@ -178,50 +196,92 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // NOTE: meeting_accepted / meeting_declined / meeting_cancelled notifications
-  // are handled by the DB trigger `notify_meeting_change` to avoid duplicates.
+  // ── Status change notifications + outcome feedback loop ──
+  if (status || rating !== undefined) {
+    try {
+      const { data: meetingData } = await supabase
+        .from("meetings")
+        .select("event_id, requester_id, recipient_id, status, requester_rating, recipient_rating")
+        .eq("id", meetingId)
+        .single();
 
-  // ── Outcome feedback loop for intent engine ──
-  // Record activity signals when meetings are accepted or rated
-  try {
-    const { data: meetingData } = await supabase
-      .from("meetings")
-      .select("event_id, requester_id, recipient_id, status, requester_rating, recipient_rating")
-      .eq("id", meetingId)
-      .single();
+      if (meetingData) {
+        const { data: myParticipants } = await supabase
+          .from("participants")
+          .select("id")
+          .eq("user_id", user.id);
+        const myIds = new Set((myParticipants || []).map((p) => p.id));
+        const amRequester = myIds.has(meetingData.requester_id);
+        const myPid = amRequester ? meetingData.requester_id : meetingData.recipient_id;
+        const otherPid = amRequester ? meetingData.recipient_id : meetingData.requester_id;
 
-    if (meetingData) {
-      const { data: myParticipants } = await supabase
-        .from("participants")
-        .select("id")
-        .eq("user_id", user.id);
-      const myIds = new Set((myParticipants || []).map((p) => p.id));
-      const myPid = myIds.has(meetingData.requester_id) ? meetingData.requester_id : meetingData.recipient_id;
-      const otherPid = myPid === meetingData.requester_id ? meetingData.recipient_id : meetingData.requester_id;
+        // ── Fire notifications for accepted / declined / cancelled ──
+        const notifyStatuses = ["accepted", "declined", "cancelled"];
+        if (status && notifyStatuses.includes(status) && !reschedule) {
+          const [{ data: otherParticipant }, { data: myProfile }] = await Promise.all([
+            supabase.from("participants").select("user_id").eq("id", otherPid).single(),
+            supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+          ]);
 
-      if (status === "accepted") {
-        await supabase.from("participant_activity").insert({
-          participant_id: myPid,
-          event_id: meetingData.event_id,
-          action_type: "meeting_accepted",
-          target_participant_id: otherPid,
-          metadata: {},
-        });
+          const myName = myProfile?.full_name || "Someone";
+          const link = `/dashboard/events/${meetingData.event_id}/meetings`;
+
+          if (otherParticipant) {
+            if (status === "accepted") {
+              await createNotification(supabase, {
+                userId: otherParticipant.user_id,
+                eventId: meetingData.event_id,
+                type: "meeting_accepted",
+                title: "Meeting request accepted",
+                body: `${myName} accepted your meeting request`,
+                link,
+              });
+            } else if (status === "declined") {
+              await createNotification(supabase, {
+                userId: otherParticipant.user_id,
+                eventId: meetingData.event_id,
+                type: "meeting_declined",
+                title: "Meeting request declined",
+                body: `${myName} couldn't make it work this time`,
+                link,
+              });
+            } else if (status === "cancelled") {
+              await createNotification(supabase, {
+                userId: otherParticipant.user_id,
+                eventId: meetingData.event_id,
+                type: "meeting_cancelled",
+                title: "Meeting cancelled",
+                body: `${myName} cancelled the meeting`,
+                link,
+              });
+            }
+          }
+        }
+
+        // ── Outcome feedback loop for intent engine ──
+        if (status === "accepted") {
+          await supabase.from("participant_activity").insert({
+            participant_id: myPid,
+            event_id: meetingData.event_id,
+            action_type: "meeting_accepted",
+            target_participant_id: otherPid,
+            metadata: {},
+          });
+        }
+
+        if (rating !== undefined && rating >= 4) {
+          await supabase.from("participant_activity").insert({
+            participant_id: myPid,
+            event_id: meetingData.event_id,
+            action_type: "meeting_rated",
+            target_participant_id: otherPid,
+            metadata: { rating, positive: true },
+          });
+        }
       }
-
-      if (rating !== undefined && rating >= 4) {
-        // Positive rating = strong signal that this was a good match
-        await supabase.from("participant_activity").insert({
-          participant_id: myPid,
-          event_id: meetingData.event_id,
-          action_type: "meeting_rated",
-          target_participant_id: otherPid,
-          metadata: { rating, positive: true },
-        });
-      }
+    } catch {
+      // Don't fail the request if tracking/notification fails
     }
-  } catch {
-    // Don't fail the request if tracking fails
   }
 
   return NextResponse.json({ success: true });

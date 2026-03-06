@@ -172,7 +172,7 @@ export default function NotificationsPage() {
                 className={`flex items-start gap-3 rounded-md p-4 transition-colors duration-150 cursor-pointer ${
                   notification.read
                     ? "hover:bg-secondary/50"
-                    : "bg-primary/3 hover:bg-primary/5"
+                    : "bg-primary/5 hover:bg-primary/10"
                 }`}
                 onClick={() => !notification.read && markRead(notification.id)}
               >
@@ -191,7 +191,7 @@ export default function NotificationsPage() {
                     )}
                   </div>
                   {notification.body && (
-                    <p className="text-caption text-muted-foreground mt-0.5 truncate">
+                    <p className="text-caption text-muted-foreground mt-0.5 line-clamp-2">
                       {notification.body}
                     </p>
                   )}

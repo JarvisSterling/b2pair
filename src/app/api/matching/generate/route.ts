@@ -331,7 +331,7 @@ export async function POST(request: Request) {
           type: "new_match",
           title: "Your matches are ready",
           body: `You have ${matchCountByParticipant.get(p.id)} new matches at ${eventName}`,
-          link: "/dashboard/matches",
+          link: `/dashboard/events/${eventId}/matches`,
         }));
 
       if (notifications.length > 0) {

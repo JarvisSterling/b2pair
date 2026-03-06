@@ -163,7 +163,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
       const notif = typeMap[finalStatus];
       if (notif) {
-        const link = `/events/${eventId}/sponsors/${companyId}`;
+        const link = `/dashboard/company/${companyId}`;
         await createNotifications(
           admin,
           members.map((m) => ({

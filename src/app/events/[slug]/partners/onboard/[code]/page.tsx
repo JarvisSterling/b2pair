@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -70,6 +70,9 @@ export default function OnboardWizardPage() {
   const [authForm, setAuthForm] = useState({ first_name: "", last_name: "", email: "", password: "" });
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Step validation error (shown inline)
+  const [stepError, setStepError] = useState<string | null>(null);
 
   // Editable company name (pre-filled from invite)
   const [companyName, setCompanyName] = useState("");
@@ -358,7 +361,42 @@ export default function OnboardWizardPage() {
     return steps;
   }
 
+  // Check whether a step's required fields are complete (for step indicator + nav guard)
+  function isStepComplete(stepKey: WizardStep): boolean {
+    switch (stepKey) {
+      case "brand": return !!logo;
+      case "profile": return !!descShort;
+      case "sponsor": return ctaButtons.length > 0;
+      case "exhibitor": return products.length > 0 || !!descLong;
+      case "team": return true;    // optional
+      case "personal": return true; // optional
+      default: return true;
+    }
+  }
+
+  // Validate current step before advancing
+  function canAdvanceFrom(stepKey: WizardStep): string | null {
+    switch (stepKey) {
+      case "brand":
+        return logo ? null : "Please add a Logo URL before continuing.";
+      case "profile":
+        return descShort ? null : "Please add a Short description before continuing.";
+      case "sponsor":
+        return ctaButtons.length > 0 ? null : "Please add at least one CTA button before continuing.";
+      case "exhibitor":
+        return (products.length > 0 || !!descLong) ? null : "Please add your products or a detailed description before continuing.";
+      default:
+        return null;
+    }
+  }
+
   function nextStep() {
+    const validationError = canAdvanceFrom(step);
+    if (validationError) {
+      setStepError(validationError);
+      return;
+    }
+    setStepError(null);
     saveProgress();
     const steps = getSteps();
     const idx = steps.findIndex((s) => s.key === step);
@@ -366,6 +404,7 @@ export default function OnboardWizardPage() {
   }
 
   function prevStep() {
+    setStepError(null);
     const steps = getSteps();
     const idx = steps.findIndex((s) => s.key === step);
     if (idx > 0) setStep(steps[idx - 1].key);
@@ -447,21 +486,25 @@ export default function OnboardWizardPage() {
             {steps.map((s, i) => {
               const Icon = s.icon;
               const isActive = s.key === step;
-              const isDone = i < currentStepIndex;
+              const isPast = i < currentStepIndex;
+              const isDone = isPast && isStepComplete(s.key);
+              const hasIssue = isPast && !isStepComplete(s.key);
               return (
                 <div key={s.key} className="flex items-center gap-2">
-                  {i > 0 && <div className={`h-px w-8 ${isDone ? "bg-primary" : "bg-border"}`} />}
+                  {i > 0 && <div className={`h-px w-8 ${isPast ? (isDone ? "bg-primary" : "bg-orange-400") : "bg-border"}`} />}
                   <button
-                    onClick={() => { if (isDone) { saveProgress(); setStep(s.key); } }}
+                    onClick={() => { if (isPast) { setStepError(null); saveProgress(); setStep(s.key); } }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption font-medium transition-all ${
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : isDone
                         ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
+                        : hasIssue
+                        ? "bg-orange-400/10 text-orange-500 cursor-pointer hover:bg-orange-400/20"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {isDone ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                    {isDone ? <Check className="h-3 w-3" /> : hasIssue ? <AlertCircle className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
                     <span className="hidden sm:inline">{s.label}</span>
                   </button>
                 </div>
@@ -570,7 +613,7 @@ export default function OnboardWizardPage() {
                 </div>
               </CardContent>
             </Card>
-            <StepNav onNext={nextStep} saving={saving} />
+            <StepNav onNext={nextStep} saving={saving} error={stepError} />
           </div>
         )}
 
@@ -625,7 +668,7 @@ export default function OnboardWizardPage() {
                 </div>
               </CardContent>
             </Card>
-            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} />
+            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} error={stepError} />
           </div>
         )}
 
@@ -710,7 +753,7 @@ export default function OnboardWizardPage() {
                 </div>
               </CardContent>
             </Card>
-            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} />
+            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} error={stepError} />
           </div>
         )}
 
@@ -816,7 +859,7 @@ export default function OnboardWizardPage() {
                 </div>
               </CardContent>
             </Card>
-            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} />
+            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} error={stepError} />
           </div>
         )}
 
@@ -867,7 +910,7 @@ export default function OnboardWizardPage() {
                 </div>
               </CardContent>
             </Card>
-            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} />
+            <StepNav onPrev={prevStep} onNext={nextStep} saving={saving} error={stepError} />
           </div>
         )}
 
@@ -1025,15 +1068,15 @@ export default function OnboardWizardPage() {
 
                 {/* Checklist */}
                 <div className="space-y-2">
-                  <CheckItem label="Logo" done={!!logo} />
-                  <CheckItem label="Short description" done={!!descShort} />
+                  <CheckItem label="Logo" done={!!logo} goTo={() => { setStepError(null); setStep("brand"); }} />
+                  <CheckItem label="Short description" done={!!descShort} goTo={() => { setStepError(null); setStep("profile"); }} />
                   <CheckItem label="Banner image" done={!!banner} optional />
                   <CheckItem label="Detailed description" done={!!descLong} optional />
                   {data.company.capabilities.includes("sponsor") && (
                     <>
                       <div className="border-t border-border my-3" />
                       <p className="text-[10px] font-medium text-muted-foreground">Sponsor</p>
-                      <CheckItem label="CTA buttons" done={ctaButtons.length > 0} />
+                      <CheckItem label="CTA buttons" done={ctaButtons.length > 0} goTo={() => { setStepError(null); setStep("sponsor"); }} />
                       <CheckItem label="Tagline" done={!!tagline} optional />
                       <CheckItem label="Downloadable resources" done={downloadables.length > 0} optional />
                     </>
@@ -1042,7 +1085,7 @@ export default function OnboardWizardPage() {
                     <>
                       <div className="border-t border-border my-3" />
                       <p className="text-[10px] font-medium text-muted-foreground">Exhibitor</p>
-                      <CheckItem label="Products or detailed description" done={products.length > 0 || !!descLong} />
+                      <CheckItem label="Products or detailed description" done={products.length > 0 || !!descLong} goTo={() => { setStepError(null); setStep("exhibitor"); }} />
                       <CheckItem label="Booth number" done={!!boothNumber} optional />
                       <CheckItem label="Resources" done={resources.length > 0} optional />
                     </>
@@ -1120,26 +1163,34 @@ export default function OnboardWizardPage() {
   );
 }
 
-function StepNav({ onPrev, onNext, saving }: { onPrev?: () => void; onNext: () => void; saving: boolean }) {
+function StepNav({ onPrev, onNext, saving, error }: { onPrev?: () => void; onNext: () => void; saving: boolean; error?: string | null }) {
   return (
-    <div className="flex gap-3">
-      {onPrev && (
-        <Button variant="outline" onClick={onPrev}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
-        </Button>
+    <div className="space-y-3">
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-orange-400/30 bg-orange-400/5 px-3 py-2 text-sm text-orange-600 dark:text-orange-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
       )}
-      <Button onClick={onNext} disabled={saving} className="ml-auto">
-        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Save & Continue <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
+      <div className="flex gap-3">
+        {onPrev && (
+          <Button variant="outline" onClick={onPrev}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
+        )}
+        <Button onClick={onNext} disabled={saving} className="ml-auto">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Save & Continue <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
 
-function CheckItem({ label, done, optional }: { label: string; done: boolean; optional?: boolean }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
+function CheckItem({ label, done, optional, goTo }: { label: string; done: boolean; optional?: boolean; goTo?: () => void }) {
+  const content = (
+    <div className={`flex items-center gap-2 ${!done && !optional && goTo ? "group cursor-pointer" : ""}`}>
+      <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
         done ? "bg-green-500/10 text-green-500" : optional ? "bg-muted text-muted-foreground" : "bg-red-500/10 text-red-500"
       }`}>
         {done ? <Check className="h-3 w-3" /> : <span className="text-[10px]">{optional ? "—" : "!"}</span>}
@@ -1148,6 +1199,14 @@ function CheckItem({ label, done, optional }: { label: string; done: boolean; op
         {label}
       </span>
       {optional && !done && <span className="text-[10px] text-muted-foreground">(optional)</span>}
+      {!done && !optional && goTo && (
+        <span className="text-[10px] text-red-400 underline group-hover:text-red-600 ml-auto">Fix →</span>
+      )}
     </div>
   );
+
+  if (!done && !optional && goTo) {
+    return <button type="button" onClick={goTo} className="w-full text-left">{content}</button>;
+  }
+  return content;
 }

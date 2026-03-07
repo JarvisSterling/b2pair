@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSWRFetch } from "@/hooks/use-swr-fetch";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -126,7 +126,7 @@ export default function ParticipantExhibitorsPage() {
   if (search) queryParams.set("search", search);
   if (category) queryParams.set("category", category);
 
-  const { data: exhibitorData, isLoading: loading, mutate } = useSWRFetch<{ exhibitors: Exhibitor[]; categories: string[] }>(
+  const { data: exhibitorData, isLoading: loading, mutate } = useSWRFetch<{ exhibitors: Exhibitor[]; categories: string[]; myParticipantId: string | null }>(
     `/api/events/${eventId}/exhibitors?${queryParams}`,
     { keepPreviousData: true }
   );
@@ -139,6 +139,27 @@ export default function ParticipantExhibitorsPage() {
 
   const exhibitors = exhibitorData?.exhibitors || [];
   const categories = exhibitorData?.categories || [];
+  const myParticipantId = exhibitorData?.myParticipantId ?? null;
+
+  // Track which exhibitors we've already captured a lead for (per page session)
+  const capturedLeads = useRef<Set<string>>(new Set());
+
+  // Auto-capture lead when a participant opens an exhibitor's detail
+  useEffect(() => {
+    if (!selected || !myParticipantId) return;
+    if (capturedLeads.current.has(selected.id)) return;
+    capturedLeads.current.add(selected.id);
+
+    fetch(`/api/companies/${selected.id}/leads`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_id: eventId,
+        participant_id: myParticipantId,
+        source: "profile_view",
+      }),
+    }).catch(() => {/* non-fatal */});
+  }, [selected, myParticipantId, eventId]);
 
   async function openMemberPanel(member: TeamMember) {
     if (!member.participant_id) return;

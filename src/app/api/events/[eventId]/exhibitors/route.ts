@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -98,8 +99,27 @@ export async function GET(request: Request, { params }: Params) {
     );
   });
 
+  // Resolve the calling user's participant ID so the client can self-capture leads
+  let myParticipantId: string | null = null;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: myParticipant } = await admin
+        .from("participants")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      myParticipantId = myParticipant?.id || null;
+    }
+  } catch {
+    // non-fatal — lead capture degrades gracefully without it
+  }
+
   return NextResponse.json({
     exhibitors: result,
     categories: Array.from(allCategories).sort(),
+    myParticipantId,
   });
 }

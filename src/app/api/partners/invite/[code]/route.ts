@@ -103,18 +103,23 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   // Update profile in profiles table
+  // IMPORTANT: must include `email` (NOT NULL, no default) so the INSERT
+  // part of the upsert doesn't fail before PostgreSQL reaches the ON CONFLICT
+  // branch — without it the upsert silently fails for existing users.
   await admin
     .from("profiles")
     .upsert({
       id: user.id,
-      full_name: full_name || user.user_metadata?.full_name,
-      avatar_url: avatar_url || user.user_metadata?.avatar_url,
+      email: user.email,
+      full_name: full_name || user.user_metadata?.full_name || user.email,
+      avatar_url: avatar_url || user.user_metadata?.avatar_url || null,
       bio: bio || null,
       title: title || null,
       company_name: company.name || null,
       expertise_areas: expertise_areas || [],
       interests: user_interests || [],
       onboarding_completed: true,
+      updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
 
   // Determine company_role based on capabilities

@@ -11,6 +11,7 @@ export interface CompanyMembership {
   capabilities: ("sponsor" | "exhibitor")[];
   company_status: string;
   role: string;
+  invite_code: string | null;
   event_id: string;
   event_name: string;
   event_slug: string;

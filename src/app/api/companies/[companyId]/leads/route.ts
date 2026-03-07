@@ -122,11 +122,24 @@ export async function POST(request: Request, { params }: Params) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Increment leads_captured in analytics (fire-and-forget)
+  // Update analytics counters (fire-and-forget)
   const today = new Date().toISOString().split("T")[0];
+  const isProfileView = source === "profile_view";
+
+  // Count distinct leads today to determine unique visitor increment
+  const { count: existingLeadsToday } = await admin
+    .from("company_leads")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .eq("event_id", event_id)
+    .eq("participant_id", participant_id || "")
+    .gte("created_at", `${today}T00:00:00Z`);
+  // If > 1 it means the upsert hit an existing lead → not a new unique visitor today
+  const isNewVisitorToday = (existingLeadsToday ?? 0) <= 1;
+
   const { data: existing } = await admin
     .from("company_analytics")
-    .select("id, leads_captured")
+    .select("id, leads_captured, profile_views, unique_visitors")
     .eq("company_id", companyId)
     .eq("date", today)
     .maybeSingle();
@@ -134,6 +147,8 @@ export async function POST(request: Request, { params }: Params) {
   if (existing) {
     await admin.from("company_analytics").update({
       leads_captured: (existing.leads_captured || 0) + 1,
+      profile_views: isProfileView ? (existing.profile_views || 0) + 1 : (existing.profile_views || 0),
+      unique_visitors: isNewVisitorToday ? (existing.unique_visitors || 0) + 1 : (existing.unique_visitors || 0),
     }).eq("id", existing.id);
   } else {
     await admin.from("company_analytics").insert({
@@ -141,8 +156,8 @@ export async function POST(request: Request, { params }: Params) {
       event_id,
       date: today,
       leads_captured: 1,
-      profile_views: 0,
-      unique_visitors: 0,
+      profile_views: isProfileView ? 1 : 0,
+      unique_visitors: isNewVisitorToday ? 1 : 0,
       resource_downloads: 0,
       cta_clicks: {},
       meeting_requests_received: 0,
